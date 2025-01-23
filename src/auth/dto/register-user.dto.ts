@@ -9,7 +9,7 @@ export class RegisterUserDto {
   @MaxLength(65, { message: 'Maximum 65 characters supported' })
   name: string;
 
-  @ApiProperty({ default: 'bh123@gmail.com' })
+  @ApiProperty({ default: 'sadikuzzaman1996@gmail.com' })
   @IsNotEmpty({ message: 'Must be non empty' })
   @IsEmail()
   @MaxLength(100, { message: 'Maximum 100 characters supported' })

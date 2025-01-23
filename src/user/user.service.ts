@@ -89,30 +89,11 @@ export class UserService {
     return { ...user, access_token };
   }
 
-  async verifyEmail(token: string): Promise<{ message: string }> {
-    try {
-      const user = await this.userRepository.findOneBy({
-        verification_token: token,
-      });
-
-      if (!user) {
-        throw new NotFoundException('Verification token not found');
-      }
-
-      user.verification_token = null;
-      user.is_active = ActiveStatusEnum.ACTIVE;
-
-      await this.userRepository.save(user);
-      return { message: 'Email verified successfully' };
-    } catch (error) {
-      throw new BadRequestException('Error verifying email token');
-    }
-  }
-
   private generateJwtToken(user: UserEntity): string {
     const payload = {
       id: user.id,
       email: user.email,
+      userName: user.name
     };
 
     const token = this.jwtService.sign(payload, {
