@@ -22,10 +22,6 @@ export class AuthService {
     return await this.userService.validateUserEmailPass(localUser);
   }
 
-  async verifyEmailToken(token: string) {
-    return await this.userService.verifyEmail(token);
-  }
-
   async resetPassword(token, newPassword, confirmNewPassword) {
     return await this.userService.resetUserPassword(
       token,
