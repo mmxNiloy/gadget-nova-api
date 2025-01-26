@@ -1,11 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
+import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+import { Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { CategoryEntity } from './entities/category.entity';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 
 @Injectable()
 export class CategoryService {
@@ -19,16 +23,14 @@ export class CategoryService {
     jwtPayload: JwtPayloadInterface,
   ): Promise<CategoryEntity> {
     try {
+      console.log({ jwtPayload });
 
-      console.log({jwtPayload});
-      
-      
-      console.log({createCategoryDto});
+      console.log({ createCategoryDto });
       const categoryEntity = {
         ...createCategoryDto,
         created_at: new Date(),
         created_by: jwtPayload.id,
-        created_user_name: jwtPayload.userName
+        created_user_name: jwtPayload.userName,
       };
 
       const category = await this.categoryRepository.save(categoryEntity);
@@ -41,7 +43,9 @@ export class CategoryService {
 
   async findAll(): Promise<CategoryEntity[]> {
     try {
-      const categories = await this.categoryRepository.find();
+      const categories = await this.categoryRepository.find({
+        where: { is_active: ActiveStatusEnum.ACTIVE },
+      });
       return categories;
     } catch (error) {
       throw new BadRequestException(error?.response?.message);
@@ -51,14 +55,34 @@ export class CategoryService {
   async findOne(id: string): Promise<CategoryEntity> {
     try {
       const category = await this.categoryRepository.findOne({
-        where: { id: id, is_active:ActiveStatusEnum.ACTIVE },
+        where: { id: id, is_active: ActiveStatusEnum.ACTIVE },
       });
 
-      if(!category){
-        throw new NotFoundException("Category Not found")
+      if (!category) {
+        throw new NotFoundException('Category Not found');
       }
 
       return category;
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
+  async findMany(ids: string[]): Promise<CategoryEntity[]> {
+    try {
+      const categories = await this.categoryRepository
+        .createQueryBuilder('category')
+        .where('category.is_active = :status',{
+          status:ActiveStatusEnum.ACTIVE
+        })
+        .whereInIds(ids)
+        .getMany();
+
+      if (!categories.length) {
+        throw new NotFoundException('Category Not found');
+      }
+
+      return categories;
     } catch (error) {
       throw new BadRequestException(error?.response?.message);
     }
@@ -77,7 +101,7 @@ export class CategoryService {
         ...updateCategoryDto,
         updated_at: new Date(),
         updated_by: jwtPayload.id,
-        updated_user_name: jwtPayload.userName
+        updated_user_name: jwtPayload.userName,
       };
 
       const updated = await this.categoryRepository.save(updatedCategory);
@@ -100,7 +124,7 @@ export class CategoryService {
         is_active: ActiveStatusEnum.INACTIVE,
         updated_by: jwtPayload.id,
         updated_at: new Date(),
-        updated_user_name: jwtPayload.userName
+        updated_user_name: jwtPayload.userName,
       };
 
       const deleted: CategoryEntity =
