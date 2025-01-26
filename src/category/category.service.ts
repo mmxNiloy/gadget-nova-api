@@ -76,7 +76,7 @@ export class CategoryService {
           status:ActiveStatusEnum.ACTIVE
         })
         .whereInIds(ids)
-        .execute();
+        .getMany();
 
       if (!categories.length) {
         throw new NotFoundException('Category Not found');
