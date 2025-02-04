@@ -7,6 +7,7 @@ import { UserModule } from './user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoryModule } from './category/category.module';
 import { BrandModule } from './brand/brand.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -19,13 +20,13 @@ import { BrandModule } from './brand/brand.module';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         host: String(configService.get('DATABASE_HOST')),
-        port: Number(configService.get('DATABASE_PORT')), // Ensures the port is a number
+        port: Number(configService.get('DATABASE_PORT')), 
         username: String(configService.get('DATABASE_USER')),
-        password: String(configService.get('DATABASE_PASSWORD') ?? ''), // Explicit string conversion
+        password: String(configService.get('DATABASE_PASSWORD') ?? ''), 
         database: String(configService.get('DATABASE_DB')),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: String(configService.get('DATABASE_SYNCRONIZE')) === 'true', // Convert to boolean
-        logging: String(configService.get('DATABASE_LOGGING')) === 'false', // Convert to boolean
+        synchronize: String(configService.get('DATABASE_SYNCRONIZE')) === 'true',
+        logging: String(configService.get('DATABASE_LOGGING')) === 'false',
         autoLoadEntities: false,
       }),
     }),
@@ -33,6 +34,7 @@ import { BrandModule } from './brand/brand.module';
     UserModule,
     CategoryModule,
     BrandModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

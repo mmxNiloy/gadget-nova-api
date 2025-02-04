@@ -1,7 +1,8 @@
 import { IsNotEmpty } from 'class-validator';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
-import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 import { CategoryEntity } from 'src/category/entities/category.entity';
+import { ProductEntity } from 'src/products/entities/product.entity';
 
 @Entity('brands')
 export class BrandEntity extends CustomBaseEntity {
@@ -22,4 +23,7 @@ export class BrandEntity extends CustomBaseEntity {
     },
   })
   categories: CategoryEntity[];
+
+  @OneToMany(() => ProductEntity, (productEntity) => productEntity.brand)
+  products: ProductEntity[];
 }
