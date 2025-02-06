@@ -1,7 +1,8 @@
 import { BrandEntity } from 'src/brand/entities/brand.entity';
 import { CategoryEntity } from 'src/category/entities/category.entity';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { ProductQuestionsEntity } from './product-questions.entity';
 
 @Entity('products')
 export class ProductEntity extends CustomBaseEntity {
@@ -44,4 +45,7 @@ export class ProductEntity extends CustomBaseEntity {
   @ManyToOne(() => BrandEntity, (brand) => brand.products, { eager: true })
   @JoinColumn({ name: 'brand_id' })
   brand: BrandEntity;
+
+  @OneToMany(() => ProductQuestionsEntity, (productQuestionsEntity) => productQuestionsEntity.product)
+  questions: ProductQuestionsEntity[];
 }
