@@ -1,16 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsDecimal,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
-  MaxLength,
+  MaxLength
 } from 'class-validator';
-import { BrandEntity } from 'src/brand/entities/brand.entity';
-import { CategoryEntity } from 'src/category/entities/category.entity';
 
 export class CreateProductDto {
   @ApiProperty({ default: 'Product Title' })
