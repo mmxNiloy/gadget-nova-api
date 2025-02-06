@@ -1,7 +1,7 @@
 import { BrandEntity } from 'src/brand/entities/brand.entity';
 import { CategoryEntity } from 'src/category/entities/category.entity';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 import { ProductQuestionsEntity } from './product-questions.entity';
 import { ProductRatingEntity } from './product-rating.entity';
 
@@ -33,6 +33,18 @@ export class ProductEntity extends CustomBaseEntity {
 
   @Column({ name: 'keyFeatures', type: 'text'})
   keyFeatures: string;
+
+  @Column({ name: 'stockAmount', type: 'int', default: 0 })
+  stockAmount: number;
+
+  @Column({ name: 'holdAmount', type: 'int', default: 0 })
+  holdAmount: number;
+
+  @Column({ name: 'soldAmount', type: 'int', default: 0 })
+  soldAmount: number;
+
+  @Column({ name: 'thresholdAMount', type: 'int', default: 3 })
+  thresholdAMount: number;
 
   @Column({ name:"specifications",type: 'json', nullable: true })
   specifications: Record<string, any>;

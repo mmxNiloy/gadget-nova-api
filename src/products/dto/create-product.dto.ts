@@ -64,6 +64,11 @@ export class CreateProductDto {
   @IsOptional()
   specifications: Record<string, any>;
 
+  @ApiProperty({ default: 3 })
+  @IsInt({ message: 'Threshold Amount must be an integer' })
+  @IsOptional()
+  thresholdAMount: number;
+
   @ApiProperty()
   @IsNotEmpty({ message: 'Category ID must be defined' })
   @IsUUID('all', { message: 'Category must be a valid UUID' })
