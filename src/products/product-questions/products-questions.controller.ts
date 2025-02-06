@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
-import { CreateProductQuestionsDto } from './dto/create-product-questions.dto';
+import { CreateProductQuestionsDto } from '../dto/create-product-questions.dto';
 import { ProductsQuestionsService } from './products-questions.service';
 
 @ApiTags('Product-questions')

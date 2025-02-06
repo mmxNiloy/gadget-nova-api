@@ -1,13 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
-import { ProductEntity } from './entities/product.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { CategoryService } from 'src/category/category.service';
+import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { BrandService } from 'src/brand/brand.service';
+import { CategoryService } from 'src/category/category.service';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+import { Repository } from 'typeorm';
+import { CreateProductDto } from '../dto/create-product.dto';
+import { UpdateProductDto } from '../dto/update-product.dto';
+import { ProductEntity } from '../entities/product.entity';
 
 @Injectable()
 export class ProductsService {
@@ -59,7 +59,7 @@ export class ProductsService {
 
   async findAll(): Promise<ProductEntity[]> {
     try {
-      return await this.productRepository.find({ relations: ['category','brand'] });
+      return await this.productRepository.find({ relations: ['category','brand','questions','questions.answer'] });
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -68,7 +68,7 @@ export class ProductsService {
   async findOne(id: string): Promise<ProductEntity> {
     const product = await this.productRepository.findOne({
       where: { id, is_active: ActiveStatusEnum.ACTIVE },
-      relations: ['category','brand'],
+      relations: ['category','brand','questions','questions.answer'],
     });
 
     if (!product) {

@@ -3,9 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { Repository } from 'typeorm';
-import { CreateProductQuestionsDto } from './dto/create-product-questions.dto';
-import { ProductQuestionsEntity } from './entities/product-questions.entity';
-import { ProductsService } from './products.service';
+import { CreateProductQuestionsDto } from '../dto/create-product-questions.dto';
+import { ProductQuestionsEntity } from '../entities/product-questions.entity';
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class ProductsQuestionsService {
