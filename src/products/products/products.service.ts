@@ -51,6 +51,9 @@ export class ProductsService {
         created_at: new Date(),
       });
 
+      productEntity.stockAmount = createProductDto.quantity
+      productEntity.thresholdAMount = createProductDto.thresholdAMount
+
       return await this.productRepository.save(productEntity);
     } catch (error) {
       throw new BadRequestException(error.message);
