@@ -59,7 +59,7 @@ export class ProductsService {
 
   async findAll(): Promise<ProductEntity[]> {
     try {
-      return await this.productRepository.find({ relations: ['category','brand','questions','questions.answer'] });
+      return await this.productRepository.find({ relations: ['category','brand','questions','questions.answer','ratings'] });
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -68,7 +68,7 @@ export class ProductsService {
   async findOne(id: string): Promise<ProductEntity> {
     const product = await this.productRepository.findOne({
       where: { id, is_active: ActiveStatusEnum.ACTIVE },
-      relations: ['category','brand','questions','questions.answer'],
+      relations: ['category','brand','questions','questions.answer','ratings'],
     });
 
     if (!product) {

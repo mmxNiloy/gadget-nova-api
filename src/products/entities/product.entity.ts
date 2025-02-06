@@ -3,6 +3,7 @@ import { CategoryEntity } from 'src/category/entities/category.entity';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ProductQuestionsEntity } from './product-questions.entity';
+import { ProductRatingEntity } from './product-rating.entity';
 
 @Entity('products')
 export class ProductEntity extends CustomBaseEntity {
@@ -48,4 +49,7 @@ export class ProductEntity extends CustomBaseEntity {
 
   @OneToMany(() => ProductQuestionsEntity, (productQuestionsEntity) => productQuestionsEntity.product)
   questions: ProductQuestionsEntity[];
+
+  @OneToMany(() => ProductRatingEntity, (productRatingEntity) => productRatingEntity.product)
+  ratings: ProductRatingEntity[];
 }
