@@ -1,5 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMinSize,
+  IsArray,
+  IsInstance,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -78,4 +81,18 @@ export class CreateProductDto {
   @IsNotEmpty({ message: 'Brand ID must be defined' })
   @IsUUID('all', { message: 'Brand must be a valid UUID' })
   brand_id: string;
+  
+  @ApiPropertyOptional({ type: 'string', format: 'binary' })
+  @IsOptional()
+  thumbnail: Express.Multer.File;
+
+  @ApiPropertyOptional({
+    type: 'array',
+    items: { type: 'string', format: 'binary' },
+    description: 'Gallery of images',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Gallery should contain at least one image' })
+  gallery: Express.Multer.File[];
 }

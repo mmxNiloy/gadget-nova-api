@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { BrandService } from 'src/brand/brand.service';
@@ -21,20 +25,18 @@ export class ProductsService {
   async create(
     createProductDto: CreateProductDto,
     jwtPayload: JwtPayloadInterface,
+    thumbnail?: Express.Multer.File,
+    gallery?: Express.Multer.File[],
   ): Promise<ProductEntity> {
     try {
       const category = await this.categoryService.findOne(
         createProductDto.category_id,
       );
-
       if (!category) {
         throw new NotFoundException('Category not found');
       }
 
-      const brand = await this.brandService.findOne(
-        createProductDto.brand_id,
-      );
-
+      const brand = await this.brandService.findOne(createProductDto.brand_id);
       if (!brand) {
         throw new NotFoundException('Brand not found');
       }
@@ -46,13 +48,23 @@ export class ProductsService {
         ...createProductDto,
         category: category,
         brand: brand,
+        thumbnail: createProductDto.thumbnail ? createProductDto.thumbnail.path : null,
+        gallery: createProductDto.gallery ? createProductDto.gallery.map((file) => file.path) : [],
         created_by: jwtPayload.id,
         created_user_name: jwtPayload.userName,
         created_at: new Date(),
       });
 
-      productEntity.stockAmount = createProductDto.quantity
-      productEntity.thresholdAMount = createProductDto.thresholdAMount
+      productEntity.stockAmount = createProductDto.quantity;
+      productEntity.thresholdAMount = createProductDto.thresholdAMount;
+
+      if (thumbnail) {
+        productEntity.thumbnail = thumbnail.filename;
+      }
+
+      if (gallery) {
+        productEntity.gallery = gallery.map((file) => file.filename);
+      }
 
       return await this.productRepository.save(productEntity);
     } catch (error) {
@@ -62,7 +74,15 @@ export class ProductsService {
 
   async findAll(): Promise<ProductEntity[]> {
     try {
-      return await this.productRepository.find({ relations: ['category','brand','questions','questions.answer','ratings'] });
+      return await this.productRepository.find({
+        relations: [
+          'category',
+          'brand',
+          'questions',
+          'questions.answer',
+          'ratings',
+        ],
+      });
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -71,7 +91,13 @@ export class ProductsService {
   async findOne(id: string): Promise<ProductEntity> {
     const product = await this.productRepository.findOne({
       where: { id, is_active: ActiveStatusEnum.ACTIVE },
-      relations: ['category','brand','questions','questions.answer','ratings'],
+      relations: [
+        'category',
+        'brand',
+        'questions',
+        'questions.answer',
+        'ratings',
+      ],
     });
 
     if (!product) {
@@ -83,42 +109,48 @@ export class ProductsService {
 
   async update(
     id: string,
-    updateBrandDto: UpdateProductDto,
+    updateProductDto: UpdateProductDto,
     jwtPayload: JwtPayloadInterface,
+    thumbnail?: Express.Multer.File,
+    gallery?: Express.Multer.File[],
   ): Promise<ProductEntity> {
     try {
       const product = await this.findOne(id);
 
-      if (updateBrandDto.category_id) {
+      if (updateProductDto.category_id) {
         const category = await this.categoryService.findOne(
-          updateBrandDto.category_id,
+          updateProductDto.category_id,
         );
-
         if (!category) {
           throw new NotFoundException('Category not found');
         }
-
         product.category = category;
       }
 
-      if (updateBrandDto.brand_id) {
+      if (updateProductDto.brand_id) {
         const brand = await this.brandService.findOne(
-          updateBrandDto.brand_id,
+          updateProductDto.brand_id,
         );
-
         if (!brand) {
           throw new NotFoundException('Brand not found');
         }
-
         product.brand = brand;
       }
 
       Object.assign(product, {
-        ...updateBrandDto,
+        ...updateProductDto,
         updated_by: jwtPayload.id,
         updated_user_name: jwtPayload.userName,
         updated_at: new Date(),
       });
+
+      if (thumbnail) {
+        product.thumbnail = thumbnail.filename;
+      }
+
+      if (gallery) {
+        product.gallery = gallery.map((file) => file.filename);
+      }
 
       return await this.productRepository.save(product);
     } catch (error) {

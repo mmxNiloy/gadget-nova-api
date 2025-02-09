@@ -46,6 +46,12 @@ export class ProductEntity extends CustomBaseEntity {
   @Column({ name: 'thresholdAMount', type: 'int', default: 3 })
   thresholdAMount: number;
 
+  @Column({ name: 'thumbnail', type: 'varchar', nullable: true })
+  thumbnail: string;
+
+  @Column({ name: 'gallery', type: 'simple-array', nullable: true })
+  gallery: string[];
+
   @Column({ name:"specifications",type: 'json', nullable: true })
   specifications: Record<string, any>;
 
