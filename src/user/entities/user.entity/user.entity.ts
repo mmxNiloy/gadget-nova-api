@@ -1,5 +1,6 @@
 import { IsEmail, IsNotEmpty } from 'class-validator';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
+import { RolesEnum } from 'src/common/enums/roles.enum';
 import { Column, Entity, Index, OneToMany } from 'typeorm';
 
 @Entity('users')
@@ -19,6 +20,13 @@ export class UserEntity extends CustomBaseEntity {
     length: 100,
   })
   password: string;
+
+  @Column({
+    type: 'enum',
+    enum: RolesEnum,
+    default: RolesEnum.USER,
+  })
+  role: RolesEnum;
 
   @Column({
     type: 'varchar',
