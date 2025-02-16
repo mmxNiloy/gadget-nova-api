@@ -3,30 +3,28 @@ import {
   Body,
   Controller,
   Get,
-  Param,
   Patch,
   Post,
-  Put,
   Query,
-  UploadedFile,
-  UseGuards,
-  UseInterceptors,
+  UseGuards
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
   ApiBody,
-  ApiConsumes,
   ApiOperation,
-  ApiParam,
-  ApiTags,
+  ApiTags
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
+import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
+import { RolesEnum } from 'src/common/enums/roles.enum';
+import { RolesGuard } from 'src/common/guard/roles.guard';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { UserService } from './user.service';
-import { UserSearchDto } from './dto/user-search.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserSearchDto } from './dto/user-search.dto';
+import { UserService } from './user.service';
 
 @ApiTags('User')
 @ApiBearerAuth('jwt')
@@ -57,6 +55,9 @@ export class UserController {
   }
 
   @ApiOperation({ summary: 'Get list of users' })
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Get()
   async getAll(@Query() dto: UserSearchDto) {
     try {
