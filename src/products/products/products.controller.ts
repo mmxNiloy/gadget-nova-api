@@ -1,33 +1,31 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  UploadedFile,
+  Get,
+  Param,
+  Patch,
+  Post,
   UploadedFiles,
-  UseInterceptors,
+  UseGuards,
+  UseInterceptors
 } from '@nestjs/common';
-import { ProductsService } from './products.service';
+import { AuthGuard } from '@nestjs/passport';
+import {
+  FileFieldsInterceptor
+} from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
+import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
+import { RolesEnum } from 'src/common/enums/roles.enum';
+import { RolesGuard } from 'src/common/guard/roles.guard';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
-import { ApiFile } from 'src/common/decorators/api-file.decorator';
-import { ApiFiles } from 'src/common/decorators/api-files.decorator';
-import {
-  FileFieldsInterceptor,
-  FileInterceptor,
-  FilesInterceptor,
-} from '@nestjs/platform-express';
+import { ProductsService } from './products.service';
 
 @ApiTags('Product')
-@ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard)
 @Controller({
   path: 'products',
@@ -36,6 +34,9 @@ import {
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Post()
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -76,6 +77,9 @@ export class ProductsController {
     return { message: 'Product details', payload };
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Patch(':id')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -109,6 +113,9 @@ export class ProductsController {
     return { message: 'Product updated successfully', payload: updatedProduct };
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Delete(':id')
   async remove(
     @Param('id') id: string,
