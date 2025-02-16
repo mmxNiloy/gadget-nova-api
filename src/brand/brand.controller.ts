@@ -7,9 +7,12 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { BrandService } from './brand.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from 'src/common/guard/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @ApiTags('Brand')
-@ApiBearerAuth('jwt')
 @UseGuards(JwtAuthGuard)
 @Controller({
   path: 'brand',
@@ -18,6 +21,9 @@ import { UpdateBrandDto } from './dto/update-brand.dto';
 export class BrandController {
   constructor(private readonly brandService: BrandService) {}
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Post()
   async create(
     @Body() createBrandDto: CreateBrandDto,
@@ -39,6 +45,9 @@ export class BrandController {
     return { message: 'Brand details', payload };
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -49,6 +58,9 @@ export class BrandController {
     return { message: 'Brand updated successfully', payload };
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Delete(':id')
   async remove(
     @Param('id') id: string,
