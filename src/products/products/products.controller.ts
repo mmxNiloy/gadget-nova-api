@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  UploadedFile,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -8,7 +20,11 @@ import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ApiFile } from 'src/common/decorators/api-file.decorator';
 import { ApiFiles } from 'src/common/decorators/api-files.decorator';
-import { FileFieldsInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+  FilesInterceptor,
+} from '@nestjs/platform-express';
 
 @ApiTags('Product')
 @ApiBearerAuth('jwt')
@@ -26,29 +42,27 @@ export class ProductsController {
     FileFieldsInterceptor([
       { name: 'thumbnail', maxCount: 1 },
       { name: 'gallery', maxCount: 5 },
-    ])
+    ]),
   )
   @ApiBody({ type: CreateProductDto })
   async create(
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @UploadedFiles()
-    files: { thumbnail?: Express.Multer.File[]; gallery?: Express.Multer.File[] },
-    @Body() createProductDto: CreateProductDto
+    files: {
+      thumbnail?: Express.Multer.File[];
+      gallery?: Express.Multer.File[];
+    },
+    @Body() createProductDto: CreateProductDto,
   ) {
-    console.log("🔥🔥🔥🔥🔥 Body Data:", createProductDto);
-    // console.log("🔥🔥🔥🔥🔥 Files:", files);
-  
-    // Attach files to DTO manually (since NestJS doesn't do this automatically)
     const productData = {
       ...createProductDto,
       thumbnail: files.thumbnail ? files.thumbnail[0] : null,
       gallery: files.gallery ? files.gallery : [],
     };
-  
+
     const payload = await this.productsService.create(productData, jwtPayload);
     return { message: 'Product created successfully', payload };
   }
-  
 
   @Get()
   async findAll() {
@@ -63,17 +77,36 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  @ApiFile('thumbnail', false)
-  @ApiFiles('gallery', false)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'thumbnail', maxCount: 1 },
+      { name: 'gallery', maxCount: 5 },
+    ]),
+  )
+  @ApiBody({ type: UpdateProductDto })
   async update(
     @Param('id') id: string,
-    @Body() updateProductDto: UpdateProductDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
-    @UploadedFile() thumbnail?: Express.Multer.File,
-    @UploadedFiles() gallery?: Express.Multer.File[],
+    @UploadedFiles()
+    files: {
+      thumbnail?: Express.Multer.File[];
+      gallery?: Express.Multer.File[];
+    },
+    @Body() updateProductDto: UpdateProductDto,
   ) {
-    const payload = await this.productsService.update(id, updateProductDto, jwtPayload, thumbnail, gallery);
-    return { message: 'Product updated successfully', payload };
+    const productData = {
+      ...updateProductDto,
+      thumbnail: files.thumbnail ? files.thumbnail[0] : null,
+      gallery: files.gallery ? files.gallery : [],
+    };
+
+    const updatedProduct = await this.productsService.update(
+      id,
+      productData,
+      jwtPayload,
+    );
+    return { message: 'Product updated successfully', payload: updatedProduct };
   }
 
   @Delete(':id')

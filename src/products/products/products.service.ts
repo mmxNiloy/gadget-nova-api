@@ -119,19 +119,18 @@ export class ProductsService {
     id: string,
     updateProductDto: UpdateProductDto,
     jwtPayload: JwtPayloadInterface,
-    thumbnail?: Express.Multer.File,
-    gallery?: Express.Multer.File[],
   ): Promise<ProductEntity> {
     try {
       const product = await this.findOne(id);
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
 
       if (updateProductDto.category_id) {
         const category = await this.categoryService.findOne(
           updateProductDto.category_id,
         );
-        if (!category) {
-          throw new NotFoundException('Category not found');
-        }
+        if (!category) throw new NotFoundException('Category not found');
         product.category = category;
       }
 
@@ -139,10 +138,29 @@ export class ProductsService {
         const brand = await this.brandService.findOne(
           updateProductDto.brand_id,
         );
-        if (!brand) {
-          throw new NotFoundException('Brand not found');
-        }
+        if (!brand) throw new NotFoundException('Brand not found');
         product.brand = brand;
+      }
+
+      if (updateProductDto.thumbnail) {
+        const { Location } = await this.s3Service.uploadFile(
+          updateProductDto.thumbnail,
+          'products/thumbnails',
+        );
+        product.thumbnail = Location;
+      }
+
+      if (updateProductDto.gallery?.length) {
+        const galleryUrls = await Promise.all(
+          updateProductDto.gallery.map(async (file) => {
+            const { Location } = await this.s3Service.uploadFile(
+              file,
+              'products/gallery',
+            );
+            return Location;
+          }),
+        );
+        product.gallery = galleryUrls;
       }
 
       Object.assign(product, {
@@ -151,14 +169,6 @@ export class ProductsService {
         updated_user_name: jwtPayload.userName,
         updated_at: new Date(),
       });
-
-      if (thumbnail) {
-        product.thumbnail = thumbnail.filename;
-      }
-
-      if (gallery) {
-        product.gallery = gallery.map((file) => file.filename);
-      }
 
       return await this.productRepository.save(product);
     } catch (error) {
