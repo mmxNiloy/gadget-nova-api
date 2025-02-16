@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BrandModule } from 'src/brand/brand.module';
 import { CategoryModule } from 'src/category/category.module';
+import { S3Module } from 'src/s3/s3.module';
 import { ProductQuestionsEntity } from './entities/product-questions.entity';
 import { ProductRatingEntity } from './entities/product-rating.entity';
 import { ProductEntity } from './entities/product.entity';
@@ -16,8 +17,28 @@ import { QuestionAnswersController } from './question-answers/question-answers.c
 import { QuestionAnswersService } from './question-answers/question-answers.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProductEntity, ProductQuestionsEntity, QuestionAnswersEntity,ProductRatingEntity]),CategoryModule, BrandModule],
-  controllers: [ProductsController,ProductsQuestionsController,QuestionAnswersController,ProductsRatingsController],
-  providers: [ProductsService,ProductsQuestionsService,QuestionAnswersService,ProductsRatingsService],
+  imports: [
+    TypeOrmModule.forFeature([
+      ProductEntity,
+      ProductQuestionsEntity,
+      QuestionAnswersEntity,
+      ProductRatingEntity,
+    ]),
+    CategoryModule,
+    BrandModule,
+    S3Module,
+  ],
+  controllers: [
+    ProductsController,
+    ProductsQuestionsController,
+    QuestionAnswersController,
+    ProductsRatingsController,
+  ],
+  providers: [
+    ProductsService,
+    ProductsQuestionsService,
+    QuestionAnswersService,
+    ProductsRatingsService,
+  ],
 })
 export class ProductsModule {}
