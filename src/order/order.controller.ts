@@ -1,6 +1,6 @@
 import { Body, Controller, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
@@ -18,6 +18,7 @@ import { OrderService } from './order.service';
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
+  @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.USER)
   @Post('create')
@@ -32,7 +33,9 @@ export class OrderController {
     return { message: 'Order created successfully', payload };
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN)
   @Put('update-status/:orderId')
   async updateOrderStatus(
     @Param('orderId') orderId: string,

@@ -8,7 +8,7 @@ import {
   UseGuards
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
@@ -18,6 +18,7 @@ import { CartService } from './cart.service';
 import { CreateCartDto } from './dto/create-cart.dto';
 
 @ApiTags('Cart')
+@ApiBearerAuth('jwt')
 @Controller({
   path: 'carts',
   version: '1',
