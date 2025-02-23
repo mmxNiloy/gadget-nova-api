@@ -13,7 +13,6 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @ApiTags('Brand')
-@UseGuards(JwtAuthGuard)
 @Controller({
   path: 'brand',
   version: '1',

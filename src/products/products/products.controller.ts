@@ -26,7 +26,6 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductsService } from './products.service';
 
 @ApiTags('Product')
-@UseGuards(JwtAuthGuard)
 @Controller({
   path: 'products',
   version: '1',
