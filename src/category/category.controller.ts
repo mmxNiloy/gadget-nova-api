@@ -12,7 +12,6 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @ApiTags('Category')
-@UseGuards(JwtAuthGuard)
 @Controller({
   path: 'category',
   version: '1',
