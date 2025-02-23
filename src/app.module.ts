@@ -10,6 +10,7 @@ import { BrandModule } from './brand/brand.module';
 import { ProductsModule } from './products/products.module';
 import { S3Module } from './s3/s3.module';
 import { CartModule } from './cart/cart.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -38,7 +39,8 @@ import { CartModule } from './cart/cart.module';
     BrandModule,
     ProductsModule,
     S3Module,
-    CartModule
+    CartModule,
+    OrderModule
   ],
   controllers: [AppController],
   providers: [AppService],

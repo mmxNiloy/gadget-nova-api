@@ -42,6 +42,7 @@ export class CartService {
 
     const cartItem = this.cartRepository.create({
       ...createCartDto,
+      price: product.discountPrice,
       user: { id: jwtPayload.id },
       product,
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),

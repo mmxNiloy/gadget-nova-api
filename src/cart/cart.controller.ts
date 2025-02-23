@@ -17,7 +17,7 @@ import { RolesGuard } from 'src/common/guard/roles.guard';
 import { CartService } from './cart.service';
 import { CreateCartDto } from './dto/create-cart.dto';
 
-@ApiTags('Ccart')
+@ApiTags('Cart')
 @Controller({
   path: 'carts',
   version: '1',
