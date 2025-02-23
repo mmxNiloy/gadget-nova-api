@@ -40,5 +40,6 @@ import { QuestionAnswersService } from './question-answers/question-answers.serv
     QuestionAnswersService,
     ProductsRatingsService,
   ],
+  exports: [ProductsService]
 })
 export class ProductsModule {}
