@@ -10,6 +10,15 @@ export class CategoryEntity extends CustomBaseEntity {
   @IsNotEmpty()
   name: string;
 
+  @Column({ type: 'varchar', length: 255, unique: true, default: "category_slug" })
+  slug: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true, default: "category_meta_title" })
+  metaTitle: string;
+
+  @Column({ type: 'text', nullable: true })
+  metaDescription: string;
+
   @ManyToMany(() => BrandEntity, (brand) => brand.categories)
   brands: BrandEntity[];
 

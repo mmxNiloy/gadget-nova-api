@@ -10,6 +10,15 @@ export class ProductEntity extends CustomBaseEntity {
   @Column({ name: 'title', type: 'varchar', length: 255 })
   title: string;
 
+  @Column({ type: 'varchar', length: 255, unique: true, default: "product_slug" })
+  slug: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true, default: "product_meta_title" })
+  metaTitle: string;
+
+  @Column({ type: 'text', nullable: true })
+  metaDescription: string;
+
   @Column({ name: 'productCode', type: 'varchar', length: 255 })
   productCode: string;
 

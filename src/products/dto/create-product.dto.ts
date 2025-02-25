@@ -19,6 +19,21 @@ export class CreateProductDto {
   @MaxLength(255, { message: 'Maximum 255 characters supported for title' })
   title: string;
 
+  @ApiProperty({default: "Dell_ins_15_3520"})
+  @IsNotEmpty({ message: 'Slug be non empty' })
+  @IsString({ message: 'Slug Must be a string' })
+  slug: string;
+
+  @ApiProperty({default: "Monitor"})
+  @IsNotEmpty({ message: 'Meta title be non empty' })
+  @IsString({ message: 'Meta title Must be a string' })
+  metaTitle: string;
+
+  @ApiProperty({default: "Monitor"})
+  @IsOptional()
+  @IsString({ message: 'Category name Must be a string' })
+  metaDescription: string;
+
   @ApiProperty({ default: 'P12345' })
   @IsNotEmpty({ message: 'Product code must be non-empty' })
   @IsString({ message: 'Product code must be a string' })
