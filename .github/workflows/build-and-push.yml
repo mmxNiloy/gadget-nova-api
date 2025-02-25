@@ -41,4 +41,4 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "${{ secrets.SSH_SUDO_PASSWORD }}" | sudo -S /home/root/redeploy.sh
+            echo "${{ secrets.SSH_SUDO_PASSWORD }}" | sudo -S ~/redeploy.sh
