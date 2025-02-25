@@ -28,7 +28,7 @@ import { OrderModule } from './order/order.module';
         password: String(configService.get('DATABASE_PASSWORD') ?? ''), 
         database: String(configService.get('DATABASE_DB')),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: String(configService.get('DATABASE_SYNCRONIZE')) === 'true',
+        synchronize: String(configService.get('DATABASE_SYNCHRONIZE')) === 'true',
         logging: String(configService.get('DATABASE_LOGGING')) === 'false',
         autoLoadEntities: false,
       }),
