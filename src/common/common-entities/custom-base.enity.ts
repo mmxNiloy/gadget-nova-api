@@ -2,7 +2,7 @@ import { BaseEntity, Column, PrimaryGeneratedColumn } from 'typeorm';
 import { ActiveStatusEnum } from '../enums/active-status.enum';
 
 export class CustomBaseEntity extends BaseEntity {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid') 
   id: string;
 
   @Column({
