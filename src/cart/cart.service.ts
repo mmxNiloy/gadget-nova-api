@@ -9,6 +9,7 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { CartEntity } from './entities/cart.entity';
 import { ProductEntity } from 'src/products/entities/product.entity';
 import { CreateCartDto } from './dto/create-cart.dto';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class CartService {
@@ -115,5 +116,10 @@ export class CartService {
     }
 
     await this.cartRepository.delete(expiredCarts.map((cart) => cart.id));
+  }
+
+  @Cron('*/15 * * * *')
+  async handleClearExpiredCarts() {
+    await this.clearExpiredCarts();
   }
 }
