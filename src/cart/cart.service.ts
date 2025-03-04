@@ -1,15 +1,16 @@
 import {
-  Injectable,
   BadRequestException,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
-import { CartEntity } from './entities/cart.entity';
-import { ProductEntity } from 'src/products/entities/product.entity';
-import { CreateCartDto } from './dto/create-cart.dto';
 import { Cron } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
+import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+import { ProductEntity } from 'src/products/entities/product.entity';
+import { Repository } from 'typeorm';
+import { CreateCartDto } from './dto/create-cart.dto';
+import { CartEntity } from './entities/cart.entity';
 
 @Injectable()
 export class CartService {
@@ -106,16 +107,22 @@ export class CartService {
       relations: ['product'],
     });
 
+    if (expiredCarts.length === 0) {
+      return;
+    }
+
     for (const cart of expiredCarts) {
       const product = await this.productRepository.findOne({
         where: { id: cart.product.id },
       });
-      product.stockAmount += cart.quantity;
-      product.holdAmount -= cart.quantity;
-      await this.productRepository.save(product);
+      if (product) {
+        product.stockAmount += cart.quantity;
+        product.holdAmount -= cart.quantity;
+        await this.productRepository.save(product);
+      }
+      cart.is_active = ActiveStatusEnum.INACTIVE;
+      await this.cartRepository.save(cart);
     }
-
-    await this.cartRepository.delete(expiredCarts.map((cart) => cart.id));
   }
 
   @Cron('*/15 * * * *')
