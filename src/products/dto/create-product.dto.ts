@@ -9,7 +9,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  MaxLength
+  MaxLength,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -19,17 +19,17 @@ export class CreateProductDto {
   @MaxLength(255, { message: 'Maximum 255 characters supported for title' })
   title: string;
 
-  @ApiProperty({default: "Dell_ins_15_3520"})
+  @ApiProperty({ default: 'Dell_ins_15_3520' })
   @IsNotEmpty({ message: 'Slug be non empty' })
   @IsString({ message: 'Slug Must be a string' })
   slug: string;
 
-  @ApiProperty({default: "Monitor"})
+  @ApiProperty({ default: 'Monitor' })
   @IsNotEmpty({ message: 'Meta title be non empty' })
   @IsString({ message: 'Meta title Must be a string' })
   metaTitle: string;
 
-  @ApiProperty({default: "Monitor"})
+  @ApiProperty({ default: 'Monitor' })
   @IsOptional()
   @IsString({ message: 'Category name Must be a string' })
   metaDescription: string;
@@ -92,11 +92,19 @@ export class CreateProductDto {
   @IsUUID('all', { message: 'Category must be a valid UUID' })
   category_id: string;
 
+  @ApiProperty({ type: [String] })
+  @IsNotEmpty({ message: 'attribute value IDs must be defined' })
+  @IsUUID('all', {
+    each: true,
+    message: 'attribute value IDs must be an array of UUIDs',
+  })
+  attribute_value_ids: string[];
+
   @ApiProperty()
   @IsNotEmpty({ message: 'Brand ID must be defined' })
   @IsUUID('all', { message: 'Brand must be a valid UUID' })
   brand_id: string;
-  
+
   @ApiPropertyOptional({ type: 'string', format: 'binary' })
   @IsOptional()
   thumbnail: Express.Multer.File;
