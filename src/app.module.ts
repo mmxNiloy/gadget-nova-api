@@ -29,8 +29,7 @@ import { UserModule } from './user/user.module';
         password: String(configService.get('DATABASE_PASSWORD') ?? ''),
         database: String(configService.get('DATABASE_DB')),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize:
-          String(configService.get('DATABASE_SYNCRONIZE')) === 'true',
+        synchronize: true,
         logging: String(configService.get('DATABASE_LOGGING')) === 'false',
         autoLoadEntities: true,
       }),
