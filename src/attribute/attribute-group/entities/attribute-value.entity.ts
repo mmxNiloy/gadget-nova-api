@@ -1,10 +1,6 @@
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne
-} from 'typeorm';
+import { ProductAttributeEntity } from 'src/products/entities/product-attribute.entity';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { AttributeGroupEntity } from './attribute-group.entity';
 
 @Entity('attribute_values')
@@ -22,4 +18,10 @@ export class AttributeValueEntity extends CustomBaseEntity {
   )
   @JoinColumn({ name: 'attributeGroup_id' })
   attributeGroup: AttributeGroupEntity;
+
+  @OneToMany(
+    () => ProductAttributeEntity,
+    (productAttribute) => productAttribute.attributeValue,
+  )
+  productAttributes: ProductAttributeEntity[];
 }

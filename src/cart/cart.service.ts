@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { ProductEntity } from 'src/products/entities/product.entity';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { CreateCartDto } from './dto/create-cart.dto';
 import { CartEntity } from './entities/cart.entity';
 
@@ -103,7 +103,7 @@ export class CartService {
 
   async clearExpiredCarts(): Promise<void> {
     const expiredCarts = await this.cartRepository.find({
-      where: { expiresAt: new Date() },
+      where: { expiresAt: LessThan(new Date()), is_active:ActiveStatusEnum.ACTIVE },
       relations: ['product'],
     });
 

@@ -24,14 +24,15 @@ import { UserModule } from './user/user.module';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         host: String(configService.get('DATABASE_HOST')),
-        port: Number(configService.get('DATABASE_PORT')), 
+        port: Number(configService.get('DATABASE_PORT')),
         username: String(configService.get('DATABASE_USER')),
-        password: String(configService.get('DATABASE_PASSWORD') ?? ''), 
+        password: String(configService.get('DATABASE_PASSWORD') ?? ''),
         database: String(configService.get('DATABASE_DB')),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: String(configService.get('DATABASE_SYNCRONIZE')) === 'true',
+        synchronize:
+          String(configService.get('DATABASE_SYNCRONIZE')) === 'true',
         logging: String(configService.get('DATABASE_LOGGING')) === 'false',
-        autoLoadEntities: false,
+        autoLoadEntities: true,
       }),
     }),
     AuthModule,
@@ -42,7 +43,7 @@ import { UserModule } from './user/user.module';
     ProductsModule,
     S3Module,
     CartModule,
-    OrderModule
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],
