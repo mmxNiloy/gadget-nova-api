@@ -13,6 +13,7 @@ import { Repository } from 'typeorm';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
+import { ProductAttributeService } from '../product-attribute/product-attribute.service';
 
 @Injectable()
 export class ProductsService {
@@ -21,6 +22,7 @@ export class ProductsService {
     private readonly productRepository: Repository<ProductEntity>,
     private readonly categoryService: CategoryService,
     private readonly brandService: BrandService,
+    private readonly productAttributeService: ProductAttributeService,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -72,9 +74,23 @@ export class ProductsService {
 
       productEntity.stockAmount = createProductDto.quantity;
       productEntity.thresholdAMount = createProductDto.thresholdAMount;
+      const savedProduct = await this.productRepository.save(productEntity);
 
-      return await this.productRepository.save(productEntity);
-      return;
+      if (createProductDto.attribute_value_ids?.length) {
+        await Promise.all(
+          createProductDto.attribute_value_ids.map((attributeValueId) =>
+            this.productAttributeService.create(
+              {
+                product_id: savedProduct.id,
+                attributeValue_id: attributeValueId,
+              },
+              jwtPayload,
+            ),
+          ),
+        );
+      }
+
+      return savedProduct;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -82,38 +98,42 @@ export class ProductsService {
 
   async findAll(): Promise<ProductEntity[]> {
     try {
-      return await this.productRepository.find({
-        relations: [
-          'category',
-          'brand',
-          'questions',
-          'questions.answer',
-          'ratings',
-        ],
-      });
+      return await this.productRepository
+        .createQueryBuilder('product')
+        .leftJoinAndSelect('product.category', 'category')
+        .leftJoinAndSelect('product.brand', 'brand')
+        .leftJoinAndSelect('product.questions', 'questions')
+        .leftJoinAndSelect('questions.answer', 'answer')
+        .leftJoinAndSelect('product.ratings', 'ratings')
+        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
+        .getMany();
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
+  
 
   async findOne(id: string): Promise<ProductEntity> {
-    const product = await this.productRepository.findOne({
-      where: { id, is_active: ActiveStatusEnum.ACTIVE },
-      relations: [
-        'category',
-        'brand',
-        'questions',
-        'questions.answer',
-        'ratings',
-      ],
-    });
-
+    const product = await this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.questions', 'questions')
+      .leftJoinAndSelect('questions.answer', 'answer')
+      .leftJoinAndSelect('product.ratings', 'ratings')
+      .where('product.id = :id', { id })
+      .andWhere('product.is_active = :status', { status: ActiveStatusEnum.ACTIVE })
+      .getOne();
+  
     if (!product) {
       throw new NotFoundException('Product not found');
     }
-
+  
     return product;
   }
+  
 
   async update(
     id: string,
@@ -170,7 +190,25 @@ export class ProductsService {
         updated_at: new Date(),
       });
 
-      return await this.productRepository.save(product);
+      const updatedProduct = await this.productRepository.save(product);
+
+      if (updateProductDto.attribute_value_ids) {
+        await this.productAttributeService.removeByProductId(updatedProduct.id);
+
+        await Promise.all(
+          updateProductDto.attribute_value_ids.map((attributeValueId) =>
+            this.productAttributeService.create(
+              {
+                product_id: updatedProduct.id,
+                attributeValue_id: attributeValueId,
+              },
+              jwtPayload,
+            ),
+          ),
+        );
+      }
+
+      return updatedProduct;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
