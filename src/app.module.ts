@@ -30,7 +30,7 @@ import { UserModule } from './user/user.module';
         database: String(configService.get('DATABASE_DB')),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
-        logging: String(configService.get('DATABASE_LOGGING')) === 'false',
+        logging: true,
         autoLoadEntities: true,
       }),
     }),
