@@ -4,9 +4,10 @@ import { ProductEntity } from 'src/products/entities/product.entity';
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
 import { CartEntity } from './entities/cart.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CartEntity, ProductEntity])],
+  imports: [TypeOrmModule.forFeature([CartEntity, ProductEntity]), ScheduleModule.forRoot(), ],
   controllers: [CartController],
   providers: [CartService],
   exports: [CartService]
