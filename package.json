@@ -84,5 +84,13 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@scarf/scarf",
+      "aws-sdk",
+      "bcrypt"
+    ]
   }
 }
