@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { Repository } from 'typeorm';
-import { CreateCategoryDto } from './dto/create-category.dto';
+import { CategorySearchDto, CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryEntity } from './entities/category.entity';
 
@@ -51,6 +51,46 @@ export class CategoryService {
       throw new BadRequestException(error?.response?.message);
     }
   }
+
+  async pagination(
+    page: number,
+    limit: number,
+    sort: 'DESC' | 'ASC',
+    order: string,
+    categorySearchDto: CategorySearchDto,
+  ) {
+    try {
+      const query = this.categoryRepository.createQueryBuilder('categories')
+        .where('categories.is_active = :status', { status: ActiveStatusEnum.ACTIVE });
+  
+      // Filter by name if provided
+      if (categorySearchDto.name) {
+        query.andWhere('LOWER(categories.name) LIKE :name', {
+          name: `%${categorySearchDto.name.toLowerCase()}%`,
+        });
+      }
+  
+      // Ensure valid sort and order fields
+      sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
+      const orderFields = ['name', 'created_at', 'updated_at'];
+      order = orderFields.includes(order) ? order : 'updated_at';
+  
+      // Apply sorting, pagination
+      query.orderBy(`categories.${order}`, sort)
+        .skip((page - 1) * limit)
+        .take(limit);
+  
+      const [categories, total] = await query.getManyAndCount();
+      
+      return [categories, total];
+    } catch (error) {
+      throw new BadRequestException({
+        message: 'Error fetching categories',
+        details: error.message,
+      });
+    }
+  }
+  
 
   async findOne(id: string): Promise<CategoryEntity> {
     try {

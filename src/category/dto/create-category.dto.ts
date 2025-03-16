@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiQueryPaginationBaseDTO } from 'src/common/dtos/pagination/api-query-pagination-base.dto';
 
 export class CreateCategoryDto {
   @ApiProperty({default: "Monitor"})
@@ -21,4 +22,15 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsString({ message: 'Category name Must be a string' })
   metaDescription: string;
+}
+
+export class CategorySearchDto extends ApiQueryPaginationBaseDTO {
+  @ApiProperty({
+    default: 'Monitor',
+    required: false,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  name: string;
 }
