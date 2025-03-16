@@ -25,6 +25,7 @@ export class WrapResponseInterceptor<T>
         statusCode: context.switchToHttp().getResponse().statusCode,
         message: data.message ?? 'successfull',
         payload: data.payload,
+        meta: data.meta ?? undefined,
         error: false,
       })),
     );
