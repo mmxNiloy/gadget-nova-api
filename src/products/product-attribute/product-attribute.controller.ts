@@ -19,7 +19,10 @@ import { RolesGuard } from 'src/common/guard/roles.guard';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 
-@Controller('product-attribute')
+@Controller({
+  path: 'product-attribute',
+  version: '1',
+})
 export class ProductAttributeController {
   constructor(
     private readonly productAttributeService: ProductAttributeService,
