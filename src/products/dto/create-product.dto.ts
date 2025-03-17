@@ -67,20 +67,10 @@ export class CreateProductDto {
   keyFeatures: string;
 
   @ApiPropertyOptional({
-    default: {
-      'Main Features': {
-        'Connection Type': 'Wireless',
-        'Optical Sensor': 'Darkfield high precision',
-        Resolution: '200-8000 DPI',
-      },
-      'Gaming Features': {
-        Button: '6 buttons (Left/Right-click, Back/Forward, etc.)',
-        'Scroll Wheel': 'Yes, with auto-shift',
-      },
-    },
+    default: '<p>Hello</p>',
   })
   @IsOptional()
-  specifications: Record<string, any>;
+  specifications: string;
 
   @ApiProperty({ default: 3 })
   @IsInt({ message: 'Threshold Amount must be an integer' })

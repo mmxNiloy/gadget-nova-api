@@ -79,8 +79,8 @@ export class ProductEntity extends CustomBaseEntity {
   @Column({ name: 'gallery', type: 'simple-array', nullable: true })
   gallery: string[];
 
-  @Column({ name: 'specifications', type: 'json', nullable: true })
-  specifications: Record<string, any>;
+  @Column({ name: 'specifications', type: 'text', nullable: true })
+  specifications: string;
 
   @ManyToOne(() => CategoryEntity, (category) => category.products, {
     eager: true,
