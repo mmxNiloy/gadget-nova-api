@@ -50,7 +50,7 @@ export class UserService {
     const userEntity = {
       ...registerUserDto,
       verification_token: verificationToken,
-      is_active: ActiveStatusEnum.INACTIVE,
+      is_active: ActiveStatusEnum.ACTIVE,
       refresh_token: refreshToken,
       created_at: new Date(),
     };
@@ -288,7 +288,8 @@ export class UserService {
   }
 
   async getProfile(jwtPayload: JwtPayloadInterface): Promise<UserEntity> {
-    const user = await this.userRepository
+    try {
+      const user = await this.userRepository
       .createQueryBuilder('user')
       .where('user.id = :userId', { userId: jwtPayload.id })
       .andWhere('user.is_active = :userStatus', {
@@ -299,6 +300,9 @@ export class UserService {
     const filteredUser = this.userFilterUtil.filterSensitiveFields(user);
 
     return filteredUser;
+    } catch (error) {
+      throw new BadRequestException(error?.response);
+    }
   }
 
   async update(

@@ -1,4 +1,15 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -8,8 +19,13 @@ import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { RolesGuard } from 'src/common/guard/roles.guard';
 import { CategoryService } from './category.service';
-import { CreateCategoryDto } from './dto/create-category.dto';
+import {
+  CategorySearchDto,
+  CreateCategoryDto,
+} from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { PaginationDecorator } from 'src/common/decorators/pagination.decorator';
+import { PaginationDTO } from 'src/common/dtos/pagination/pagination.dto';
 
 @ApiTags('Category')
 @Controller({
@@ -24,33 +40,65 @@ export class CategoryController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.SUPER_ADMIN)
   @Post()
-  async create(@Body() createCategoryDto: CreateCategoryDto,
-  @UserPayload() jwtPayload: JwtPayloadInterface) {
+  async create(
+    @Body() createCategoryDto: CreateCategoryDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
     try {
-      const payload= await this.categoryService.create(createCategoryDto,jwtPayload);
-      return {message:"Category created successfuly", payload}
+      const payload = await this.categoryService.create(
+        createCategoryDto,
+        jwtPayload,
+      );
+      return { message: 'Category created successfuly', payload };
     } catch (error) {
-      throw new BadRequestException(error.response.message)
+      throw new BadRequestException(error.response.message);
     }
   }
 
   @Get()
   async findAll() {
     try {
-      const payload = await this.categoryService.findAll()
-      return {message: "All category lists", payload}
+      const payload = await this.categoryService.findAll();
+      return { message: 'All category lists', payload };
     } catch (error) {
-      throw new BadRequestException(error?.response?.message)
+      throw new BadRequestException(error?.response?.message);
     }
+  }
+
+  @Get('pagination')
+  async pagination(
+    @PaginationDecorator() pagination: PaginationDTO,
+    @Query() categorySearchDto: CategorySearchDto,
+  ) {
+    const [payload, total] = await this.categoryService.pagination(
+      pagination.page,
+      pagination.limit,
+      pagination.sort as 'DESC' | 'ASC',
+      pagination.order,
+      categorySearchDto,
+    );
+
+    return {
+      statusCode: 200,
+      message: 'Category list with pagination',
+      payload,
+      meta: {
+        total: Number(total),
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: Math.ceil(Number(total) / pagination.limit),
+      },
+      error: false,
+    };
   }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {
-      const payload = await this.categoryService.findOne(id)
-      return {message: "Category details", payload}
+      const payload = await this.categoryService.findOne(id);
+      return { message: 'Category details', payload };
     } catch (error) {
-      throw new BadRequestException(error?.response?.message)
+      throw new BadRequestException(error?.response?.message);
     }
   }
 
@@ -58,14 +106,22 @@ export class CategoryController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.SUPER_ADMIN)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto,@UserPayload() jwtPayload: JwtPayloadInterface) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
     try {
-      const payload = await this.categoryService.update(id,updateCategoryDto,jwtPayload)
-      console.log({payload});
-      
-      return {message: "Category updated successfully", payload }
+      const payload = await this.categoryService.update(
+        id,
+        updateCategoryDto,
+        jwtPayload,
+      );
+      console.log({ payload });
+
+      return { message: 'Category updated successfully', payload };
     } catch (error) {
-      throw new BadRequestException(error?.response?.message)
+      throw new BadRequestException(error?.response?.message);
     }
   }
 
@@ -73,13 +129,15 @@ export class CategoryController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.SUPER_ADMIN)
   @Delete(':id')
-  async remove(@Param('id') id: string,@UserPayload() jwtPayload: JwtPayloadInterface) {
+  async remove(
+    @Param('id') id: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
     try {
-      const payload = await this.categoryService.remove(id,jwtPayload);
-      return {message: "Category deleted successfully", payload }
+      const payload = await this.categoryService.remove(id, jwtPayload);
+      return { message: 'Category deleted successfully', payload };
     } catch (error) {
-      throw new BadRequestException(error?.response?.message)
+      throw new BadRequestException(error?.response?.message);
     }
-    
   }
 }
