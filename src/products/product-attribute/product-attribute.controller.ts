@@ -11,7 +11,7 @@ import {
 import { ProductAttributeService } from './product-attribute.service';
 import { CreateProductAttributeDto } from '../dto/create-product-attribute.dto';
 import { UpdateProductAttributeDto } from '../dto/update-product-attribute.dto';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { AuthGuard } from '@nestjs/passport';
@@ -19,7 +19,11 @@ import { RolesGuard } from 'src/common/guard/roles.guard';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 
-@Controller('product-attribute')
+@ApiTags('product Attribute')
+@Controller({
+  path: 'product-attribute',
+  version: '1',
+})
 export class ProductAttributeController {
   constructor(
     private readonly productAttributeService: ProductAttributeService,

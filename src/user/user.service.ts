@@ -288,7 +288,7 @@ export class UserService {
   }
 
   async getProfile(jwtPayload: JwtPayloadInterface): Promise<UserEntity> {
-    try {
+    try {      
       const user = await this.userRepository
       .createQueryBuilder('user')
       .where('user.id = :userId', { userId: jwtPayload.id })
@@ -297,9 +297,27 @@ export class UserService {
       })
       .getOne();
 
+      if(!user){
+        throw new BadRequestException('User not active')
+      }
+
     const filteredUser = this.userFilterUtil.filterSensitiveFields(user);
 
     return filteredUser;
+    } catch (error) {
+      console.log(error);
+      throw new BadRequestException(error?.response);
+    }
+  }
+
+  async getUserById(id:string): Promise<UserEntity> {
+    try {
+      const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.id = :userId', { userId: id })
+      .getOne();
+
+    return user;
     } catch (error) {
       throw new BadRequestException(error?.response);
     }

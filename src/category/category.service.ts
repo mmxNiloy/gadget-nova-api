@@ -41,11 +41,18 @@ export class CategoryService {
     }
   }
 
-  async findAll(): Promise<CategoryEntity[]> {
+  async findAll(name?: string): Promise<CategoryEntity[]> {
     try {
-      const categories = await this.categoryRepository.find({
-        where: { is_active: ActiveStatusEnum.ACTIVE },
-      });
+      const query = this.categoryRepository.createQueryBuilder('categories')
+        .where('categories.is_active = :status', { status: ActiveStatusEnum.ACTIVE });
+  
+      if (name) {
+        query.andWhere('LOWER(categories.name) LIKE :name', {
+          name: `%${name.toLowerCase()}%`,
+        });
+      }
+  
+      const categories = await query.getMany();
       return categories;
     } catch (error) {
       throw new BadRequestException(error?.response?.message);

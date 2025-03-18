@@ -1,5 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { ApiQueryPaginationBaseDTO } from 'src/common/dtos/pagination/api-query-pagination-base.dto';
 
 export class CreateBrandDto {
   @ApiProperty({ default: 'ViweSonic' })
@@ -28,5 +30,25 @@ export class CreateBrandDto {
     each: true,
     message: 'Category IDs must be an array of UUIDs',
   })
+  category_ids: string[];
+}
+
+export class BrandSearchDto extends ApiQueryPaginationBaseDTO {
+  @ApiProperty({
+    default: 'Logitech',
+    required: false,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsUUID('all', {
+    each: true,
+    message: 'Category IDs must be an array of UUIDs',
+  })
+  @Transform(({ value }) => (Array.isArray(value) ? value : value.split(',')))
   category_ids: string[];
 }
