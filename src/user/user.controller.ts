@@ -36,6 +36,25 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Update a user by ID (Super Admin only)' })
+  @Patch('admin/:id') 
+  @ApiBody({ type: UpdateUserDto })
+  async updateUserById(
+    @Param('id') userId: string,
+    @Body() userDto: UpdateUserDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface, 
+  ) {
+    try {
+      const payload = await this.userService.updateUserById(userId, userDto);
+      return { message: 'User updated successfully!', payload };
+    } catch (error) {
+      throw new BadRequestException(error.response?.message || 'Error updating user');
+    }
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async resetPassword(

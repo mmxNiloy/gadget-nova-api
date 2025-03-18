@@ -297,10 +297,15 @@ export class UserService {
       })
       .getOne();
 
+      if(!user){
+        throw new BadRequestException('User not active')
+      }
+
     const filteredUser = this.userFilterUtil.filterSensitiveFields(user);
 
     return filteredUser;
     } catch (error) {
+      console.log(error);
       throw new BadRequestException(error?.response);
     }
   }
