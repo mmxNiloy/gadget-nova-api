@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
@@ -11,6 +20,7 @@ import { OrderEntity } from './entities/order.entity';
 import { OrderService } from './order.service';
 import { PaginationDecorator } from 'src/common/decorators/pagination.decorator';
 import { PaginationDTO } from 'src/common/dtos/pagination/pagination.dto';
+import { UpdateOrderStatusDto } from './dto/update-orser-status.dto';
 
 @ApiTags('Orders')
 @Controller({
@@ -53,7 +63,7 @@ export class OrderController {
 
     return {
       statusCode: 200,
-      message: 'Brand list with pagination',
+      message: 'Order list with pagination',
       payload,
       meta: {
         total: Number(total),
@@ -65,16 +75,19 @@ export class OrderController {
     };
   }
 
-
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.ADMIN)
   @Put('update-status/:orderId')
+  @ApiBody({ type: UpdateOrderStatusDto })
   async updateOrderStatus(
     @Param('orderId') orderId: string,
-    @Body('status') status: string,
+    @Body() updateOrderStatusDto: UpdateOrderStatusDto,
   ) {
-    const order = await this.orderService.updateOrderStatus(orderId, status);
+    const order = await this.orderService.updateOrderStatus(
+      orderId,
+      updateOrderStatusDto.status,
+    );
     return { message: 'Order status updated successfully', order };
   }
 }

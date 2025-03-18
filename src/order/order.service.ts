@@ -92,13 +92,13 @@ export class OrderService {
         .leftJoinAndSelect('orders.user', 'user');
 
       if (orderSearchDto.name) {
-        query.andWhere('LOWER(user.name) LIKE :name', {
+        query.where('LOWER(user.name) LIKE :name', {
           name: `%${orderSearchDto.name.toLowerCase()}%`,
         });
       }
 
       if (orderSearchDto.status) {
-        query.where('orders.status = :status', {
+        query.andWhere('orders.status = :status', {
           status: orderSearchDto.status,
         });
       }
