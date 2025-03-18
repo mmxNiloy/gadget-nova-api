@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Patch,
   Post,
   Query,
@@ -77,6 +78,21 @@ export class UserController {
       const payload = await this.userService.getProfile(jwtPayload);
 
       return { message: 'User Profile!', payload };
+    } catch (error) {
+      throw new BadRequestException(error.response.message);
+    }
+  }
+
+  @ApiOperation({ summary: 'Get list of users' })
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN)
+  @Get(":id")
+  async getUserById(@Param('id') id: string) {
+    try {
+      const payload = await this.userService.getUserById(id);
+
+      return { message: 'User profile!', payload };
     } catch (error) {
       throw new BadRequestException(error.response.message);
     }

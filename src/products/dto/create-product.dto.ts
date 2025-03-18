@@ -1,16 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
-  IsInstance,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
-  MaxLength,
+  MaxLength
 } from 'class-validator';
+import { ApiQueryPaginationBaseDTO } from 'src/common/dtos/pagination/api-query-pagination-base.dto';
 
 export class CreateProductDto {
   @ApiProperty({ default: 'Product Title' })
@@ -118,4 +119,42 @@ export class CreateProductDto {
   @IsArray()
   @ArrayMinSize(1, { message: 'Gallery should contain at least one image' })
   gallery: Express.Multer.File[];
+}
+
+export class ProductSearchDto extends ApiQueryPaginationBaseDTO {
+  @ApiProperty({
+    default: 'Product title',
+    required: false,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  title: string;
+  
+  @ApiProperty({
+    default: 'P12345',
+    required: false,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  productCode: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsUUID('all', {
+    each: true,
+    message: 'Category IDs must be an array of UUIDs',
+  })
+  @Transform(({ value }) => (Array.isArray(value) ? value : value.split(',')))
+  category_ids: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsUUID('all', {
+    each: true,
+    message: 'Brand IDs must be an array of UUIDs',
+  })
+  @Transform(({ value }) => (Array.isArray(value) ? value : value.split(',')))
+  brand_ids: string[];
 }

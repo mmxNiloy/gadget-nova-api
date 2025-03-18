@@ -10,10 +10,11 @@ import { CategoryService } from 'src/category/category.service';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { S3Service } from 'src/s3/s3.service';
 import { Repository } from 'typeorm';
-import { CreateProductDto } from '../dto/create-product.dto';
+import { CreateProductDto, ProductSearchDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductAttributeService } from '../product-attribute/product-attribute.service';
+import { title } from 'process';
 
 @Injectable()
 export class ProductsService {
@@ -96,9 +97,9 @@ export class ProductsService {
     }
   }
 
-  async findAll(): Promise<ProductEntity[]> {
+  async findAll(title?: string): Promise<ProductEntity[]> {
     try {
-      return await this.productRepository
+      const query = this.productRepository
         .createQueryBuilder('product')
         .leftJoinAndSelect('product.category', 'category')
         .leftJoinAndSelect('product.brand', 'brand')
@@ -107,10 +108,87 @@ export class ProductsService {
         .leftJoinAndSelect('product.ratings', 'ratings')
         .leftJoinAndSelect('product.productAttributes', 'productAttributes')
         .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
-        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-        .getMany();
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup');
+  
+      if (title) {
+        query.andWhere('LOWER(product.title) LIKE :title', { title: `%${title.toLowerCase()}%` });
+      }
+  
+      return await query.getMany();
     } catch (error) {
       throw new BadRequestException(error.message);
+    }
+  }
+  
+
+  async pagination(
+    page: number,
+    limit: number,
+    sort: 'DESC' | 'ASC',
+    order: string,
+    productSearchDto: ProductSearchDto,
+  ) {
+    console.log(productSearchDto.title);
+    
+    try {
+      const query = this.productRepository.createQueryBuilder('product')
+        .leftJoinAndSelect('product.category', 'category')
+        .leftJoinAndSelect('product.brand', 'brand')
+        .leftJoinAndSelect('product.questions', 'questions')
+        .leftJoinAndSelect('questions.answer', 'answer')
+        .leftJoinAndSelect('product.ratings', 'ratings')
+        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
+  
+      if (productSearchDto.title) {
+        query.andWhere('LOWER(product.title) LIKE :title', {
+          title: `%${productSearchDto.title.toLowerCase()}%`,
+        });
+      }
+
+      if (productSearchDto.productCode) {
+        query.andWhere('LOWER(product.productCode) LIKE :productCode', {
+          productCode: `%${productSearchDto.productCode.toLowerCase()}%`,
+        });
+      }
+
+      if (productSearchDto.category_ids) {
+        productSearchDto.category_ids = Array.isArray(productSearchDto.category_ids)
+          ? productSearchDto.category_ids
+          : [productSearchDto.category_ids];
+      
+        query.andWhere('category.id IN (:...category_ids)', { category_ids: productSearchDto.category_ids });
+      }
+
+
+      if (productSearchDto.brand_ids) {
+        productSearchDto.brand_ids = Array.isArray(productSearchDto.brand_ids)
+          ? productSearchDto.brand_ids
+          : [productSearchDto.brand_ids];
+      
+        query.andWhere('brand.id IN (:...brand_ids)', { brand_ids: productSearchDto.brand_ids });
+      }
+      
+  
+      sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
+      const orderFields = ['name', 'created_at', 'updated_at'];
+      order = orderFields.includes(order) ? order : 'updated_at';
+  
+      query.orderBy(`product.${order}`, sort)
+        .skip((page - 1) * limit)
+        .take(limit);
+  
+      const [products, total] = await query.getManyAndCount();
+      
+      return [products, total];
+    } catch (error) {
+      console.log(error);
+      
+      throw new BadRequestException({
+        message: 'Error fetching products',
+        details: error.message,
+      });
     }
   }
   
