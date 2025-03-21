@@ -1,16 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
-  IsInstance,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
-  MaxLength,
+  MaxLength
 } from 'class-validator';
+import { ApiQueryPaginationBaseDTO } from 'src/common/dtos/pagination/api-query-pagination-base.dto';
 
 export class CreateProductDto {
   @ApiProperty({ default: 'Product Title' })
@@ -67,9 +68,21 @@ export class CreateProductDto {
   keyFeatures: string;
 
   @ApiPropertyOptional({
-    default: '<p>Hello</p>',
+    description: 'Product specifications in HTML format',
+    example: `<h3>Main Features</h3>
+              <ul>
+                <li><strong>Connection Type:</strong> Wireless</li>
+                <li><strong>Optical Sensor:</strong> Darkfield high precision</li>
+                <li><strong>Resolution:</strong> 200-8000 DPI</li>
+              </ul>
+              <h3>Gaming Features</h3>
+              <ul>
+                <li><strong>Button:</strong> 6 buttons (Left/Right-click, Back/Forward, etc.)</li>
+                <li><strong>Scroll Wheel:</strong> Yes, with auto-shift</li>
+              </ul>`,
   })
   @IsOptional()
+  @IsString()
   specifications: string;
 
   @ApiProperty({ default: 3 })
@@ -82,12 +95,20 @@ export class CreateProductDto {
   @IsUUID('all', { message: 'Category must be a valid UUID' })
   category_id: string;
 
-  @ApiProperty({ type: [String] })
-  @IsNotEmpty({ message: 'attribute value IDs must be defined' })
-  @IsUUID('all', {
-    each: true,
-    message: 'attribute value IDs must be an array of UUIDs',
+  @ApiPropertyOptional({ description: 'Subcategory ID (if applicable)' })
+  @IsOptional()
+  @IsUUID('all', { message: 'Subcategory must be a valid UUID' })
+  subcategory_id?: string;
+
+  @Transform(({ value }) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',');
+    return [];
   })
+  @ApiProperty({ type: [String], example: ['uuid1', 'uuid2'] })
+  @IsNotEmpty({ message: 'attribute value IDs must be defined' })
+  @IsUUID('all', { each: true, message: 'attribute value IDs must be an array of UUIDs' })
   attribute_value_ids: string[];
 
   @ApiProperty()
@@ -108,4 +129,42 @@ export class CreateProductDto {
   @IsArray()
   @ArrayMinSize(1, { message: 'Gallery should contain at least one image' })
   gallery: Express.Multer.File[];
+}
+
+export class ProductSearchDto extends ApiQueryPaginationBaseDTO {
+  @ApiProperty({
+    default: 'Product title',
+    required: false,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  title: string;
+  
+  @ApiProperty({
+    default: 'P12345',
+    required: false,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  productCode: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsUUID('all', {
+    each: true,
+    message: 'Category IDs must be an array of UUIDs',
+  })
+  @Transform(({ value }) => (Array.isArray(value) ? value : value.split(',')))
+  category_ids: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsUUID('all', {
+    each: true,
+    message: 'Brand IDs must be an array of UUIDs',
+  })
+  @Transform(({ value }) => (Array.isArray(value) ? value : value.split(',')))
+  brand_ids: string[];
 }

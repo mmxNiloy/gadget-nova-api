@@ -88,6 +88,10 @@ export class ProductEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'category_id' })
   category: CategoryEntity;
 
+  @ManyToOne(() => CategoryEntity, (subCategory) => subCategory.products, { nullable: true })
+  @JoinColumn({ name: 'subcategory_id' })
+  subCategory: CategoryEntity;
+
   @ManyToOne(() => BrandEntity, (brand) => brand.products, { eager: true })
   @JoinColumn({ name: 'brand_id' })
   brand: BrandEntity;

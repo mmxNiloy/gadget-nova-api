@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -56,10 +56,33 @@ export class CategoryController {
   }
 
   @Get()
-  async findAll() {
+  @ApiQuery({ name: 'name', required: false, type: String })
+  async findAll(@Query('name') name?: string) {
     try {
-      const payload = await this.categoryService.findAll();
+      const payload = await this.categoryService.findAll(name);
       return { message: 'All category lists', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
+  @Get('subcategories')
+  @ApiQuery({ name: 'name', required: false, type: String })
+  async findAllSubcategories(@Query('name') name?: string) {
+    try {
+      const payload = await this.categoryService.findAllSubcategories(name);
+      return { message: 'All subcategory lists', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
+  @Get('subcategories/:categoryId')
+  async findSubcategoriesByCategory(@Param('categoryId') categoryId: string) {
+    try {
+      const payload =
+        await this.categoryService.findSubcategoriesByCategory(categoryId);
+      return { message: 'Subcategories by category ID', payload };
     } catch (error) {
       throw new BadRequestException(error?.response?.message);
     }

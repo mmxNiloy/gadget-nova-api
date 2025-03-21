@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFiles,
   UseGuards,
   UseInterceptors
@@ -14,16 +16,18 @@ import { AuthGuard } from '@nestjs/passport';
 import {
   FileFieldsInterceptor
 } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { RolesGuard } from 'src/common/guard/roles.guard';
-import { CreateProductDto } from '../dto/create-product.dto';
+import { CreateProductDto, ProductSearchDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductsService } from './products.service';
+import { PaginationDecorator } from 'src/common/decorators/pagination.decorator';
+import { PaginationDTO } from 'src/common/dtos/pagination/pagination.dto';
 
 @ApiTags('Product')
 @Controller({
@@ -65,9 +69,41 @@ export class ProductsController {
   }
 
   @Get()
-  async findAll() {
-    const payload = await this.productsService.findAll();
-    return { message: 'All products lists', payload };
+  @ApiQuery({ name: 'title', required: false, type: String })
+  async findAll(@Query('title') title?: string) {
+    try {
+      const payload = await this.productsService.findAll(title);
+      return { message: 'All products lists', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
+  @Get('pagination')
+  async pagination(
+    @PaginationDecorator() pagination: PaginationDTO,
+    @Query() productSearchDto: ProductSearchDto,
+  ) {
+    const [payload, total] = await this.productsService.pagination(
+      pagination.page,
+      pagination.limit,
+      pagination.sort as 'DESC' | 'ASC',
+      pagination.order,
+      productSearchDto,
+    );
+
+    return {
+      statusCode: 200,
+      message: 'Brand list with pagination',
+      payload,
+      meta: {
+        total: Number(total),
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: Math.ceil(Number(total) / pagination.limit),
+      },
+      error: false,
+    };
   }
 
   @Get(':id')

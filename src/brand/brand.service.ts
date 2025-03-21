@@ -4,7 +4,7 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { CategoryService } from 'src/category/category.service';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { Repository } from 'typeorm';
-import { CreateBrandDto } from './dto/create-brand.dto';
+import { BrandSearchDto, CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
 import { BrandEntity } from './entities/brand.entity';
 
@@ -46,11 +46,70 @@ export class BrandService {
     }
   }
 
-  async findAll(): Promise<BrandEntity[]> {
+  async findAll(name?: string): Promise<BrandEntity[]> {
     try {
-      return await this.brandRepository.find({ relations: ['categories'] });
+      const query = this.brandRepository.createQueryBuilder('brand')
+        .where('brand.is_active = :status', { status: ActiveStatusEnum.ACTIVE });
+  
+      if (name) {
+        query.andWhere('LOWER(brand.name) LIKE :name', {
+          name: `%${name.toLowerCase()}%`,
+        });
+      }
+  
+      const brnads = await query.getMany();
+      return brnads;
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
+  async pagination(
+    page: number,
+    limit: number,
+    sort: 'DESC' | 'ASC',
+    order: string,
+    brandSearchDto: BrandSearchDto,
+  ) {
+    try {
+      const query = this.brandRepository.createQueryBuilder('brands')
+        .where('brands.is_active = :status', { status: ActiveStatusEnum.ACTIVE })
+        .leftJoinAndSelect('brands.categories', 'category')
+  
+      if (brandSearchDto.name) {
+        query.andWhere('LOWER(brands.name) LIKE :name', {
+          name: `%${brandSearchDto.name.toLowerCase()}%`,
+        });
+      }
+
+      console.log(brandSearchDto.category_ids);
+      
+
+      if (brandSearchDto.category_ids) {
+        brandSearchDto.category_ids = Array.isArray(brandSearchDto.category_ids)
+          ? brandSearchDto.category_ids
+          : [brandSearchDto.category_ids];
+      
+        query.andWhere('category.id IN (:...category_ids)', { category_ids: brandSearchDto.category_ids });
+      }
+      
+  
+      sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
+      const orderFields = ['name', 'created_at', 'updated_at'];
+      order = orderFields.includes(order) ? order : 'updated_at';
+  
+      query.orderBy(`brands.${order}`, sort)
+        .skip((page - 1) * limit)
+        .take(limit);
+  
+      const [brands, total] = await query.getManyAndCount();
+      
+      return [brands, total];
+    } catch (error) {
+      throw new BadRequestException({
+        message: 'Error fetching brands',
+        details: error.message,
+      });
     }
   }
 
