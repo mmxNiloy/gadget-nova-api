@@ -79,14 +79,18 @@ export class ProductEntity extends CustomBaseEntity {
   @Column({ name: 'gallery', type: 'simple-array', nullable: true })
   gallery: string[];
 
-  @Column({ name: 'specifications', type: 'json', nullable: true })
-  specifications: Record<string, any>;
+  @Column({ name: 'specifications', type: 'text', nullable: true })
+  specifications: string;
 
   @ManyToOne(() => CategoryEntity, (category) => category.products, {
     eager: true,
   })
   @JoinColumn({ name: 'category_id' })
   category: CategoryEntity;
+
+  @ManyToOne(() => CategoryEntity, (subCategory) => subCategory.products, { nullable: true })
+  @JoinColumn({ name: 'subcategory_id' })
+  subCategory: CategoryEntity;
 
   @ManyToOne(() => BrandEntity, (brand) => brand.products, { eager: true })
   @JoinColumn({ name: 'brand_id' })

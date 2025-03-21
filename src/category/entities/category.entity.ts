@@ -2,7 +2,7 @@ import { IsNotEmpty } from 'class-validator';
 import { BrandEntity } from 'src/brand/entities/brand.entity';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { ProductEntity } from 'src/products/entities/product.entity';
-import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
 
 @Entity('categories')
 export class CategoryEntity extends CustomBaseEntity {
@@ -24,4 +24,11 @@ export class CategoryEntity extends CustomBaseEntity {
 
   @OneToMany(() => ProductEntity, (productEntity) => productEntity.category)
   products: ProductEntity[];
+
+  @OneToMany(() => CategoryEntity, (subCategory) => subCategory.parentCategory)
+  subCategories: CategoryEntity[];
+
+  @ManyToOne(() => CategoryEntity, (category) => category.subCategories, { nullable: true })
+  @JoinColumn({ name: 'parent_category_id' })
+  parentCategory: CategoryEntity;
 }

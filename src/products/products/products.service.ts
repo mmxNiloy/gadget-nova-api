@@ -37,6 +37,20 @@ export class ProductsService {
       );
       if (!category) throw new NotFoundException('Category not found');
 
+      let subcategory = null;
+      if (createProductDto.subcategory_id) {
+        subcategory = await this.categoryService.findOne(
+          createProductDto.subcategory_id,
+        );
+        if (!subcategory) throw new NotFoundException('Subcategory not found');
+
+        if (subcategory.parentCategory?.id !== category.id) {
+          throw new BadRequestException(
+            'Subcategory does not belong to the selected category',
+          );
+        }
+      }
+
       const brand = await this.brandService.findOne(createProductDto.brand_id);
       if (!brand) throw new NotFoundException('Brand not found');
 
@@ -65,6 +79,7 @@ export class ProductsService {
       const productEntity = this.productRepository.create({
         ...createProductDto,
         category: category,
+        subCategory: subcategory,
         brand: brand,
         thumbnail: thumbnailUrl,
         gallery: galleryUrls,
@@ -77,9 +92,15 @@ export class ProductsService {
       productEntity.thresholdAMount = createProductDto.thresholdAMount;
       const savedProduct = await this.productRepository.save(productEntity);
 
-      if (createProductDto.attribute_value_ids?.length) {
+      let attributeValueIds = createProductDto.attribute_value_ids;
+
+      if (!Array.isArray(attributeValueIds)) {
+        attributeValueIds = [attributeValueIds];
+      }
+
+      if (attributeValueIds.length) {
         await Promise.all(
-          createProductDto.attribute_value_ids.map((attributeValueId) =>
+          attributeValueIds.map((attributeValueId) =>
             this.productAttributeService.create(
               {
                 product_id: savedProduct.id,
@@ -109,17 +130,18 @@ export class ProductsService {
         .leftJoinAndSelect('product.productAttributes', 'productAttributes')
         .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
         .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup');
-  
+
       if (title) {
-        query.andWhere('LOWER(product.title) LIKE :title', { title: `%${title.toLowerCase()}%` });
+        query.andWhere('LOWER(product.title) LIKE :title', {
+          title: `%${title.toLowerCase()}%`,
+        });
       }
-  
+
       return await query.getMany();
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
-  
 
   async pagination(
     page: number,
@@ -129,9 +151,10 @@ export class ProductsService {
     productSearchDto: ProductSearchDto,
   ) {
     console.log(productSearchDto.title);
-    
+
     try {
-      const query = this.productRepository.createQueryBuilder('product')
+      const query = this.productRepository
+        .createQueryBuilder('product')
         .leftJoinAndSelect('product.category', 'category')
         .leftJoinAndSelect('product.brand', 'brand')
         .leftJoinAndSelect('product.questions', 'questions')
@@ -139,8 +162,8 @@ export class ProductsService {
         .leftJoinAndSelect('product.ratings', 'ratings')
         .leftJoinAndSelect('product.productAttributes', 'productAttributes')
         .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
-        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-  
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup');
+
       if (productSearchDto.title) {
         query.andWhere('LOWER(product.title) LIKE :title', {
           title: `%${productSearchDto.title.toLowerCase()}%`,
@@ -154,44 +177,48 @@ export class ProductsService {
       }
 
       if (productSearchDto.category_ids) {
-        productSearchDto.category_ids = Array.isArray(productSearchDto.category_ids)
+        productSearchDto.category_ids = Array.isArray(
+          productSearchDto.category_ids,
+        )
           ? productSearchDto.category_ids
           : [productSearchDto.category_ids];
-      
-        query.andWhere('category.id IN (:...category_ids)', { category_ids: productSearchDto.category_ids });
-      }
 
+        query.andWhere('category.id IN (:...category_ids)', {
+          category_ids: productSearchDto.category_ids,
+        });
+      }
 
       if (productSearchDto.brand_ids) {
         productSearchDto.brand_ids = Array.isArray(productSearchDto.brand_ids)
           ? productSearchDto.brand_ids
           : [productSearchDto.brand_ids];
-      
-        query.andWhere('brand.id IN (:...brand_ids)', { brand_ids: productSearchDto.brand_ids });
+
+        query.andWhere('brand.id IN (:...brand_ids)', {
+          brand_ids: productSearchDto.brand_ids,
+        });
       }
-      
-  
+
       sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
       const orderFields = ['name', 'created_at', 'updated_at'];
       order = orderFields.includes(order) ? order : 'updated_at';
-  
-      query.orderBy(`product.${order}`, sort)
+
+      query
+        .orderBy(`product.${order}`, sort)
         .skip((page - 1) * limit)
         .take(limit);
-  
+
       const [products, total] = await query.getManyAndCount();
-      
+
       return [products, total];
     } catch (error) {
       console.log(error);
-      
+
       throw new BadRequestException({
         message: 'Error fetching products',
         details: error.message,
       });
     }
   }
-  
 
   async findOne(id: string): Promise<ProductEntity> {
     const product = await this.productRepository
@@ -202,16 +229,17 @@ export class ProductsService {
       .leftJoinAndSelect('questions.answer', 'answer')
       .leftJoinAndSelect('product.ratings', 'ratings')
       .where('product.id = :id', { id })
-      .andWhere('product.is_active = :status', { status: ActiveStatusEnum.ACTIVE })
+      .andWhere('product.is_active = :status', {
+        status: ActiveStatusEnum.ACTIVE,
+      })
       .getOne();
-  
+
     if (!product) {
       throw new NotFoundException('Product not found');
     }
-  
+
     return product;
   }
-  
 
   async update(
     id: string,

@@ -68,20 +68,22 @@ export class CreateProductDto {
   keyFeatures: string;
 
   @ApiPropertyOptional({
-    default: {
-      'Main Features': {
-        'Connection Type': 'Wireless',
-        'Optical Sensor': 'Darkfield high precision',
-        Resolution: '200-8000 DPI',
-      },
-      'Gaming Features': {
-        Button: '6 buttons (Left/Right-click, Back/Forward, etc.)',
-        'Scroll Wheel': 'Yes, with auto-shift',
-      },
-    },
+    description: 'Product specifications in HTML format',
+    example: `<h3>Main Features</h3>
+              <ul>
+                <li><strong>Connection Type:</strong> Wireless</li>
+                <li><strong>Optical Sensor:</strong> Darkfield high precision</li>
+                <li><strong>Resolution:</strong> 200-8000 DPI</li>
+              </ul>
+              <h3>Gaming Features</h3>
+              <ul>
+                <li><strong>Button:</strong> 6 buttons (Left/Right-click, Back/Forward, etc.)</li>
+                <li><strong>Scroll Wheel:</strong> Yes, with auto-shift</li>
+              </ul>`,
   })
   @IsOptional()
-  specifications: Record<string, any>;
+  @IsString()
+  specifications: string;
 
   @ApiProperty({ default: 3 })
   @IsInt({ message: 'Threshold Amount must be an integer' })
@@ -93,12 +95,20 @@ export class CreateProductDto {
   @IsUUID('all', { message: 'Category must be a valid UUID' })
   category_id: string;
 
-  @ApiProperty({ type: [String] })
-  @IsNotEmpty({ message: 'attribute value IDs must be defined' })
-  @IsUUID('all', {
-    each: true,
-    message: 'attribute value IDs must be an array of UUIDs',
+  @ApiPropertyOptional({ description: 'Subcategory ID (if applicable)' })
+  @IsOptional()
+  @IsUUID('all', { message: 'Subcategory must be a valid UUID' })
+  subcategory_id?: string;
+
+  @Transform(({ value }) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',');
+    return [];
   })
+  @ApiProperty({ type: [String], example: ['uuid1', 'uuid2'] })
+  @IsNotEmpty({ message: 'attribute value IDs must be defined' })
+  @IsUUID('all', { each: true, message: 'attribute value IDs must be an array of UUIDs' })
   attribute_value_ids: string[];
 
   @ApiProperty()

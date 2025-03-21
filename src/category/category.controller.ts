@@ -66,6 +66,28 @@ export class CategoryController {
     }
   }
 
+  @Get('subcategories')
+  @ApiQuery({ name: 'name', required: false, type: String })
+  async findAllSubcategories(@Query('name') name?: string) {
+    try {
+      const payload = await this.categoryService.findAllSubcategories(name);
+      return { message: 'All subcategory lists', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
+  @Get('subcategories/:categoryId')
+  async findSubcategoriesByCategory(@Param('categoryId') categoryId: string) {
+    try {
+      const payload =
+        await this.categoryService.findSubcategoriesByCategory(categoryId);
+      return { message: 'Subcategories by category ID', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
   @Get('pagination')
   async pagination(
     @PaginationDecorator() pagination: PaginationDTO,

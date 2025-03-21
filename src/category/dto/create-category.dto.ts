@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 import { ApiQueryPaginationBaseDTO } from 'src/common/dtos/pagination/api-query-pagination-base.dto';
 
 export class CreateCategoryDto {
@@ -22,6 +22,11 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsString({ message: 'Category name Must be a string' })
   metaDescription: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsUUID('all', { message: 'Brand must be a valid UUID' })
+  parent_category_id?: string;
 }
 
 export class CategorySearchDto extends ApiQueryPaginationBaseDTO {
