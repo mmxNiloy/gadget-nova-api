@@ -12,6 +12,7 @@ import {
 import { ProductQuestionsEntity } from './product-questions.entity';
 import { ProductRatingEntity } from './product-rating.entity';
 import { ProductAttributeEntity } from './product-attribute.entity';
+import { PromotionalDiscountEntity } from 'src/promotional-discount/entities/promotional-discount.entity';
 
 @Entity('products')
 export class ProductEntity extends CustomBaseEntity {
@@ -82,13 +83,36 @@ export class ProductEntity extends CustomBaseEntity {
   @Column({ name: 'specifications', type: 'text', nullable: true })
   specifications: string;
 
+  @Column({ name: 'isTrending', type: 'boolean', default: false })
+  isTrending: boolean;
+
+  @Column({ name: 'isFeatured', type: 'boolean', default: false })
+  isFeatured: boolean;
+
+  @Column({ name: 'isInStock', type: 'boolean', default: true })
+  isInStock: boolean;
+
+  @Column({ name: 'trendingStartDate', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  trendingStartDate: Date;
+
+  @Column({ name: 'trendingEndDate', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  trendingEndDate: Date;
+
+  @Column({ name: 'featuredStartDate', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  featuredStartDate: Date;
+
+  @Column({ name: 'featuredEndDate', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  featuredEndDate: Date;
+
   @ManyToOne(() => CategoryEntity, (category) => category.products, {
     eager: true,
   })
   @JoinColumn({ name: 'category_id' })
   category: CategoryEntity;
 
-  @ManyToOne(() => CategoryEntity, (subCategory) => subCategory.products, { nullable: true })
+  @ManyToOne(() => CategoryEntity, (subCategory) => subCategory.products, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'subcategory_id' })
   subCategory: CategoryEntity;
 
@@ -113,4 +137,7 @@ export class ProductEntity extends CustomBaseEntity {
     (productAttribute) => productAttribute.product,
   )
   productAttributes: ProductAttributeEntity[];
+
+  @OneToMany(() => PromotionalDiscountEntity, (discount) => discount.product)
+  promotionalDiscounts: PromotionalDiscountEntity[];
 }

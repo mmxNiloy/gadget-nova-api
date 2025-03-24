@@ -19,6 +19,7 @@ import { ProductsController } from './products/products.controller';
 import { ProductsService } from './products/products.service';
 import { QuestionAnswersController } from './question-answers/question-answers.controller';
 import { QuestionAnswersService } from './question-answers/question-answers.service';
+import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { QuestionAnswersService } from './question-answers/question-answers.serv
     ProductsQuestionsService,
     QuestionAnswersService,
     ProductsRatingsService,
+    PromoDiscountUtil
   ],
   exports: [ProductsService],
 })

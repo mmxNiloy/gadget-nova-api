@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -12,6 +13,7 @@ import {
   MaxLength
 } from 'class-validator';
 import { ApiQueryPaginationBaseDTO } from 'src/common/dtos/pagination/api-query-pagination-base.dto';
+import { Bool } from 'src/common/enums/bool.enum';
 
 export class CreateProductDto {
   @ApiProperty({ default: 'Product Title' })
@@ -90,6 +92,34 @@ export class CreateProductDto {
   @IsOptional()
   thresholdAMount: number;
 
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  isTrending: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  isFeatured: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  isInStock: boolean;
+
+  @ApiPropertyOptional({ default: new Date().toISOString() })
+  @IsOptional()
+  trendingStartDate: Date;
+
+  @ApiPropertyOptional({ default: new Date().toISOString() })
+  @IsOptional()
+  trendingEndDate: Date;
+
+  @ApiPropertyOptional({ default: new Date().toISOString() })
+  @IsOptional()
+  featuredStartDate: Date;
+
+  @ApiPropertyOptional({ default: new Date().toISOString() })
+  @IsOptional()
+  featuredEndDate: Date;
+
   @ApiProperty()
   @IsNotEmpty({ message: 'Category ID must be defined' })
   @IsUUID('all', { message: 'Category must be a valid UUID' })
@@ -167,4 +197,42 @@ export class ProductSearchDto extends ApiQueryPaginationBaseDTO {
   })
   @Transform(({ value }) => (Array.isArray(value) ? value : value.split(',')))
   brand_ids: string[];
+
+  @ApiPropertyOptional({ enum: Bool, description: 'Filter trending products' })
+  @IsOptional()
+  @IsEnum(Bool)
+  @Transform(({ value }) => (value === '1' || value === 1 ? Bool.YES : Bool.NO))
+  isTrending?: Bool;
+
+  @ApiPropertyOptional({ enum: Bool, description: 'Filter featured products' })
+  @IsOptional()
+  @IsEnum(Bool)
+  @Transform(({ value }) => (value === '1' || value === 1 ? Bool.YES : Bool.NO))
+  isFeatured?: Bool;
+
+  @ApiPropertyOptional({ enum: Bool, description: 'Filter in-stock products' })
+  @IsOptional()
+  @IsEnum(Bool)
+  @Transform(({ value }) => (value === '1' || value === 1 ? Bool.YES : Bool.NO))
+  isInStock?: Bool;
+
+  @ApiPropertyOptional({ type: String, format: 'date', description: 'Trending start date' })
+  @IsOptional()
+  @IsString()
+  trendingStartDate?: string;
+
+  @ApiPropertyOptional({ type: String, format: 'date', description: 'Trending end date' })
+  @IsOptional()
+  @IsString()
+  trendingEndDate?: string;
+
+  @ApiPropertyOptional({ type: String, format: 'date', description: 'Featured start date' })
+  @IsOptional()
+  @IsString()
+  featuredStartDate?: string;
+
+  @ApiPropertyOptional({ type: String, format: 'date', description: 'Featured end date' })
+  @IsOptional()
+  @IsString()
+  featuredEndDate?: string;
 }

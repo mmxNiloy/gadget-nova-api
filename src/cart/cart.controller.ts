@@ -48,11 +48,11 @@ export class CartController {
     return { message: 'Item removed from cart', payload };
   }
 
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.USER)
-  @Delete('clear')
-  async clearCart(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.cartService.clearCart(jwtPayload);
-    return { message: 'Cart removed', payload };
-  }
+  // @UseGuards(AuthGuard('jwt'), RolesGuard)
+  // @Roles(RolesEnum.USER)
+  // @Delete('clear')
+  // async clearCart(@UserPayload() jwtPayload: JwtPayloadInterface) {
+  //   const payload = await this.cartService.clearCart(jwtPayload);
+  //   return { message: 'Cart removed', payload };
+  // }
 }

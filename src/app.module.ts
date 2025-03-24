@@ -12,6 +12,7 @@ import { OrderModule } from './order/order.module';
 import { ProductsModule } from './products/products.module';
 import { S3Module } from './s3/s3.module';
 import { UserModule } from './user/user.module';
+import { PromotionalDiscountModule } from './promotional-discount/promotional-discount.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { UserModule } from './user/user.module';
     S3Module,
     CartModule,
     OrderModule,
+    PromotionalDiscountModule,
   ],
   controllers: [AppController],
   providers: [AppService],

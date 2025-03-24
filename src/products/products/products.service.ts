@@ -15,6 +15,8 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductAttributeService } from '../product-attribute/product-attribute.service';
 import { title } from 'process';
+import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
+import { Bool } from 'src/common/enums/bool.enum';
 
 @Injectable()
 export class ProductsService {
@@ -25,6 +27,7 @@ export class ProductsService {
     private readonly brandService: BrandService,
     private readonly productAttributeService: ProductAttributeService,
     private readonly s3Service: S3Service,
+    private readonly promoDiscountUtil: PromoDiscountUtil
   ) {}
 
   async create(
@@ -118,7 +121,7 @@ export class ProductsService {
     }
   }
 
-  async findAll(title?: string): Promise<ProductEntity[]> {
+  async findAll(title?: string) {
     try {
       const query = this.productRepository
         .createQueryBuilder('product')
@@ -129,7 +132,11 @@ export class ProductsService {
         .leftJoinAndSelect('product.ratings', 'ratings')
         .leftJoinAndSelect('product.productAttributes', 'productAttributes')
         .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
-        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup');
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
+        .leftJoinAndSelect(
+          'product.promotionalDiscounts',
+          'promotionalDiscounts',
+        );
 
       if (title) {
         query.andWhere('LOWER(product.title) LIKE :title', {
@@ -137,7 +144,14 @@ export class ProductsService {
         });
       }
 
-      return await query.getMany();
+      const products = await query.getMany();
+
+      const updatedProducts = products.map((product) => ({
+        ...product,
+        ...this.promoDiscountUtil.filterActivePromo(product),
+      }));
+
+      return updatedProducts
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -150,8 +164,7 @@ export class ProductsService {
     order: string,
     productSearchDto: ProductSearchDto,
   ) {
-    console.log(productSearchDto.title);
-
+    
     try {
       const query = this.productRepository
         .createQueryBuilder('product')
@@ -162,7 +175,11 @@ export class ProductsService {
         .leftJoinAndSelect('product.ratings', 'ratings')
         .leftJoinAndSelect('product.productAttributes', 'productAttributes')
         .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
-        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup');
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
+        .leftJoinAndSelect(
+          'product.promotionalDiscounts',
+          'promotionalDiscounts',
+        );
 
       if (productSearchDto.title) {
         query.andWhere('LOWER(product.title) LIKE :title', {
@@ -177,9 +194,7 @@ export class ProductsService {
       }
 
       if (productSearchDto.category_ids) {
-        productSearchDto.category_ids = Array.isArray(
-          productSearchDto.category_ids,
-        )
+        productSearchDto.category_ids = Array.isArray(productSearchDto.category_ids)
           ? productSearchDto.category_ids
           : [productSearchDto.category_ids];
 
@@ -197,6 +212,51 @@ export class ProductsService {
           brand_ids: productSearchDto.brand_ids,
         });
       }
+      if (productSearchDto.isTrending !== undefined) {
+        console.log('Trend', productSearchDto.isTrending);
+        query.andWhere('product.isTrending = :isTrending', {
+          isTrending: productSearchDto.isTrending === Bool.YES ? 1 : 0,
+        });
+      }
+      
+      if (productSearchDto.isFeatured !== undefined) {
+        console.log('Feature', productSearchDto.isFeatured);
+        query.andWhere('product.isFeatured = :isFeatured', {
+          isFeatured: productSearchDto.isFeatured === Bool.YES ? 1 : 0,
+        });
+      }
+      
+      if (productSearchDto.isInStock !== undefined) {
+        console.log('Stock', productSearchDto.isInStock);
+        query.andWhere('product.isInStock = :isInStock', {
+          isInStock: productSearchDto.isInStock === Bool.YES ? 1 : 0,
+        });
+      }
+      
+      if (productSearchDto.trendingStartDate) {
+        query.andWhere('product.trendingStartDate >= :trendingStartDate', {
+          trendingStartDate: productSearchDto.trendingStartDate,
+        });
+      }
+      
+      if (productSearchDto.trendingEndDate) {
+        query.andWhere('product.trendingEndDate <= :trendingEndDate', {
+          trendingEndDate: productSearchDto.trendingEndDate,
+        });
+      }
+      
+      if (productSearchDto.featuredStartDate) {
+        query.andWhere('product.featuredStartDate >= :featuredStartDate', {
+          featuredStartDate: productSearchDto.featuredStartDate,
+        });
+      }
+      
+      if (productSearchDto.featuredEndDate) {
+        query.andWhere('product.featuredEndDate <= :featuredEndDate', {
+          featuredEndDate: productSearchDto.featuredEndDate,
+        });
+      }
+      
 
       sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
       const orderFields = ['name', 'created_at', 'updated_at'];
@@ -209,7 +269,12 @@ export class ProductsService {
 
       const [products, total] = await query.getManyAndCount();
 
-      return [products, total];
+      const updatedProducts = products.map((product) => ({
+        ...product,
+        ...this.promoDiscountUtil.filterActivePromo(product),
+      }));
+
+      return [updatedProducts, total];
     } catch (error) {
       console.log(error);
 
@@ -228,6 +293,7 @@ export class ProductsService {
       .leftJoinAndSelect('product.questions', 'questions')
       .leftJoinAndSelect('questions.answer', 'answer')
       .leftJoinAndSelect('product.ratings', 'ratings')
+      .leftJoinAndSelect('product.promotionalDiscounts', 'promotionalDiscounts')
       .where('product.id = :id', { id })
       .andWhere('product.is_active = :status', {
         status: ActiveStatusEnum.ACTIVE,
@@ -238,7 +304,10 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
 
-    return product;
+    return {
+      ...product,
+      ...this.promoDiscountUtil.filterActivePromo(product),
+    };
   }
 
   async update(

@@ -84,6 +84,8 @@ export class ProductsController {
     @PaginationDecorator() pagination: PaginationDTO,
     @Query() productSearchDto: ProductSearchDto,
   ) {
+    console.log('Received Pagination Params:', pagination);
+    console.log('Received Search Params:', productSearchDto);
     const [payload, total] = await this.productsService.pagination(
       pagination.page,
       pagination.limit,
