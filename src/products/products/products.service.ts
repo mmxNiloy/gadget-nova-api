@@ -4,19 +4,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as moment from 'moment';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { BrandService } from 'src/brand/brand.service';
 import { CategoryService } from 'src/category/category.service';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+import { Bool } from 'src/common/enums/bool.enum';
+import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
 import { S3Service } from 'src/s3/s3.service';
 import { Repository } from 'typeorm';
 import { CreateProductDto, ProductSearchDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductAttributeService } from '../product-attribute/product-attribute.service';
-import { title } from 'process';
-import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
-import { Bool } from 'src/common/enums/bool.enum';
+
 
 @Injectable()
 export class ProductsService {
@@ -212,18 +213,39 @@ export class ProductsService {
           brand_ids: productSearchDto.brand_ids,
         });
       }
+      
       if (productSearchDto.isTrending !== undefined) {
         console.log('Trend', productSearchDto.isTrending);
         query.andWhere('product.isTrending = :isTrending', {
           isTrending: productSearchDto.isTrending === Bool.YES ? 1 : 0,
         });
+  
+        if (productSearchDto.isTrending === Bool.YES) {
+          const currentDate = moment().toDate();
+          query.andWhere('product.trendingStartDate <= :currentDate', {
+            currentDate,
+          });
+          query.andWhere('product.trendingEndDate >= :currentDate', {
+            currentDate,
+          });
+        }
       }
-      
+  
       if (productSearchDto.isFeatured !== undefined) {
         console.log('Feature', productSearchDto.isFeatured);
         query.andWhere('product.isFeatured = :isFeatured', {
           isFeatured: productSearchDto.isFeatured === Bool.YES ? 1 : 0,
         });
+  
+        if (productSearchDto.isFeatured === Bool.YES) {
+          const currentDate = moment().toDate();
+          query.andWhere('product.featuredStartDate <= :currentDate', {
+            currentDate,
+          });
+          query.andWhere('product.featuredEndDate >= :currentDate', {
+            currentDate,
+          });
+        }
       }
       
       if (productSearchDto.isInStock !== undefined) {
