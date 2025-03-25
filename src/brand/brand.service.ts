@@ -45,11 +45,12 @@ export class BrandService {
       throw new BadRequestException(error.message);
     }
   }
-
+  
   async findAll(name?: string): Promise<BrandEntity[]> {
     try {
       const query = this.brandRepository.createQueryBuilder('brand')
-        .where('brand.is_active = :status', { status: ActiveStatusEnum.ACTIVE });
+        .where('brand.is_active = :status', { status: ActiveStatusEnum.ACTIVE })
+        .leftJoinAndSelect('brand.categories','categories')
   
       if (name) {
         query.andWhere('LOWER(brand.name) LIKE :name', {
