@@ -89,7 +89,9 @@ export class OrderService {
     try {
       const query = this.orderRepository
         .createQueryBuilder('orders')
-        .leftJoinAndSelect('orders.user', 'user');
+        .leftJoinAndSelect('orders.user', 'user')
+        .leftJoinAndSelect('orders.carts', 'carts')
+        .leftJoinAndSelect('carts.product', 'product');
 
       if (orderSearchDto.name) {
         query.where('LOWER(user.name) LIKE :name', {
@@ -117,7 +119,7 @@ export class OrderService {
       return [brands, total];
     } catch (error) {
       throw new BadRequestException({
-        message: 'Error fetching brands',
+        message: 'Error fetching orders',
         details: error.message,
       });
     }
