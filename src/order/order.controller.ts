@@ -77,6 +77,14 @@ export class OrderController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const payload = await this.orderService.findOne(id);
+    return { message: 'Order details', payload };
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.ADMIN)
   @Put('update-status/:orderId')
   @ApiBody({ type: UpdateOrderStatusDto })

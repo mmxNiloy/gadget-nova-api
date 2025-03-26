@@ -114,15 +114,31 @@ export class OrderService {
         .skip((page - 1) * limit)
         .take(limit);
 
-      const [brands, total] = await query.getManyAndCount();
+      const [orders, total] = await query.getManyAndCount();
 
-      return [brands, total];
+      return [orders, total];
     } catch (error) {
       throw new BadRequestException({
         message: 'Error fetching orders',
         details: error.message,
       });
     }
+  }
+
+  async findOne(id: string): Promise<OrderEntity> {
+    const order = await this.orderRepository
+    .createQueryBuilder('orders')
+    .where('orders.id = :id', { id })
+    .leftJoinAndSelect('orders.user', 'user')
+    .leftJoinAndSelect('orders.carts', 'carts')
+    .leftJoinAndSelect('carts.product', 'product')
+    .getOne();
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return order;
   }
 
   async updateOrderStatus(
