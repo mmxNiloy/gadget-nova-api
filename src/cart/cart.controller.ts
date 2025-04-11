@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards
@@ -39,20 +41,40 @@ export class CartController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.USER)
-  @Delete('remove/:cartId')
-  async removeFromCart(
-    @Param('cartId') cartId: string,
+  @Delete('remove/:itemId')
+  async removeFromCartItem(
+    @Param('itemId') itemId: string,
     @Query('quantity') quantity?: number,
   ) {
-    const payload = await this.cartService.removeFromCart(cartId, quantity);
+    const payload = await this.cartService.removeFromCartItem(itemId, quantity);
     return { message: 'Item removed from cart', payload };
   }
 
-  // @UseGuards(AuthGuard('jwt'), RolesGuard)
-  // @Roles(RolesEnum.USER)
-  // @Delete('clear')
-  // async clearCart(@UserPayload() jwtPayload: JwtPayloadInterface) {
-  //   const payload = await this.cartService.clearCart(jwtPayload);
-  //   return { message: 'Cart removed', payload };
-  // }
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.USER)
+  @Patch('update/:itemId')
+  async updateCartItemQuantity(
+    @Param('itemId') itemId: string,
+    @Query('quantity') quantity: number,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.cartService.updateCartItemQuantity(itemId, quantity, jwtPayload);
+    return { message: 'Cart item quantity updated', payload };
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.USER)
+  @Get('active')
+  async getActiveCart(@UserPayload() jwtPayload: JwtPayloadInterface) {
+    const payload = await this.cartService.getActiveCart(jwtPayload.id);
+    return { message: 'Active cart fetched successfully', payload };
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.USER)
+  @Delete('deactivate')
+  async deactivateActiveCart(@UserPayload() jwtPayload: JwtPayloadInterface) {
+    await this.cartService.deactivateActiveCart(jwtPayload.id);
+    return { message: 'Cart deactivated and stock restored successfully' };
+  }
 }

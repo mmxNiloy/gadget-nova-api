@@ -2,7 +2,7 @@ import { CartEntity } from 'src/cart/entities/cart.entity';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { UserEntity } from 'src/user/entities/user.entity/user.entity';
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 
 @Entity('orders')
 export class OrderEntity extends CustomBaseEntity {
@@ -10,8 +10,9 @@ export class OrderEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;
 
-  @OneToMany(() => CartEntity, (cart) => cart.order)
-  carts: CartEntity[];
+  @OneToOne(() => CartEntity, { eager: true })
+  @JoinColumn({ name: 'cart_id' })
+  cart: CartEntity;
 
   @Column({ name: 'status', type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;

@@ -12,6 +12,7 @@ import { UserEntity } from 'src/user/entities/user.entity/user.entity';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+import { ProductEntity } from 'src/products/entities/product.entity';
 
 @Injectable()
 export class OrderService {
@@ -20,47 +21,41 @@ export class OrderService {
     private readonly orderRepository: Repository<OrderEntity>,
     @InjectRepository(CartEntity)
     private readonly cartRepository: Repository<CartEntity>,
+    @InjectRepository(ProductEntity)
+    private readonly productRepository: Repository<ProductEntity>,  
   ) {}
 
   async createOrder(
     createOrderDto: CreateOrderDto,
     jwtPayload: JwtPayloadInterface,
   ): Promise<OrderEntity> {
-    const carts = await this.cartRepository.find({
-      where: { user: { id: jwtPayload.id }, order: null },
-      relations: ['product'],
+    // Fetch the active cart for the user
+    const cart = await this.cartRepository.findOne({
+      where: {
+        user: { id: jwtPayload.id },
+        is_active: ActiveStatusEnum.ACTIVE,
+      },
+      relations: ['items', 'items.product'],  // Fetch cart items and related products
     });
 
-    if (!carts.length) {
-      throw new NotFoundException('No valid carts found for order placement');
+    if (!cart) {
+      throw new NotFoundException('No active cart found for order placement');
     }
 
-    for (const cart of carts) {
-      if (cart.user.id !== jwtPayload.id) {
-        throw new BadRequestException(
-          "Cannot place an order for another user's cart",
-        );
+    // Calculate total price and validate product stock
+    let totalPrice = 0;
+    for (const item of cart.items) {
+      const product = item.product;
+      if (product.stockAmount < item.quantity) {
+        throw new BadRequestException(`Not enough stock for product: ${product.title}`);
       }
-
-      const existingOrder = await this.orderRepository
-        .createQueryBuilder('order')
-        .innerJoin('order.carts', 'cart')
-        .where('cart.id = :cartId', { cartId: cart.id })
-        .getOne();
-
-      if (existingOrder) {
-        throw new BadRequestException(`You have already ordered`);
-      }
+      totalPrice += item.price * item.quantity;
     }
 
-    const totalPrice = carts.reduce(
-      (sum, cart) => sum + cart.price * cart.quantity,
-      0,
-    );
-
+    // Create order entity
     const order = this.orderRepository.create({
       user: { id: jwtPayload.id },
-      carts,
+      cart,
       totalPrice,
       status: OrderStatus.PENDING,
       created_by: jwtPayload.id,
@@ -70,11 +65,17 @@ export class OrderService {
 
     const savedOrder = await this.orderRepository.save(order);
 
-    for (const cart of carts) {
-      cart.order = savedOrder;
-      cart.is_active = ActiveStatusEnum.INACTIVE;
-      await this.cartRepository.save(cart);
+    // Update cart items stock and holdAmount after order placement
+    for (const item of cart.items) {
+      const product = item.product;
+      product.stockAmount -= item.quantity;
+      product.holdAmount -= item.quantity;
+      await this.productRepository.save(product);  // Update product stock
     }
+
+    // Mark the cart as inactive after order creation
+    cart.is_active = ActiveStatusEnum.INACTIVE;
+    await this.cartRepository.save(cart);
 
     return savedOrder;
   }
@@ -90,8 +91,9 @@ export class OrderService {
       const query = this.orderRepository
         .createQueryBuilder('orders')
         .leftJoinAndSelect('orders.user', 'user')
-        .leftJoinAndSelect('orders.carts', 'carts')
-        .leftJoinAndSelect('carts.product', 'product');
+        .leftJoinAndSelect('orders.cart', 'cart')
+        .leftJoinAndSelect('cart.items', 'items')
+        .leftJoinAndSelect('items.product', 'product');
 
       if (orderSearchDto.name) {
         query.where('LOWER(user.name) LIKE :name', {
@@ -130,8 +132,9 @@ export class OrderService {
     .createQueryBuilder('orders')
     .where('orders.id = :id', { id })
     .leftJoinAndSelect('orders.user', 'user')
-    .leftJoinAndSelect('orders.carts', 'carts')
-    .leftJoinAndSelect('carts.product', 'product')
+    .leftJoinAndSelect('orders.cart', 'cart')
+    .leftJoinAndSelect('cart.items', 'items')
+    .leftJoinAndSelect('items.product', 'product')
     .getOne();
 
     if (!order) {
@@ -147,7 +150,7 @@ export class OrderService {
   ): Promise<OrderEntity> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: ['carts'],
+      relations: ['cart'],
     });
 
     if (!order) {
