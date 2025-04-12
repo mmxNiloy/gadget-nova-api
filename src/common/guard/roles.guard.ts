@@ -21,7 +21,8 @@ export class RolesGuard implements CanActivate {
 
     const roleHierarchy: Record<RolesEnum, RolesEnum[]> = {
       [RolesEnum.SUPER_ADMIN]: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.USER],
-      [RolesEnum.ADMIN]: [RolesEnum.ADMIN, RolesEnum.USER],
+      [RolesEnum.ADMIN]: [RolesEnum.ADMIN, RolesEnum.EDITOR, RolesEnum.USER],
+      [RolesEnum.EDITOR]: [RolesEnum.EDITOR, RolesEnum.USER],
       [RolesEnum.USER]: [RolesEnum.USER],
     };
 

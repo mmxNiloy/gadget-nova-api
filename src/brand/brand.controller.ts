@@ -34,7 +34,7 @@ export class BrandController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.SUPER_ADMIN)
+  @Roles(RolesEnum.EDITOR)
   @Post()
   async create(
     @Body() createBrandDto: CreateBrandDto,
@@ -90,7 +90,7 @@ export class BrandController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.SUPER_ADMIN)
+  @Roles(RolesEnum.EDITOR)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -107,7 +107,7 @@ export class BrandController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.SUPER_ADMIN)
+  @Roles(RolesEnum.EDITOR)
   @Delete(':id')
   async remove(
     @Param('id') id: string,

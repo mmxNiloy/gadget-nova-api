@@ -15,7 +15,7 @@ export class UserDto {
   email: string;
 
   @ApiProperty()
-  @IsNotEmpty({ message: 'Must be non empty' })
+  @IsOptional()
   @IsString({ message: 'Must be a string' })
   reset_password_token: string;
 

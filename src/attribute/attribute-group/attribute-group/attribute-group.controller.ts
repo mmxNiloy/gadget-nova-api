@@ -30,7 +30,7 @@ export class AttributeGroupController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.SUPER_ADMIN)
+  @Roles(RolesEnum.EDITOR)
   @Post()
   async create(
     @Body() createAttributeGroupDto: CreateAttributeGroupDto,
@@ -69,7 +69,7 @@ export class AttributeGroupController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.SUPER_ADMIN)
+  @Roles(RolesEnum.EDITOR)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -90,7 +90,7 @@ export class AttributeGroupController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.SUPER_ADMIN)
+  @Roles(RolesEnum.EDITOR)
   @Delete(':id')
   async remove(
     @Param('id') id: string,

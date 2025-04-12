@@ -39,7 +39,7 @@ export class ProductsController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.SUPER_ADMIN)
+  @Roles(RolesEnum.EDITOR)
   @Post()
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -116,7 +116,7 @@ export class ProductsController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.SUPER_ADMIN)
+  @Roles(RolesEnum.EDITOR)
   @Patch(':id')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -152,7 +152,7 @@ export class ProductsController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.SUPER_ADMIN)
+  @Roles(RolesEnum.EDITOR)
   @Delete(':id')
   async remove(
     @Param('id') id: string,

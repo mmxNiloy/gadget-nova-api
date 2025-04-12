@@ -26,6 +26,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserSearchDto } from './dto/user-search.dto';
 import { UserService } from './user.service';
+import { UserDto } from './dto/user.dto';
 
 @ApiTags('User')
 @ApiBearerAuth('jwt')
@@ -35,6 +36,23 @@ import { UserService } from './user.service';
 })
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Create a user from admin panel' })
+  @Post('create-user') 
+  @ApiBody({ type: UserDto })
+  async createUser(
+    @Body() userDto: UserDto,
+  ) {
+    try {
+      const payload = await this.userService.create(userDto);
+      return { message: 'User added successfully!', payload };
+    } catch (error) {
+      throw new BadRequestException(error.response?.message || 'Error updating user');
+    }
+  }
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
