@@ -144,7 +144,6 @@ export class UserService {
     const user = await this.userRepository.findOne({
       where: {
         id,
-        is_active: ActiveStatusEnum.ACTIVE,
       },
     });
 

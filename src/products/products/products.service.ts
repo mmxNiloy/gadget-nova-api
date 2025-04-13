@@ -127,6 +127,7 @@ export class ProductsService {
       const query = this.productRepository
         .createQueryBuilder('product')
         .leftJoinAndSelect('product.category', 'category')
+        .leftJoinAndSelect('product.subCategory', 'subCategory')
         .leftJoinAndSelect('product.brand', 'brand')
         .leftJoinAndSelect('product.questions', 'questions')
         .leftJoinAndSelect('questions.answer', 'answer')
@@ -170,6 +171,7 @@ export class ProductsService {
       const query = this.productRepository
         .createQueryBuilder('product')
         .leftJoinAndSelect('product.category', 'category')
+        .leftJoinAndSelect('product.subCategory', 'subCategory')
         .leftJoinAndSelect('product.brand', 'brand')
         .leftJoinAndSelect('product.questions', 'questions')
         .leftJoinAndSelect('questions.answer', 'answer')
@@ -311,6 +313,7 @@ export class ProductsService {
     const product = await this.productRepository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.subCategory', 'subCategory')
       .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect('product.questions', 'questions')
       .leftJoinAndSelect('questions.answer', 'answer')
