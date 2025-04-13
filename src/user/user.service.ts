@@ -271,7 +271,6 @@ export class UserService {
   async getAll(dto: UserSearchDto): Promise<UserEntity[]> {
     const query = await this.userRepository
       .createQueryBuilder('user')
-      .where('user.is_active = :is_active', { is_active: ActiveStatusEnum.ACTIVE });
 
     if (dto.userName) {
       query.andWhere('lower(user.name) like :userName', {

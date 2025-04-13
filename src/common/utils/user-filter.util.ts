@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { UserEntity } from 'src/user/entities/user.entity/user.entity';
 
 @Injectable()
 export class UserFilterUtil {
@@ -10,6 +11,7 @@ export class UserFilterUtil {
       email: user.email,
       is_verified: user.is_verified,
       profile_image_url: user.profile_image_url,
+      role: user.role
     };
 
     return filteredUser;
