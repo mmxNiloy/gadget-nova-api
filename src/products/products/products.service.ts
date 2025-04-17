@@ -319,6 +319,9 @@ export class ProductsService {
       .leftJoinAndSelect('questions.answer', 'answer')
       .leftJoinAndSelect('product.ratings', 'ratings')
       .leftJoinAndSelect('product.promotionalDiscounts', 'promotionalDiscounts')
+      .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+      .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+      .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
       .where('product.id = :id', { id })
       .andWhere('product.is_active = :status', {
         status: ActiveStatusEnum.ACTIVE,
@@ -347,17 +350,13 @@ export class ProductsService {
       }
 
       if (updateProductDto.category_id) {
-        const category = await this.categoryService.findOne(
-          updateProductDto.category_id,
-        );
+        const category = await this.categoryService.findOne(updateProductDto.category_id);
         if (!category) throw new NotFoundException('Category not found');
         product.category = category;
       }
-
+  
       if (updateProductDto.brand_id) {
-        const brand = await this.brandService.findOne(
-          updateProductDto.brand_id,
-        );
+        const brand = await this.brandService.findOne(updateProductDto.brand_id);
         if (!brand) throw new NotFoundException('Brand not found');
         product.brand = brand;
       }

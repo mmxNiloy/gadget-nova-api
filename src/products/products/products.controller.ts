@@ -10,13 +10,17 @@ import {
   Query,
   UploadedFiles,
   UseGuards,
-  UseInterceptors
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
-  FileFieldsInterceptor
-} from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -136,17 +140,22 @@ export class ProductsController {
     },
     @Body() updateProductDto: UpdateProductDto,
   ) {
-    const productData = {
-      ...updateProductDto,
-      thumbnail: files.thumbnail ? files.thumbnail[0] : null,
-      gallery: files.gallery ? files.gallery : [],
-    };
+    const productData = { ...updateProductDto };
+
+    if (files.thumbnail?.length) {
+      productData.thumbnail = files.thumbnail[0];
+    }
+
+    if (files.gallery?.length) {
+      productData.gallery = files.gallery;
+    }
 
     const updatedProduct = await this.productsService.update(
       id,
       productData,
       jwtPayload,
     );
+
     return { message: 'Product updated successfully', payload: updatedProduct };
   }
 
