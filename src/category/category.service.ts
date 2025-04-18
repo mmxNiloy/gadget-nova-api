@@ -142,7 +142,7 @@ export class CategoryService {
           status: ActiveStatusEnum.ACTIVE,
         })
         .leftJoinAndSelect('categories.subCategories', 'subCategories')
-        .andWhere('category.parentCategory IS NULL');
+        .andWhere('categories.parentCategory IS NULL');
 
       if (categorySearchDto.name) {
         query.andWhere('LOWER(categories.name) LIKE :name', {
@@ -163,6 +163,8 @@ export class CategoryService {
 
       return [categories, total];
     } catch (error) {
+      console.log(error);
+      
       throw new BadRequestException({
         message: 'Error fetching categories',
         details: error.message,
@@ -174,9 +176,9 @@ export class CategoryService {
     try {
       const category = await this.categoryRepository
         .createQueryBuilder('category')
-        .leftJoinAndSelect('category.subCategories', 'subCategory') // Include subcategories
-        .leftJoinAndSelect('category.parentCategory', 'parentCategory') // Include parent category
-        .leftJoinAndSelect('category.brands', 'brands') // Include related brands
+        .leftJoinAndSelect('category.subCategories', 'subCategory')
+        .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+        .leftJoinAndSelect('category.brands', 'brands')
         .where('category.id = :id', { id })
         .andWhere('category.is_active = :status', {
           status: ActiveStatusEnum.ACTIVE,
