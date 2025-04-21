@@ -1,18 +1,18 @@
 import { BrandEntity } from 'src/brand/entities/brand.entity';
 import { CategoryEntity } from 'src/category/entities/category.entity';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
+import { PromotionEntity } from 'src/promotion/entities/promotion.entity';
+import { PromotionalDiscountEntity } from 'src/promotional-discount/entities/promotional-discount.entity';
 import {
   Column,
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToMany,
-  OneToOne,
+  OneToMany
 } from 'typeorm';
+import { ProductAttributeEntity } from './product-attribute.entity';
 import { ProductQuestionsEntity } from './product-questions.entity';
 import { ProductRatingEntity } from './product-rating.entity';
-import { ProductAttributeEntity } from './product-attribute.entity';
-import { PromotionalDiscountEntity } from 'src/promotional-discount/entities/promotional-discount.entity';
 
 @Entity('products')
 export class ProductEntity extends CustomBaseEntity {
@@ -140,4 +140,7 @@ export class ProductEntity extends CustomBaseEntity {
 
   @OneToMany(() => PromotionalDiscountEntity, (discount) => discount.product)
   promotionalDiscounts: PromotionalDiscountEntity[];
+
+  @OneToMany(() => PromotionEntity, (promotion) => promotion.product)
+  promotions: PromotionEntity[];
 }

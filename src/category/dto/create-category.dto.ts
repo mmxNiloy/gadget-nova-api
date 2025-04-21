@@ -1,6 +1,8 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 import { ApiQueryPaginationBaseDTO } from 'src/common/dtos/pagination/api-query-pagination-base.dto';
+import { Bool } from 'src/common/enums/bool.enum';
 
 export class CreateCategoryDto {
   @ApiProperty({default: "Monitor"})
@@ -23,6 +25,10 @@ export class CreateCategoryDto {
   @IsString({ message: 'Category name Must be a string' })
   metaDescription: string;
 
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  isFeatured: boolean;
+
   @ApiProperty()
   @IsOptional()
   @IsUUID('all', { message: 'Brand must be a valid UUID' })
@@ -38,4 +44,10 @@ export class CategorySearchDto extends ApiQueryPaginationBaseDTO {
   @IsOptional()
   @IsString()
   name: string;
+
+  @ApiPropertyOptional({ enum: Bool, description: 'Filter featured category' })
+  @IsOptional()
+  @IsEnum(Bool)
+  @Transform(({ value }) => (value === '1' || value === 1 ? Bool.YES : Bool.NO))
+  isFeatured?: Bool;
 }

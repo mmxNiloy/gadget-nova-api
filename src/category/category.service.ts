@@ -13,6 +13,7 @@ import {
 } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryEntity } from './entities/category.entity';
+import { Bool } from 'src/common/enums/bool.enum';
 
 @Injectable()
 export class CategoryService {
@@ -147,6 +148,13 @@ export class CategoryService {
       if (categorySearchDto.name) {
         query.andWhere('LOWER(categories.name) LIKE :name', {
           name: `%${categorySearchDto.name.toLowerCase()}%`,
+        });
+      }
+
+      if (categorySearchDto.isFeatured !== undefined) {
+        console.log('Feature', categorySearchDto.isFeatured);
+        query.andWhere('categories.isFeatured = :isFeatured', {
+          isFeatured: categorySearchDto.isFeatured === Bool.YES ? 1 : 0,
         });
       }
 

@@ -18,6 +18,9 @@ export class CategoryEntity extends CustomBaseEntity {
 
   @Column({ type: 'text', nullable: true })
   metaDescription: string;
+  
+  @Column({ name: 'isFeatured', type: 'boolean', default: false })
+  isFeatured: boolean;
 
   @ManyToMany(() => BrandEntity, (brand) => brand.categories)
   brands: BrandEntity[];
