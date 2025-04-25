@@ -63,6 +63,8 @@ export class CategoryService {
       const query = this.categoryRepository
         .createQueryBuilder('category')
         .leftJoinAndSelect('category.subCategories', 'subCategory')
+        .leftJoinAndSelect('category.brands', 'categoryBrand')
+        .leftJoinAndSelect('subCategory.brands', 'subCategoryBrand')
         .where('category.is_active = :status', {
           status: ActiveStatusEnum.ACTIVE,
         })
