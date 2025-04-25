@@ -89,6 +89,9 @@ export class ProductEntity extends CustomBaseEntity {
   @Column({ name: 'isFeatured', type: 'boolean', default: false })
   isFeatured: boolean;
 
+  @Column({ name: 'isBestSeller', type: 'boolean', default: false })
+  isBestSeller: boolean;
+
   @Column({ name: 'isInStock', type: 'boolean', default: true })
   isInStock: boolean;
 

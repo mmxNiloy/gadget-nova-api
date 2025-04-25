@@ -100,6 +100,10 @@ export class CreateProductDto {
   @IsOptional()
   isFeatured: boolean;
 
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  isBestSeller: boolean;
+
   @ApiPropertyOptional({ default: true })
   @IsOptional()
   isInStock: boolean;
@@ -209,6 +213,12 @@ export class ProductSearchDto extends ApiQueryPaginationBaseDTO {
   @IsEnum(Bool)
   @Transform(({ value }) => (value === '1' || value === 1 ? Bool.YES : Bool.NO))
   isFeatured?: Bool;
+
+  @ApiPropertyOptional({ enum: Bool, description: 'Filter featured products' })
+  @IsOptional()
+  @IsEnum(Bool)
+  @Transform(({ value }) => (value === '1' || value === 1 ? Bool.YES : Bool.NO))
+  isBestSeller?: Bool;
 
   @ApiPropertyOptional({ enum: Bool, description: 'Filter in-stock products' })
   @IsOptional()

@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { Repository } from 'typeorm';
-import { CreateProductAttributeDto } from '../dto/create-product-attribute.dto';
+import { AttributeSearchDto, CreateProductAttributeDto } from '../dto/create-product-attribute.dto';
 import { UpdateProductAttributeDto } from '../dto/update-product-attribute.dto';
 import { ProductAttributeEntity } from '../entities/product-attribute.entity';
 import { ProductEntity } from '../entities/product.entity';
@@ -53,6 +53,55 @@ export class ProductAttributeService {
     return await this.productAttributeRepository.find({
       relations: ['product', 'attributeValue'],
     });
+  }
+
+  async pagination(
+    page: number,
+    limit: number,
+    sort: 'DESC' | 'ASC',
+    order: string,
+    productSearchDto: AttributeSearchDto,
+  ){
+    
+    try {
+      const query = this.productAttributeRepository
+        .createQueryBuilder('attribute')
+        .leftJoinAndSelect('attribute.product', 'products')
+        .leftJoinAndSelect('attribute.attributeValue', 'attributeValues')
+        .where('attribute.is_active = :status', {
+          status: ActiveStatusEnum.ACTIVE,
+        })
+
+      if (productSearchDto.product_ids) {
+        productSearchDto.product_ids = Array.isArray(productSearchDto.product_ids)
+          ? productSearchDto.product_ids
+          : [productSearchDto.product_ids];
+
+        query.andWhere('products.id IN (:...product_ids)', {
+          product_ids: productSearchDto.product_ids,
+        });
+      }
+
+      sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
+      const orderFields = ['product', 'created_at', 'updated_at'];
+      order = orderFields.includes(order) ? order : 'updated_at';
+
+      query
+        .orderBy(`attribute.${order}`, sort)
+        .skip((page - 1) * limit)
+        .take(limit);
+
+      const [products, total] = await query.getManyAndCount();
+
+      return [products, total];
+    } catch (error) {
+      console.log(error);
+
+      throw new BadRequestException({
+        message: 'Error fetching products',
+        details: error.message,
+      });
+    }
   }
 
   async findOne(id: string): Promise<ProductAttributeEntity> {

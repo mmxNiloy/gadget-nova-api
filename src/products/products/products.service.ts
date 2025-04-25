@@ -232,6 +232,13 @@ export class ProductsService {
           });
         }
       }
+
+      if (productSearchDto.isBestSeller !== undefined) {
+        console.log('Feature', productSearchDto.isBestSeller);
+        query.andWhere('product.isBestSeller = :isBestSeller', {
+          isBestSeller: productSearchDto.isBestSeller === Bool.YES ? 1 : 0,
+        });
+      }
   
       if (productSearchDto.isFeatured !== undefined) {
         console.log('Feature', productSearchDto.isFeatured);
