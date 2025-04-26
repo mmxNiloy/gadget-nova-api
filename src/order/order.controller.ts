@@ -35,11 +35,9 @@ export class OrderController {
   @Roles(RolesEnum.USER)
   @Post('create')
   async createOrder(
-    @Body() createOrderDto: CreateOrderDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
     const payload = await this.orderService.createOrder(
-      createOrderDto,
       jwtPayload,
     );
     return { message: 'Order created successfully', payload };
@@ -52,6 +50,7 @@ export class OrderController {
   async pagination(
     @PaginationDecorator() pagination: PaginationDTO,
     @Query() orderSearchDto: OrderSearchDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
     const [payload, total] = await this.orderService.pagination(
       pagination.page,
@@ -59,6 +58,7 @@ export class OrderController {
       pagination.sort as 'DESC' | 'ASC',
       pagination.order,
       orderSearchDto,
+      jwtPayload
     );
 
     return {

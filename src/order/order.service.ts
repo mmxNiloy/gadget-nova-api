@@ -1,18 +1,18 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { OrderEntity } from './entities/order.entity';
-import { CreateOrderDto, OrderSearchDto } from './dto/create-order.dto';
-import { CartEntity } from 'src/cart/entities/cart.entity';
-import { UserEntity } from 'src/user/entities/user.entity/user.entity';
-import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
+import { CartEntity } from 'src/cart/entities/cart.entity';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { ProductEntity } from 'src/products/entities/product.entity';
+import { Repository } from 'typeorm';
+import { OrderSearchDto } from './dto/create-order.dto';
+import { OrderEntity } from './entities/order.entity';
+import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @Injectable()
 export class OrderService {
@@ -26,33 +26,50 @@ export class OrderService {
   ) {}
 
   async createOrder(
-    createOrderDto: CreateOrderDto,
     jwtPayload: JwtPayloadInterface,
   ): Promise<OrderEntity> {
-    // Fetch the active cart for the user
     const cart = await this.cartRepository.findOne({
       where: {
         user: { id: jwtPayload.id },
         is_active: ActiveStatusEnum.ACTIVE,
       },
-      relations: ['items', 'items.product'],  // Fetch cart items and related products
+      relations: ['items', 'items.product'],
     });
-
+  
     if (!cart) {
       throw new NotFoundException('No active cart found for order placement');
     }
-
-    // Calculate total price and validate product stock
-    let totalPrice = 0;
+  
+    let calculatedTotalPrice = 0;
     for (const item of cart.items) {
       const product = item.product;
+  
       if (product.stockAmount < item.quantity) {
         throw new BadRequestException(`Not enough stock for product: ${product.title}`);
       }
+  
+      calculatedTotalPrice += product.discountPrice * item.quantity;
+    }
+  
+    let totalPrice = 0;
+    for (const item of cart.items) {
+      const product = item.product;
+  
       totalPrice += item.price * item.quantity;
     }
-
-    // Create order entity
+  
+    if (calculatedTotalPrice !== totalPrice) {
+      cart.items = [];
+      cart.is_active = ActiveStatusEnum.INACTIVE;
+      await this.cartRepository.save(cart);
+  
+      throw new BadRequestException({
+        code: 'ORDER_PRICE_MISMATCH',
+        message: 'Product prices have changed. Cart has been cleared. Please create a new order.',
+        updatedTotalPrice: calculatedTotalPrice,
+      });
+    }
+  
     const order = this.orderRepository.create({
       user: { id: jwtPayload.id },
       cart,
@@ -62,23 +79,23 @@ export class OrderService {
       created_user_name: jwtPayload.userName,
       created_at: new Date(),
     });
-
+  
     const savedOrder = await this.orderRepository.save(order);
-
-    // Update cart items stock and holdAmount after order placement
+  
     for (const item of cart.items) {
       const product = item.product;
       product.stockAmount -= item.quantity;
       product.holdAmount -= item.quantity;
-      await this.productRepository.save(product);  // Update product stock
+      await this.productRepository.save(product);
     }
-
-    // Mark the cart as inactive after order creation
+  
     cart.is_active = ActiveStatusEnum.INACTIVE;
     await this.cartRepository.save(cart);
-
+  
     return savedOrder;
   }
+  
+  
 
   async pagination(
     page: number,
@@ -86,6 +103,7 @@ export class OrderService {
     sort: 'DESC' | 'ASC',
     order: string,
     orderSearchDto: OrderSearchDto,
+    jwtPayload: JwtPayloadInterface
   ) {
     try {
       const query = this.orderRepository
@@ -94,6 +112,10 @@ export class OrderService {
         .leftJoinAndSelect('orders.cart', 'cart')
         .leftJoinAndSelect('cart.items', 'items')
         .leftJoinAndSelect('items.product', 'product');
+
+        if (jwtPayload.role === RolesEnum.USER) {
+          query.where('orders.userId = :userId', { userId: jwtPayload.id });
+        }
 
       if (orderSearchDto.name) {
         query.where('LOWER(user.name) LIKE :name', {
