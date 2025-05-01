@@ -14,6 +14,7 @@ import { S3Module } from './s3/s3.module';
 import { UserModule } from './user/user.module';
 import { PromotionalDiscountModule } from './promotional-discount/promotional-discount.module';
 import { PromotionModule } from './promotion/promotion.module';
+import { ShippingInfoModule } from './shipping-info/shipping-info.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { PromotionModule } from './promotion/promotion.module';
     OrderModule,
     PromotionalDiscountModule,
     PromotionModule,
+    ShippingInfoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

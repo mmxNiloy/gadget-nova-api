@@ -3,6 +3,7 @@ import { CartEntity } from 'src/cart/entities/cart.entity';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { OrderEntity } from 'src/order/entities/order.entity';
+import { ShippingInfoEntity } from 'src/shipping-info/entities/shipping-info.entity';
 import { Column, Entity, Index, OneToMany } from 'typeorm';
 
 @Entity('users')
@@ -62,4 +63,7 @@ export class UserEntity extends CustomBaseEntity {
 
   @OneToMany(() => OrderEntity, (orderEntity) => orderEntity.user)
   orders: OrderEntity[];
+
+  @OneToMany(() => ShippingInfoEntity, (shippingInfoEntity) => shippingInfoEntity.user)
+  shippingInfos: ShippingInfoEntity[];
 }

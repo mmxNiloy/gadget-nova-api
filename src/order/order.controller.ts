@@ -35,9 +35,11 @@ export class OrderController {
   @Roles(RolesEnum.USER)
   @Post('create')
   async createOrder(
+    @Body() createOrderDto: CreateOrderDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
     const payload = await this.orderService.createOrder(
+      createOrderDto,
       jwtPayload,
     );
     return { message: 'Order created successfully', payload };

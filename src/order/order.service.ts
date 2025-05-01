@@ -10,9 +10,10 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { ProductEntity } from 'src/products/entities/product.entity';
 import { Repository } from 'typeorm';
-import { OrderSearchDto } from './dto/create-order.dto';
+import { CreateOrderDto, OrderSearchDto } from './dto/create-order.dto';
 import { OrderEntity } from './entities/order.entity';
 import { RolesEnum } from 'src/common/enums/roles.enum';
+import { ShippingInfoService } from 'src/shipping-info/shipping-info.service';
 
 @Injectable()
 export class OrderService {
@@ -22,10 +23,12 @@ export class OrderService {
     @InjectRepository(CartEntity)
     private readonly cartRepository: Repository<CartEntity>,
     @InjectRepository(ProductEntity)
-    private readonly productRepository: Repository<ProductEntity>,  
+    private readonly productRepository: Repository<ProductEntity>,
+    private readonly shippingInfoService:ShippingInfoService
   ) {}
 
   async createOrder(
+    createOrderDto: CreateOrderDto,
     jwtPayload: JwtPayloadInterface,
   ): Promise<OrderEntity> {
     const cart = await this.cartRepository.findOne({
@@ -69,10 +72,23 @@ export class OrderService {
         updatedTotalPrice: calculatedTotalPrice,
       });
     }
+
+    const shippingData = {
+      first_name: createOrderDto.shippingInfo.first_name,
+      last_name: createOrderDto.shippingInfo.last_name,
+      company_name: createOrderDto.shippingInfo.company_name,
+      email: createOrderDto.shippingInfo.email,
+      phone: createOrderDto.shippingInfo.phone,
+      address: createOrderDto.shippingInfo.address,
+      additional_info: createOrderDto.shippingInfo.additional_info
+    }
+
+    const shippingInfo = await this.shippingInfoService.create(shippingData, jwtPayload)
   
     const order = this.orderRepository.create({
       user: { id: jwtPayload.id },
       cart,
+      shippingInfo,
       totalPrice,
       status: OrderStatus.PENDING,
       created_by: jwtPayload.id,
@@ -95,8 +111,6 @@ export class OrderService {
     return savedOrder;
   }
   
-  
-
   async pagination(
     page: number,
     limit: number,
@@ -109,6 +123,7 @@ export class OrderService {
       const query = this.orderRepository
         .createQueryBuilder('orders')
         .leftJoinAndSelect('orders.user', 'user')
+        .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
         .leftJoinAndSelect('orders.cart', 'cart')
         .leftJoinAndSelect('cart.items', 'items')
         .leftJoinAndSelect('items.product', 'product');
@@ -154,6 +169,7 @@ export class OrderService {
     .createQueryBuilder('orders')
     .where('orders.id = :id', { id })
     .leftJoinAndSelect('orders.user', 'user')
+    .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
     .leftJoinAndSelect('orders.cart', 'cart')
     .leftJoinAndSelect('cart.items', 'items')
     .leftJoinAndSelect('items.product', 'product')
