@@ -351,7 +351,7 @@ export class ProductsService {
     jwtPayload: JwtPayloadInterface,
   ): Promise<ProductEntity> {
     try {
-      const product = await this.findOne(id);
+      let product = await this.findOne(id);
       if (!product) {
         throw new NotFoundException('Product not found');
       }
@@ -369,28 +369,34 @@ export class ProductsService {
       }
 
       if (updateProductDto.thumbnail) {
-        const { Location } = await this.s3Service.uploadFile(
+        const uploaded = await this.s3Service.uploadFile(
           updateProductDto.thumbnail,
           'products/thumbnails',
         );
-        product.thumbnail = Location;
+        
+        product.thumbnail = uploaded.Location;
       }
-
+      
       if (updateProductDto.gallery?.length) {
         const galleryUrls = await Promise.all(
-          updateProductDto.gallery.map(async (file) => {
-            const { Location } = await this.s3Service.uploadFile(
-              file,
-              'products/gallery',
-            );
-            return Location;
-          }),
+          updateProductDto.gallery.map((file) =>
+            this.s3Service.uploadFile(file, 'products/gallery').then((res) => res.Location),
+          ),
         );
         product.gallery = galleryUrls;
       }
 
+      const {
+        thumbnail,
+        gallery,
+        category_id,
+        brand_id,
+        attribute_value_ids,
+        ...rest
+      } = updateProductDto;
+  
       Object.assign(product, {
-        ...updateProductDto,
+        ...rest,
         updated_by: jwtPayload.id,
         updated_user_name: jwtPayload.userName,
         updated_at: new Date(),
