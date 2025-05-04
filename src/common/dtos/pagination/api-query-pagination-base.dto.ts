@@ -22,7 +22,7 @@ export abstract class ApiQueryPaginationBaseDTO {
 
   @ApiProperty({
     description: 'sort field',
-    default: 'createAt',
+    default: 'created_at',
     required: false,
   })
   sort: string;

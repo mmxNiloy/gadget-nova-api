@@ -125,7 +125,10 @@ export class ProductsService {
   async findAll(title?: string) {
     try {
       const query = this.productRepository
-        .createQueryBuilder('product')
+        .createQueryBuilder('product') 
+        .where('product.is_active = :status', {
+          status: ActiveStatusEnum.ACTIVE,
+        })
         .leftJoinAndSelect('product.category', 'category')
         .leftJoinAndSelect('product.subCategory', 'subCategory')
         .leftJoinAndSelect('product.brand', 'brand')
@@ -170,6 +173,9 @@ export class ProductsService {
     try {
       const query = this.productRepository
         .createQueryBuilder('product')
+        .where('product.is_active = :status', {
+          status: ActiveStatusEnum.ACTIVE,
+        })
         .leftJoinAndSelect('product.category', 'category')
         .leftJoinAndSelect('product.subCategory', 'subCategory')
         .leftJoinAndSelect('product.brand', 'brand')
@@ -319,6 +325,9 @@ export class ProductsService {
   async findOne(id: string): Promise<ProductEntity> {
     const product = await this.productRepository
       .createQueryBuilder('product')
+      .where('product.is_active = :status', {
+        status: ActiveStatusEnum.ACTIVE,
+      })
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('product.subCategory', 'subCategory')
       .leftJoinAndSelect('product.brand', 'brand')

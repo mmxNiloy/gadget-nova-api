@@ -100,7 +100,7 @@ export class ProductsController {
 
     return {
       statusCode: 200,
-      message: 'Brand list with pagination',
+      message: 'Product list with pagination',
       payload,
       meta: {
         total: Number(total),
