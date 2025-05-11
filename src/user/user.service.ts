@@ -112,8 +112,6 @@ export class UserService {
         where: { refresh_token: token },
       });
 
-      
-
       if (!user) {
         throw new NotFoundException('Refresh token is not valid');
       }
@@ -126,7 +124,7 @@ export class UserService {
 
       return { ...user, access_token };
     } catch (error) {
-      throw new BadRequestException();
+      throw new BadRequestException(error.message);
     }
   }
 
