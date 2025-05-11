@@ -14,6 +14,8 @@ import { CreateOrderDto, OrderSearchDto } from './dto/create-order.dto';
 import { OrderEntity } from './entities/order.entity';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { ShippingInfoService } from 'src/shipping-info/shipping-info.service';
+import { PGWContext } from 'src/payment/pgw.context';
+import { PaymentEntity } from 'src/payment/entities/payment.entity';
 
 @Injectable()
 export class OrderService {
@@ -24,7 +26,10 @@ export class OrderService {
     private readonly cartRepository: Repository<CartEntity>,
     @InjectRepository(ProductEntity)
     private readonly productRepository: Repository<ProductEntity>,
-    private readonly shippingInfoService:ShippingInfoService
+    @InjectRepository(ProductEntity)
+    private readonly paymentRepository: Repository<PaymentEntity>,
+    private readonly shippingInfoService: ShippingInfoService,
+    private readonly pgwContext: PGWContext
   ) {}
 
   async createOrder(
@@ -38,37 +43,40 @@ export class OrderService {
       },
       relations: ['items', 'items.product'],
     });
-  
+
     if (!cart) {
       throw new NotFoundException('No active cart found for order placement');
     }
-  
+
     let calculatedTotalPrice = 0;
     for (const item of cart.items) {
       const product = item.product;
-  
+
       if (product.stockAmount < item.quantity) {
-        throw new BadRequestException(`Not enough stock for product: ${product.title}`);
+        throw new BadRequestException(
+          `Not enough stock for product: ${product.title}`,
+        );
       }
-  
+
       calculatedTotalPrice += product.discountPrice * item.quantity;
     }
-  
+
     let totalPrice = 0;
     for (const item of cart.items) {
       const product = item.product;
-  
+
       totalPrice += item.price * item.quantity;
     }
-  
+
     if (calculatedTotalPrice !== totalPrice) {
       cart.items = [];
       cart.is_active = ActiveStatusEnum.INACTIVE;
       await this.cartRepository.save(cart);
-  
+
       throw new BadRequestException({
         code: 'ORDER_PRICE_MISMATCH',
-        message: 'Product prices have changed. Cart has been cleared. Please create a new order.',
+        message:
+          'Product prices have changed. Cart has been cleared. Please create a new order.',
         updatedTotalPrice: calculatedTotalPrice,
       });
     }
@@ -80,11 +88,14 @@ export class OrderService {
       email: createOrderDto.shippingInfo.email,
       phone: createOrderDto.shippingInfo.phone,
       address: createOrderDto.shippingInfo.address,
-      additional_info: createOrderDto.shippingInfo.additional_info
-    }
+      additional_info: createOrderDto.shippingInfo.additional_info,
+    };
 
-    const shippingInfo = await this.shippingInfoService.create(shippingData, jwtPayload)
-  
+    const shippingInfo = await this.shippingInfoService.create(
+      shippingData,
+      jwtPayload,
+    );
+
     const order = this.orderRepository.create({
       user: { id: jwtPayload.id },
       cart,
@@ -95,29 +106,43 @@ export class OrderService {
       created_user_name: jwtPayload.userName,
       created_at: new Date(),
     });
-  
+
     const savedOrder = await this.orderRepository.save(order);
-  
+
     for (const item of cart.items) {
       const product = item.product;
       product.stockAmount -= item.quantity;
       product.holdAmount -= item.quantity;
       await this.productRepository.save(product);
     }
-  
+
     cart.is_active = ActiveStatusEnum.INACTIVE;
     await this.cartRepository.save(cart);
-  
+
+    const paymentResult = await this.pgwContext
+      .getStrategy(createOrderDto.paymentMethod)
+      .pay(savedOrder, createOrderDto, jwtPayload);
+
+    const payment = this.paymentRepository.create({
+      order: savedOrder,
+      paymentMethod: createOrderDto.paymentMethod,
+      providerResponse: JSON.stringify(paymentResult),
+    });
+
+    await this.paymentRepository.save(payment);
+
+    savedOrder.payments.push(payment);
+
     return savedOrder;
   }
-  
+
   async pagination(
     page: number,
     limit: number,
     sort: 'DESC' | 'ASC',
     order: string,
     orderSearchDto: OrderSearchDto,
-    jwtPayload: JwtPayloadInterface
+    jwtPayload: JwtPayloadInterface,
   ) {
     try {
       const query = this.orderRepository
@@ -128,9 +153,9 @@ export class OrderService {
         .leftJoinAndSelect('cart.items', 'items')
         .leftJoinAndSelect('items.product', 'product');
 
-        if (jwtPayload.role === RolesEnum.USER) {
-          query.where('orders.userId = :userId', { userId: jwtPayload.id });
-        }
+      if (jwtPayload.role === RolesEnum.USER) {
+        query.where('orders.userId = :userId', { userId: jwtPayload.id });
+      }
 
       if (orderSearchDto.name) {
         query.where('LOWER(user.name) LIKE :name', {
@@ -166,14 +191,14 @@ export class OrderService {
 
   async findOne(id: string): Promise<OrderEntity> {
     const order = await this.orderRepository
-    .createQueryBuilder('orders')
-    .where('orders.id = :id', { id })
-    .leftJoinAndSelect('orders.user', 'user')
-    .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
-    .leftJoinAndSelect('orders.cart', 'cart')
-    .leftJoinAndSelect('cart.items', 'items')
-    .leftJoinAndSelect('items.product', 'product')
-    .getOne();
+      .createQueryBuilder('orders')
+      .where('orders.id = :id', { id })
+      .leftJoinAndSelect('orders.user', 'user')
+      .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
+      .leftJoinAndSelect('orders.cart', 'cart')
+      .leftJoinAndSelect('cart.items', 'items')
+      .leftJoinAndSelect('items.product', 'product')
+      .getOne();
 
     if (!order) {
       throw new NotFoundException('Order not found');
