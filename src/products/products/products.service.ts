@@ -31,6 +31,23 @@ export class ProductsService {
     private readonly promoDiscountUtil: PromoDiscountUtil
   ) {}
 
+  private calculateAverageRating(product: ProductEntity): number {
+    if (!product.ratings || product.ratings.length === 0) {
+      return 0;
+    }
+    const sum = product.ratings.reduce((acc, rating) => acc + rating.star_count, 0);
+    return Number((sum / product.ratings.length).toFixed(1));
+  }
+
+  private addAverageRatingToProduct(product: ProductEntity) {
+    const averageRating = this.calculateAverageRating(product);
+    return {
+      ...product,
+      average_rating: averageRating,
+      total_ratings: product.ratings ? product.ratings.length : 0
+    };
+  }
+
   async create(
     createProductDto: CreateProductDto,
     jwtPayload: JwtPayloadInterface,
@@ -152,7 +169,7 @@ export class ProductsService {
       const products = await query.getMany();
 
       const updatedProducts = products.map((product) => ({
-        ...product,
+        ...this.addAverageRatingToProduct(product),
         ...this.promoDiscountUtil.filterActivePromo(product),
       }));
 
@@ -307,7 +324,7 @@ export class ProductsService {
       const [products, total] = await query.getManyAndCount();
 
       const updatedProducts = products.map((product) => ({
-        ...product,
+        ...this.addAverageRatingToProduct(product),
         ...this.promoDiscountUtil.filterActivePromo(product),
       }));
 
@@ -349,7 +366,7 @@ export class ProductsService {
     }
 
     return {
-      ...product,
+      ...this.addAverageRatingToProduct(product),
       ...this.promoDiscountUtil.filterActivePromo(product),
     };
   }

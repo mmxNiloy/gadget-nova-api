@@ -5,10 +5,12 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { QuestionAnswersService } from './question-answers.service';
 import { CreateQuestionAnswersDto } from '../dto/create-question-answers.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from 'src/common/guard/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @ApiTags('Question-answers')
-@ApiBearerAuth('jwt')
-@UseGuards(JwtAuthGuard)
 @Controller({
   path: 'Question-answers',
   version: '1',
@@ -16,6 +18,8 @@ import { CreateQuestionAnswersDto } from '../dto/create-question-answers.dto';
 export class QuestionAnswersController {
   constructor(private readonly questionAnswersService: QuestionAnswersService) {}
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN)
   @Post()
   async create(
     @Body() createQuestionAnswersDto: CreateQuestionAnswersDto,
@@ -37,6 +41,8 @@ export class QuestionAnswersController {
     return { message: 'Answer details', payload };
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN)
   @Delete(':id')
   async remove(
     @Param('id') id: string,
