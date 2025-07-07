@@ -31,7 +31,7 @@ export class CreateCategoryDto {
 
   @ApiProperty()
   @IsOptional()
-  @IsUUID('all', { message: 'Brand must be a valid UUID' })
+  @IsUUID('all', { message: 'Parent category be a valid UUID' })
   parent_category_id?: string;
 }
 

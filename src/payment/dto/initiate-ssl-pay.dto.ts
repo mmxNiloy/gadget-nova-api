@@ -8,7 +8,7 @@ export class InitiateSslCommerzPaymentDto {
     fail_url: string;
     cancel_url: string;
     product_category: string;
-    emi_option:number;
+    emi_option: number;
     cus_name: string;
     cus_email: string;
     cus_add1: string;
@@ -20,5 +20,9 @@ export class InitiateSslCommerzPaymentDto {
     num_of_item: number;
     product_name: string;
     product_profile: string;
+    value_a?: string;
+    value_b?: string;
+    value_c?: string;
+    value_d?: string;
   }
   

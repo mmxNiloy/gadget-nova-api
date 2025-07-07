@@ -2,6 +2,8 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
@@ -26,9 +28,10 @@ export class OrderService {
     private readonly cartRepository: Repository<CartEntity>,
     @InjectRepository(ProductEntity)
     private readonly productRepository: Repository<ProductEntity>,
-    @InjectRepository(ProductEntity)
+    @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
     private readonly shippingInfoService: ShippingInfoService,
+    @Inject(forwardRef(() => PGWContext))
     private readonly pgwContext: PGWContext
   ) {}
 
@@ -189,16 +192,21 @@ export class OrderService {
     }
   }
 
-  async findOne(id: string): Promise<OrderEntity> {
-    const order = await this.orderRepository
+  async findOne(id: string, userId?: string): Promise<OrderEntity> {
+    const query = this.orderRepository
       .createQueryBuilder('orders')
       .where('orders.id = :id', { id })
       .leftJoinAndSelect('orders.user', 'user')
       .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
       .leftJoinAndSelect('orders.cart', 'cart')
       .leftJoinAndSelect('cart.items', 'items')
-      .leftJoinAndSelect('items.product', 'product')
-      .getOne();
+      .leftJoinAndSelect('items.product', 'product');
+
+    if (userId) {
+      query.andWhere('orders.userId = :userId', { userId });
+    }
+
+    const order = await query.getOne();
 
     if (!order) {
       throw new NotFoundException('Order not found');
