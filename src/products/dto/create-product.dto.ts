@@ -245,4 +245,22 @@ export class ProductSearchDto extends ApiQueryPaginationBaseDTO {
   @IsOptional()
   @IsString()
   featuredEndDate?: string;
+
+  @ApiPropertyOptional({ 
+    type: Number, 
+    description: 'Minimum price filter',
+    example: 1000
+  })
+  @IsOptional()
+  @IsNumber({}, { message: 'Min price must be a number' })
+  minPrice?: number;
+
+  @ApiPropertyOptional({ 
+    type: Number, 
+    description: 'Maximum price filter',
+    example: 50000
+  })
+  @IsOptional()
+  @IsNumber({}, { message: 'Max price must be a number' })
+  maxPrice?: number;
 }

@@ -26,6 +26,9 @@ export class OrderEntity extends CustomBaseEntity {
   @Column({ name: 'total_price', type: 'decimal' })
   totalPrice: number;
 
+  @Column({ name: 'delivery_charge', type: 'decimal', precision: 10, scale: 2, default: 70 })
+  delivery_charge: number;
+
   @OneToMany(() => PaymentEntity, payment => payment.order)
   payments: PaymentEntity[];
 }

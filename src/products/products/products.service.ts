@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as moment from 'moment';
+import moment from 'moment';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { BrandService } from 'src/brand/brand.service';
 import { CategoryService } from 'src/category/category.service';
@@ -310,7 +310,19 @@ export class ProductsService {
           featuredEndDate: productSearchDto.featuredEndDate,
         });
       }
-      
+
+      // Price range filtering
+      if (productSearchDto.minPrice !== undefined) {
+        query.andWhere('product.regularPrice >= :minPrice', {
+          minPrice: productSearchDto.minPrice,
+        });
+      }
+
+      if (productSearchDto.maxPrice !== undefined) {
+        query.andWhere('product.regularPrice <= :maxPrice', {
+          maxPrice: productSearchDto.maxPrice,
+        });
+      }
 
       sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
       const orderFields = ['name', 'created_at', 'updated_at'];

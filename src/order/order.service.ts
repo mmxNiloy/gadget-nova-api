@@ -18,6 +18,7 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { ShippingInfoService } from 'src/shipping-info/shipping-info.service';
 import { PGWContext } from 'src/payment/pgw.context';
 import { PaymentEntity } from 'src/payment/entities/payment.entity';
+import { DistrictService } from 'src/district/district.service';
 
 @Injectable()
 export class OrderService {
@@ -31,6 +32,7 @@ export class OrderService {
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
     private readonly shippingInfoService: ShippingInfoService,
+    private readonly districtService: DistrictService,
     @Inject(forwardRef(() => PGWContext))
     private readonly pgwContext: PGWContext
   ) {}
@@ -84,6 +86,14 @@ export class OrderService {
       });
     }
 
+    // Calculate delivery charge based on district
+    const district = await this.districtService.findOne(createOrderDto.shippingInfo.district_id);
+    if (!district) {
+      throw new BadRequestException('Invalid district selected');
+    }
+
+    const deliveryCharge = district.delivery_charge;
+
     const shippingData = {
       first_name: createOrderDto.shippingInfo.first_name,
       last_name: createOrderDto.shippingInfo.last_name,
@@ -92,6 +102,7 @@ export class OrderService {
       phone: createOrderDto.shippingInfo.phone,
       address: createOrderDto.shippingInfo.address,
       additional_info: createOrderDto.shippingInfo.additional_info,
+      district_id: createOrderDto.shippingInfo.district_id,
     };
 
     const shippingInfo = await this.shippingInfoService.create(
@@ -103,7 +114,8 @@ export class OrderService {
       user: { id: jwtPayload.id },
       cart,
       shippingInfo,
-      totalPrice,
+      totalPrice: totalPrice + deliveryCharge,
+      delivery_charge: deliveryCharge,
       status: OrderStatus.PENDING,
       created_by: jwtPayload.id,
       created_user_name: jwtPayload.userName,

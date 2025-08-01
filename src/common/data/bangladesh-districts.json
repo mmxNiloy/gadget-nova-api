@@ -1,0 +1,262 @@
+[
+  {
+    "name": "Dhaka",
+    "delivery_charge": 70
+  },
+  {
+    "name": "Savar",
+    "delivery_charge": 70
+  },
+  {
+    "name": "Narayanganj",
+    "delivery_charge": 70
+  },
+  {
+    "name": "Bagerhat",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Bandarban",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Barguna",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Barisal",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Bhola",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Bogra",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Brahmanbaria",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Chandpur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Chapainawabganj",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Chittagong",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Chuadanga",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Comilla",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Cox's Bazar",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Dinajpur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Faridpur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Feni",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Gaibandha",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Gazipur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Gopalganj",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Habiganj",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Jamalpur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Jessore",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Jhalokati",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Jhenaidah",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Joypurhat",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Khagrachari",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Khulna",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Kishoreganj",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Kurigram",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Kushtia",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Lakshmipur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Lalmonirhat",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Madaripur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Magura",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Manikganj",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Meherpur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Moulvibazar",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Munshiganj",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Mymensingh",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Naogaon",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Narail",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Narsingdi",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Natore",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Netrokona",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Nilphamari",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Noakhali",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Pabna",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Panchagarh",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Patuakhali",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Pirojpur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Rajbari",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Rajshahi",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Rangamati",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Rangpur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Satkhira",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Shariatpur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Sherpur",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Sirajganj",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Sunamganj",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Sylhet",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Tangail",
+    "delivery_charge": 120
+  },
+  {
+    "name": "Thakurgaon",
+    "delivery_charge": 120
+  }
+] 

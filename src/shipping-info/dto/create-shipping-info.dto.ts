@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString, MaxLength, IsUUID } from "class-validator";
 
 export class CreateShippingInfoDto {
   @ApiProperty({ default: 'Sadiquzzaman' })
@@ -41,4 +41,9 @@ export class CreateShippingInfoDto {
   @IsOptional()
   @IsString({ message: 'Title must be a string' })
   additional_info: string;
+
+  @ApiProperty({ description: 'District ID for delivery charge calculation' })
+  @IsNotEmpty({ message: 'District must be provided' })
+  @IsUUID('all', { message: 'District must be a valid UUID' })
+  district_id: string;
 }

@@ -8,11 +8,13 @@ import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
 import { ShippingInfoModule } from '../shipping-info/shipping-info.module';
 import { PaymentModule } from '../payment/payment.module';
+import { DistrictModule } from '../district/district.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([OrderEntity, CartEntity, ProductEntity, PaymentEntity]),
     ShippingInfoModule,
+    DistrictModule,
     forwardRef(() => PaymentModule)
   ],
   controllers: [OrderController],

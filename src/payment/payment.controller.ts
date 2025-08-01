@@ -46,7 +46,10 @@ export class PaymentController {
 
     // Create order DTO for payment
     const orderDto: CreateOrderDto = {
-      shippingInfo: order.shippingInfo,
+      shippingInfo: {
+        ...order.shippingInfo,
+        district_id: order.shippingInfo.district?.id || '',
+      },
       paymentMethod: 'SSL' as any, // We know it's SSL for this endpoint
     };
 

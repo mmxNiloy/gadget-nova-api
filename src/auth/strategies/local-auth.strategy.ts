@@ -11,10 +11,15 @@ export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   }
 
   async validate(email: string, password: string): Promise<any> {
+    // Check if the input is an email or phone number
+    const isEmail = email.includes('@');
+    
     const localAuthUser: LocalAuthUserDto = {
-      email,
+      email: isEmail ? email : '', // Use email field for both email and phone
+      phone: isEmail ? undefined : email, // If not email, treat as phone
       password,
     };
+    
     const user = await this.authService.validateLocalStrategyUser(
       localAuthUser,
     );

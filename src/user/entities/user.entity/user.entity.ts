@@ -25,6 +25,37 @@ export class UserEntity extends CustomBaseEntity {
   password: string;
 
   @Column({
+    type: 'varchar',
+    name: 'phone',
+    length: 15,
+    nullable: true,
+  })
+  @Index({ unique: true })
+  phone: string;
+
+  @Column({
+    type: 'boolean',
+    name: 'is_verified',
+    default: true,
+  })
+  is_verified: boolean;
+
+  @Column({
+    type: 'varchar',
+    name: 'otp',
+    length: 6,
+    nullable: true,
+  })
+  otp: string;
+
+  @Column({
+    type: 'timestamp',
+    name: 'otp_expires_at',
+    nullable: true,
+  })
+  otp_expires_at: Date;
+
+  @Column({
     type: 'enum',
     enum: RolesEnum,
     default: RolesEnum.USER,
