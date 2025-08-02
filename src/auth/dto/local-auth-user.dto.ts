@@ -1,15 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, MaxLength, Matches, IsOptional } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MaxLength, Matches, IsOptional, ValidateIf } from 'class-validator';
 
 export class LocalAuthUserDto {
-  @ApiProperty({ default: 'sadikuzzaman1996@gmail.com' })
-  @IsNotEmpty({ message: 'Must be non empty' })
+  @ApiProperty({ default: 'sadikuzzaman1996@gmail.com', required: false })
+  @ValidateIf((o) => !o.phone)
+  @IsNotEmpty({ message: 'Email is required when phone is not provided' })
   @IsEmail()
   @MaxLength(100, { message: 'Maximum 100 characters supported' })
-  email: string;
+  email?: string;
 
-  @ApiProperty({ default: '01712345678', required: false })
+  @ApiProperty({ default: '01734911480', required: false })
+  @ValidateIf((o) => !o.email)
   @IsOptional()
   @IsString({ message: 'Phone must be a string' })
   @Matches(/^01[3-9]\d{8}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })

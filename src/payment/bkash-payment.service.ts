@@ -23,7 +23,61 @@ export class BkashPaymentService {
   }
 
   private getBaseUrl(): string {
-    return 'https://tokenized.sandbox.bka.sh/v1.2.0-beta'; // Use sandbox URL for testing
+    return 'https://tokenized.pay.bka.sh/v1.2.0-beta'; // Use live production URL with correct version
+  }
+
+  // Method to test different bKash environments
+  async testBkashEnvironments(): Promise<any> {
+    const environments = [
+      { name: 'Live Production', url: 'https://tokenized.pay.bka.sh/v1.2.0-beta' },
+      { name: 'Live Production (Alternative)', url: 'https://tokenized.pay.bka.sh/v1.2.0' },
+      { name: 'Sandbox', url: 'https://tokenized.sandbox.bka.sh/v1.2.0-beta' }
+    ];
+
+    const results = [];
+
+    for (const env of environments) {
+      try {
+        console.log(`\n--- Testing ${env.name} ---`);
+        console.log('URL:', env.url);
+        
+        const response = await axios.post(`${env.url}/tokenized/checkout/token/grant`, {
+          app_key: this.getAppKey(),
+          app_secret: this.getAppSecret(),
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'username': this.getUsername(),
+            'password': this.getPassword(),
+          },
+        });
+
+        results.push({
+          environment: env.name,
+          url: env.url,
+          status: 'SUCCESS',
+          response: response.data
+        });
+        
+        console.log('✅ SUCCESS:', env.name);
+      } catch (error) {
+        results.push({
+          environment: env.name,
+          url: env.url,
+          status: 'FAILED',
+          error: {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data
+          }
+        });
+        
+        console.log('❌ FAILED:', env.name, error.response?.status, error.response?.data);
+      }
+    }
+
+    return results;
   }
 
   async getToken(): Promise<string> {
@@ -33,6 +87,12 @@ export class BkashPaymentService {
       const appKey = this.getAppKey();
       const appSecret = this.getAppSecret();
       const baseUrl = this.getBaseUrl();
+
+      console.log('bKash token request details:');
+      console.log('URL:', `${baseUrl}/tokenized/checkout/token/grant`);
+      console.log('Username:', username);
+      console.log('App Key:', appKey);
+      console.log('App Secret:', appSecret ? '***' : 'NOT SET');
 
       const response = await axios.post(`${baseUrl}/tokenized/checkout/token/grant`, {
         app_key: appKey,
@@ -46,9 +106,16 @@ export class BkashPaymentService {
         },
       });
 
+      console.log('bKash token response:', response.data);
       return response.data.id_token;
     } catch (error) {
       console.error('bKash token generation failed:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url
+      });
       throw new Error('Failed to generate bKash token');
     }
   }

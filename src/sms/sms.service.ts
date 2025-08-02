@@ -28,9 +28,13 @@ export class SmsService {
       const senderId = this.getSenderId();
       const baseUrl = this.getBaseUrl();
 
+
       const url = `${baseUrl}?api_key=${apiKey}&type=text&number=${phoneNumber}&senderid=${senderId}&message=${encodeURIComponent(message)}`;
 
-      const response = await axios.get(url);
+      const response = await axios.post(url);
+
+      console.log(response.data);
+      
       
       // Check if SMS was sent successfully
       // The API response format may vary, adjust according to bulksmsbd documentation
@@ -45,16 +49,16 @@ export class SmsService {
     // Check rate limiting
     const rateLimitCheck = await this.smsRateLimitService.canSendSms(phoneNumber);
     
-    if (!rateLimitCheck.canSend) {
-      const message = rateLimitCheck.blockedUntil 
-        ? `SMS blocked until ${rateLimitCheck.blockedUntil.toLocaleString()}. Please try again later.`
-        : 'SMS limit exceeded. Please try again later.';
+    // if (!rateLimitCheck.canSend) {
+    //   const message = rateLimitCheck.blockedUntil 
+    //     ? `SMS blocked until ${rateLimitCheck.blockedUntil.toLocaleString()}. Please try again later.`
+    //     : 'SMS limit exceeded. Please try again later.';
       
-      return { 
-        success: false, 
-        message 
-      };
-    }
+    //   return { 
+    //     success: false, 
+    //     message 
+    //   };
+    // }
 
     // Generate OTP
     const otp = this.generateOtp();

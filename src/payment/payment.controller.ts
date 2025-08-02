@@ -11,6 +11,7 @@ import {
   Request,
   Inject,
   forwardRef,
+  Version,
 } from '@nestjs/common';
 import { Response } from 'express';
 import axios from 'axios';
@@ -20,6 +21,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { OrderService } from '../order/order.service';
 import { OrderStatus } from '../common/enums/order-status.enum';
 import { CreateOrderDto } from '../order/dto/create-order.dto';
+import { BkashPaymentService } from './bkash-payment.service';
+import { Like } from 'typeorm';
+import { PaymentEntity } from './entities/payment.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Controller('payment')
 export class PaymentController {
@@ -27,6 +33,9 @@ export class PaymentController {
     private readonly sslCommerzService: SslCommerzService,
     @Inject(forwardRef(() => OrderService))
     private readonly orderService: OrderService,
+    private readonly bkashPaymentService: BkashPaymentService,
+    @InjectRepository(PaymentEntity)
+    private readonly paymentRepository: Repository<PaymentEntity>,
   ) {}
 
   @Post('ssl/initiate')
@@ -83,12 +92,12 @@ export class PaymentController {
       }
 
       // Redirect to success page
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5001'}/payment/success?orderId=${result.order.id}&paymentId=${result.payment.id}`;
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${result.order.id}&paymentId=${result.payment.id}`;
       
       return res.redirect(redirectUrl);
     } catch (error) {
       console.error('Payment success processing error:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5001'}/payment/error?message=${encodeURIComponent(error.message)}`;
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
       return res.redirect(redirectUrl);
     }
   }
@@ -113,11 +122,11 @@ export class PaymentController {
         );
       }
 
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5001'}/payment/failed?orderId=${orderId}&error=${encodeURIComponent(responseData.error || 'Payment failed')}`;
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?orderId=${orderId}&error=${encodeURIComponent(responseData.error || 'Payment failed')}`;
       return res.redirect(redirectUrl);
     } catch (error) {
       console.error('Payment failure processing error:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5001'}/payment/error?message=${encodeURIComponent(error.message)}`;
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
       return res.redirect(redirectUrl);
     }
   }
@@ -142,11 +151,11 @@ export class PaymentController {
         );
       }
 
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5001'}/payment/cancelled?orderId=${orderId}`;
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/cancelled?orderId=${orderId}`;
       return res.redirect(redirectUrl);
     } catch (error) {
       console.error('Payment cancellation processing error:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:5001'}/payment/error?message=${encodeURIComponent(error.message)}`;
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
       return res.redirect(redirectUrl);
     }
   }
@@ -193,6 +202,197 @@ export class PaymentController {
       return {
         success: false,
         error: error.message,
+      };
+    }
+  }
+
+  // bKash callback endpoint
+  @Post('bkash/callback')
+  async bkashPaymentCallback(
+    @Body() responseData: any,
+    @Res() res: Response,
+  ) {
+    try {
+      console.log('bKash payment callback received:', responseData);
+
+      const { paymentID, transactionStatus, orderID } = responseData;
+
+      if (transactionStatus === 'Completed') {
+        // Execute the payment
+        const executeResult = await this.bkashPaymentService.executePayment(paymentID);
+        
+        if (executeResult.transactionStatus === 'Completed') {
+          // Update order status to PAID
+          await this.orderService.updateOrderStatus(
+            orderID,
+            OrderStatus.PAID,
+          );
+
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${orderID}&paymentId=${paymentID}`;
+          return res.redirect(redirectUrl);
+        } else {
+          // Payment execution failed
+          await this.orderService.updateOrderStatus(
+            orderID,
+            OrderStatus.FAILED,
+          );
+
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?orderId=${orderID}&error=${encodeURIComponent('Payment execution failed')}`;
+          return res.redirect(redirectUrl);
+        }
+      } else {
+        // Payment failed
+        await this.orderService.updateOrderStatus(
+          orderID,
+          OrderStatus.FAILED,
+        );
+
+        const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?orderId=${orderID}&error=${encodeURIComponent('Payment failed')}`;
+        return res.redirect(redirectUrl);
+      }
+    } catch (error) {
+      console.error('bKash payment callback processing error:', error);
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
+      return res.redirect(redirectUrl);
+    }
+  }
+
+  // bKash callback endpoint for GET requests (with query parameters)
+  @Get('bkash/callback')
+  async bkashPaymentCallbackGet(
+    @Query() query: any,
+    @Res() res: Response,
+  ) {
+    try {
+      console.log('bKash payment callback GET received:', query);
+
+      const { paymentID, status, signature, apiVersion } = query;
+      
+      // For GET requests, we need to query the payment status first
+      if (paymentID) {
+        const paymentStatus = await this.bkashPaymentService.queryPayment(paymentID);
+        console.log('Payment status:', paymentStatus);
+
+        if (paymentStatus.transactionStatus === 'Initiated') {
+          // Payment is initiated but not executed yet
+          // We need to execute the payment
+          console.log('Executing bKash payment for paymentID:', paymentID);
+          
+          try {
+            const executeResult = await this.bkashPaymentService.executePayment(paymentID);
+            console.log('Execute payment result:', executeResult);
+            
+            if (executeResult.transactionStatus === 'Completed') {
+              // Payment executed successfully
+              const order = await this.findOrderByPaymentId(paymentID);
+              
+              if (order) {
+                // Update order status to PAID
+                await this.orderService.updateOrderStatus(
+                  order.id,
+                  OrderStatus.PAID,
+                );
+
+                const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${order.id}&paymentId=${paymentID}`;
+                return res.redirect(redirectUrl);
+              } else {
+                const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Order not found')}`;
+                return res.redirect(redirectUrl);
+              }
+            } else {
+              // Payment execution failed
+              const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('Payment execution failed')}`;
+              return res.redirect(redirectUrl);
+            }
+          } catch (executeError) {
+            console.error('Payment execution failed:', executeError);
+            const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('Payment execution failed')}`;
+            return res.redirect(redirectUrl);
+          }
+        } else if (paymentStatus.transactionStatus === 'Completed') {
+          // Payment already completed
+          const order = await this.findOrderByPaymentId(paymentID);
+          
+          if (order) {
+            // Update order status to PAID
+            await this.orderService.updateOrderStatus(
+              order.id,
+              OrderStatus.PAID,
+            );
+
+            const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${order.id}&paymentId=${paymentID}`;
+            return res.redirect(redirectUrl);
+          } else {
+            const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Order not found')}`;
+            return res.redirect(redirectUrl);
+          }
+        } else {
+          // Payment failed or cancelled
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('Payment not completed')}`;
+          return res.redirect(redirectUrl);
+        }
+      } else {
+        const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Payment ID not found')}`;
+        return res.redirect(redirectUrl);
+      }
+    } catch (error) {
+      console.error('bKash payment callback GET processing error:', error);
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
+      return res.redirect(redirectUrl);
+    }
+  }
+
+  // Helper method to find order by payment ID
+  private async findOrderByPaymentId(paymentID: string) {
+    try {
+      // You might need to adjust this based on your payment entity structure
+      const payment = await this.paymentRepository.findOne({
+        where: { providerResponse: Like(`%${paymentID}%`) },
+        relations: ['order'],
+      });
+      
+      return payment?.order;
+    } catch (error) {
+      console.error('Error finding order by payment ID:', error);
+      return null;
+    }
+  }
+
+  // bKash payment status check
+  @Get('bkash/status/:paymentID')
+  @UseGuards(JwtAuthGuard)
+  async getBkashPaymentStatus(@Param('paymentID') paymentID: string) {
+    try {
+      const result = await this.bkashPaymentService.queryPayment(paymentID);
+      
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Test bKash environments
+  @Get('bkash/test-environments')
+  @UseGuards(JwtAuthGuard)
+  async testBkashEnvironments() {
+    try {
+      const results = await this.bkashPaymentService.testBkashEnvironments();
+      
+      return {
+        success: true,
+        message: 'bKash environment test completed',
+        results
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
       };
     }
   }

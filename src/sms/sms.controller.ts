@@ -17,7 +17,7 @@ export class SmsController {
 
   @Post('send-otp')
   async sendOtp(@Body() sendOtpDto: SendOtpDto) {
-    const result = await this.smsService.sendOtp(sendOtpDto.phoneNumber);
+    const result = await this.smsService.sendOtp(sendOtpDto.phone);
     return {
       success: result.success,
       message: result.message,
@@ -26,7 +26,7 @@ export class SmsController {
 
   @Post('verify-otp')
   async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-    const result = await this.smsService.verifyOtp(verifyOtpDto.phoneNumber, verifyOtpDto.otp);
+    const result = await this.smsService.verifyOtp(verifyOtpDto.phone, verifyOtpDto.otp);
     return {
       success: result.success,
       message: result.message,
@@ -47,7 +47,7 @@ export class SmsController {
   @Roles(RolesEnum.ADMIN)
   @Post('reset-cache')
   async resetSmsCache(@Query() resetSmsCacheDto: ResetSmsCacheDto) {
-    const result = await this.smsService.resetSmsCache(resetSmsCacheDto.phoneNumber);
+    const result = await this.smsService.resetSmsCache(resetSmsCacheDto.phone);
     return {
       success: result.success,
       message: result.message,

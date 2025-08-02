@@ -67,14 +67,16 @@ export class AuthService {
 
   // Forget password - send OTP
   async forgetPassword(forgetPasswordDto: ForgetPasswordDto) {
-    const user = await this.userService.findByPhone(forgetPasswordDto.phone);
+    const phone = forgetPasswordDto.phone;
+
+    const user = await this.userService.findByPhone(phone);
     
     if (!user) {
       throw new BadRequestException('No user found with this phone number');
     }
 
     // Send OTP for password reset
-    const smsResult = await this.smsService.sendOtp(forgetPasswordDto.phone);
+    const smsResult = await this.smsService.sendOtp(phone);
     
     if (!smsResult.success) {
       throw new Error(`Failed to send OTP: ${smsResult.message}`);
@@ -84,7 +86,7 @@ export class AuthService {
       success: true,
       message: 'OTP sent successfully for password reset',
       data: {
-        phone: forgetPasswordDto.phone,
+        phone: phone,
         otpSent: true,
       },
     };
@@ -92,14 +94,16 @@ export class AuthService {
 
   // Verify OTP for password reset
   async verifyOtpForPasswordReset(verifyOtpDto: VerifyOtpDto) {
-    const user = await this.userService.findByPhone(verifyOtpDto.phone);
+    const phone = verifyOtpDto.phone;
+
+    const user = await this.userService.findByPhone(phone);
     
     if (!user) {
       throw new BadRequestException('No user found with this phone number');
     }
 
     // Verify OTP
-    const verifyResult = await this.smsService.verifyOtp(verifyOtpDto.phone, verifyOtpDto.otp);
+    const verifyResult = await this.smsService.verifyOtp(phone, verifyOtpDto.otp);
     
     if (!verifyResult.success) {
       throw new BadRequestException(verifyResult.message);
@@ -109,7 +113,7 @@ export class AuthService {
       success: true,
       message: 'OTP verified successfully. You can now reset your password.',
       data: {
-        phone: verifyOtpDto.phone,
+        phone: phone,
         otpVerified: true,
       },
     };
@@ -117,7 +121,9 @@ export class AuthService {
 
   // Reset password after OTP verification
   async resetPasswordWithOtp(resetPasswordDto: ResetPasswordDto) {
-    const user = await this.userService.findByPhone(resetPasswordDto.phone);
+    const phone = resetPasswordDto.phone;
+
+    const user = await this.userService.findByPhone(phone);
     
     if (!user) {
       throw new BadRequestException('No user found with this phone number');
@@ -128,13 +134,13 @@ export class AuthService {
     }
 
     // Reset password
-    await this.userService.resetPasswordByPhone(resetPasswordDto.phone, resetPasswordDto.newPassword);
+    await this.userService.resetPasswordByPhone(phone, resetPasswordDto.newPassword);
 
     return {
       success: true,
       message: 'Password reset successfully',
       data: {
-        phone: resetPasswordDto.phone,
+        phone: phone,
         passwordReset: true,
       },
     };
@@ -142,27 +148,29 @@ export class AuthService {
 
   // Verify phone for registration
   async verifyPhoneForRegistration(verifyOtpDto: VerifyOtpDto) {
-    const user = await this.userService.findByPhone(verifyOtpDto.phone);
+    const phone = verifyOtpDto.phone;
+
+    const user = await this.userService.findByPhone(phone);
     
     if (!user) {
       throw new BadRequestException('No user found with this phone number');
     }
 
     // Verify OTP
-    const verifyResult = await this.smsService.verifyOtp(verifyOtpDto.phone, verifyOtpDto.otp);
+    const verifyResult = await this.smsService.verifyOtp(phone, verifyOtpDto.otp);
     
     if (!verifyResult.success) {
       throw new BadRequestException(verifyResult.message);
     }
 
     // Update user as verified
-    await this.userService.verifyUserByPhone(verifyOtpDto.phone);
+    await this.userService.verifyUserByPhone(phone);
 
     return {
       success: true,
       message: 'Phone verified successfully. You can now login.',
       data: {
-        phone: verifyOtpDto.phone,
+        phone: phone,
         phoneVerified: true,
       },
     };

@@ -36,9 +36,11 @@ export class AuthController {
     return { message: 'Registered successfully!', payload };
   }
 
-  @UseGuards(LocalAuthGuard)
+  // @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Body() localUser: LocalAuthUserDto) {
+    console.log({localUser});
+    
     const payload = await this.authService.validateLocalStrategyUser(localUser);
     return { message: 'Loged in successful!', payload };
   }

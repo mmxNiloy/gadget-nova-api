@@ -28,6 +28,14 @@ export class CreateOrderDto {
   @IsEnum(PaymentMethodEnum, { message: 'Payment method must be one of the following: COD, SSL, BKASH' })
   @IsNotEmpty({ message: 'Payment method must be provided' })
   paymentMethod: PaymentMethodEnum;
+
+  @ApiPropertyOptional({
+    description: 'OTP code for verification',
+    example: '123456',
+  })
+  @IsOptional()
+  @IsString()
+  otp?: string;
 }
 
 export class OrderSearchDto extends ApiQueryPaginationBaseDTO {

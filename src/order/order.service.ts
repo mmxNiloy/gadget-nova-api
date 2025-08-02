@@ -19,6 +19,10 @@ import { ShippingInfoService } from 'src/shipping-info/shipping-info.service';
 import { PGWContext } from 'src/payment/pgw.context';
 import { PaymentEntity } from 'src/payment/entities/payment.entity';
 import { DistrictService } from 'src/district/district.service';
+import { PaymentMethodEnum } from 'src/common/enums/payment-method.enum';
+import { SmsService } from 'src/sms/sms.service';
+import { UserEntity } from 'src/user/entities/user.entity/user.entity';
+import { OtpService } from 'src/common/services/otp.service';
 
 @Injectable()
 export class OrderService {
@@ -31,16 +35,39 @@ export class OrderService {
     private readonly productRepository: Repository<ProductEntity>,
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
     private readonly shippingInfoService: ShippingInfoService,
     private readonly districtService: DistrictService,
     @Inject(forwardRef(() => PGWContext))
-    private readonly pgwContext: PGWContext
+    private readonly pgwContext: PGWContext,
+    private readonly smsService: SmsService,
+    private readonly otpService: OtpService
   ) {}
 
   async createOrder(
     createOrderDto: CreateOrderDto,
     jwtPayload: JwtPayloadInterface,
   ): Promise<OrderEntity> {
+    console.log('Starting order creation process...');
+    
+    // Check if OTP verification is required
+    if (createOrderDto.otp) {
+      console.log('OTP verification required for phone:', jwtPayload.phone);
+      
+      // Verify the OTP using phone from JWT payload
+      const isOtpValid = await this.otpService.verifyOtp(
+        jwtPayload.phone,
+        createOrderDto.otp,
+      );
+
+      if (!isOtpValid) {
+        throw new BadRequestException('Invalid OTP. Please try again.');
+      }
+      
+      console.log('OTP verified successfully');
+    }
+    
     const cart = await this.cartRepository.findOne({
       where: {
         user: { id: jwtPayload.id },
@@ -53,25 +80,30 @@ export class OrderService {
       throw new NotFoundException('No active cart found for order placement');
     }
 
+    console.log('Cart found:', cart.id);
+
     let calculatedTotalPrice = 0;
     for (const item of cart.items) {
       const product = item.product;
-
-      if (product.stockAmount < item.quantity) {
-        throw new BadRequestException(
-          `Not enough stock for product: ${product.title}`,
-        );
-      }
-
-      calculatedTotalPrice += product.discountPrice * item.quantity;
+      calculatedTotalPrice += parseFloat(product.discountPrice.toString()) * item.quantity;
     }
 
     let totalPrice = 0;
     for (const item of cart.items) {
       const product = item.product;
-
-      totalPrice += item.price * item.quantity;
+      totalPrice += parseFloat(item.price.toString()) * item.quantity;
     }
+
+    console.log('Price calculation debug:');
+    console.log('calculatedTotalPrice (from product.discountPrice):', calculatedTotalPrice);
+    console.log('totalPrice (from item.price):', totalPrice);
+    console.log('Cart items:', cart.items.map(item => ({
+      productTitle: item.product.title,
+      discountPrice: item.product.discountPrice,
+      itemPrice: item.price,
+      quantity: item.quantity,
+      itemTotal: parseFloat(item.price.toString()) * item.quantity
+    })));
 
     if (calculatedTotalPrice !== totalPrice) {
       cart.items = [];
@@ -93,6 +125,7 @@ export class OrderService {
     }
 
     const deliveryCharge = district.delivery_charge;
+    console.log('Delivery charge:', deliveryCharge);
 
     const shippingData = {
       first_name: createOrderDto.shippingInfo.first_name,
@@ -110,11 +143,13 @@ export class OrderService {
       jwtPayload,
     );
 
+    console.log('Shipping info created:', shippingInfo.id);
+
     const order = this.orderRepository.create({
       user: { id: jwtPayload.id },
       cart,
       shippingInfo,
-      totalPrice: totalPrice + deliveryCharge,
+      totalPrice: totalPrice + parseFloat(deliveryCharge.toString()),
       delivery_charge: deliveryCharge,
       status: OrderStatus.PENDING,
       created_by: jwtPayload.id,
@@ -122,8 +157,15 @@ export class OrderService {
       created_at: new Date(),
     });
 
+    console.log('Final price calculation:');
+    console.log('totalPrice (products):', totalPrice);
+    console.log('deliveryCharge:', deliveryCharge);
+    console.log('final totalPrice:', totalPrice + parseFloat(deliveryCharge.toString()));
+    console.log('Order object created, saving to database...');
     const savedOrder = await this.orderRepository.save(order);
+    console.log('Order saved successfully:', savedOrder.id);
 
+    // Update product stock and deactivate cart
     for (const item of cart.items) {
       const product = item.product;
       product.stockAmount -= item.quantity;
@@ -134,21 +176,81 @@ export class OrderService {
     cart.is_active = ActiveStatusEnum.INACTIVE;
     await this.cartRepository.save(cart);
 
-    const paymentResult = await this.pgwContext
-      .getStrategy(createOrderDto.paymentMethod)
-      .pay(savedOrder, createOrderDto, jwtPayload);
+    console.log('Payment method:', createOrderDto.paymentMethod);
 
-    const payment = this.paymentRepository.create({
-      order: savedOrder,
-      paymentMethod: createOrderDto.paymentMethod,
-      providerResponse: JSON.stringify(paymentResult),
+    // Handle different payment methods
+    if (createOrderDto.paymentMethod === PaymentMethodEnum.COD) {
+      console.log('Processing COD payment...');
+      // For COD, create order with pending status and return immediately
+      const payment = this.paymentRepository.create({
+        order: savedOrder,
+        paymentMethod: createOrderDto.paymentMethod,
+        providerResponse: JSON.stringify({
+          paymentStatus: 'PENDING',
+          method: 'COD',
+          message: 'Cash on Delivery selected. Admin will confirm by phone.',
+        }),
+      });
+
+      await this.paymentRepository.save(payment);
+      console.log('COD payment saved');
+
+      // Initialize payments array if it doesn't exist
+      if (!savedOrder.payments) {
+        savedOrder.payments = [];
+      }
+      savedOrder.payments.push(payment);
+
+      console.log('Returning COD order');
+      return savedOrder;
+    } else {
+      console.log('Processing online payment:', createOrderDto.paymentMethod);
+      // For bKash/SSL, create order with pending status and return payment URL
+      const paymentResult = await this.pgwContext
+        .getStrategy(createOrderDto.paymentMethod)
+        .pay(savedOrder, createOrderDto, jwtPayload);
+
+      console.log('Payment result received:', paymentResult);
+
+      const payment = this.paymentRepository.create({
+        order: savedOrder,
+        paymentMethod: createOrderDto.paymentMethod,
+        providerResponse: JSON.stringify(paymentResult),
+      });
+
+      await this.paymentRepository.save(payment);
+      console.log('Online payment saved');
+
+      // Initialize payments array if it doesn't exist
+      if (!savedOrder.payments) {
+        savedOrder.payments = [];
+      }
+      savedOrder.payments.push(payment);
+
+      // Add payment URL to the response for bKash/SSL
+      savedOrder['paymentUrl'] = paymentResult.providerResponse?.bkashURL || paymentResult.providerResponse?.redirectUrl;
+      savedOrder['paymentId'] = paymentResult.providerResponse?.paymentID || paymentResult.providerResponse?.sessionKey;
+
+      console.log('Returning online payment order with URL');
+      return savedOrder;
+    }
+  }
+
+  async confirmPayment(orderId: string, paymentId: string): Promise<OrderEntity> {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['payments'],
     });
 
-    await this.paymentRepository.save(payment);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
 
-    savedOrder.payments.push(payment);
+    // Update order status to confirmed
+    order.status = OrderStatus.CONFIRMED;
+    await this.orderRepository.save(order);
 
-    return savedOrder;
+    return order;
   }
 
   async pagination(

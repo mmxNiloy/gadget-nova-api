@@ -120,7 +120,8 @@ export class UserService {
       id: user.id,
       email: user.email,
       userName: user.name,
-      role: user.role
+      role: user.role,
+      phone: user.phone
     };
 
     const token = this.jwtService.sign(payload, {

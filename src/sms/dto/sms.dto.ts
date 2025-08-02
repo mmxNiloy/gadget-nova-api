@@ -8,7 +8,7 @@ export class SendOtpDto {
   })
   @IsNotEmpty({ message: 'Phone number is required' })
   @IsString({ message: 'Phone number must be a string' })
-  phoneNumber: string;
+  phone: string;
 }
 
 export class VerifyOtpDto {
@@ -18,7 +18,7 @@ export class VerifyOtpDto {
   })
   @IsNotEmpty({ message: 'Phone number is required' })
   @IsString({ message: 'Phone number must be a string' })
-  phoneNumber: string;
+  phone: string;
 
   @ApiProperty({ 
     description: 'OTP code to verify',
@@ -37,5 +37,5 @@ export class ResetSmsCacheDto {
   })
   @IsOptional()
   @IsString({ message: 'Phone number must be a string' })
-  phoneNumber?: string;
+  phone?: string;
 } 

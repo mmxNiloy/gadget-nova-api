@@ -21,6 +21,11 @@ import { OrderService } from './order.service';
 import { PaginationDecorator } from 'src/common/decorators/pagination.decorator';
 import { PaginationDTO } from 'src/common/dtos/pagination/pagination.dto';
 import { UpdateOrderStatusDto } from './dto/update-orser-status.dto';
+import { SmsService } from 'src/sms/sms.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserEntity } from 'src/user/entities/user.entity/user.entity';
+import { OtpService } from 'src/common/services/otp.service';
 
 @ApiTags('Orders')
 @Controller({
@@ -28,7 +33,25 @@ import { UpdateOrderStatusDto } from './dto/update-orser-status.dto';
   version: '1',
 })
 export class OrderController {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(
+    private readonly orderService: OrderService,
+    private readonly otpService: OtpService,
+  ) {}
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.USER)
+  @Post('send-otp')
+  @ApiBody({ schema: { type: 'object', properties: {} } })
+  async sendOtp(
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const result = await this.otpService.sendOtp(jwtPayload.phone);
+    return { 
+      message: result.message, 
+      success: result.success 
+    };
+  }
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
