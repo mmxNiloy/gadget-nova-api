@@ -1,6 +1,7 @@
 import { CartEntity } from 'src/cart/entities/cart.entity';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
+import { PaymentEntity } from 'src/payment/entities/payment.entity';
 import { ShippingInfoEntity } from 'src/shipping-info/entities/shipping-info.entity';
 import { UserEntity } from 'src/user/entities/user.entity/user.entity';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
@@ -24,4 +25,10 @@ export class OrderEntity extends CustomBaseEntity {
 
   @Column({ name: 'total_price', type: 'decimal' })
   totalPrice: number;
+
+  @Column({ name: 'delivery_charge', type: 'decimal', precision: 10, scale: 2, default: 70 })
+  delivery_charge: number;
+
+  @OneToMany(() => PaymentEntity, payment => payment.order)
+  payments: PaymentEntity[];
 }

@@ -31,13 +31,21 @@ export class UserService {
     private readonly configService: ConfigService,
   ) {}
 
-  async create(registerUserDto: RegisterUserDto): Promise<UserEntity> {
+  async create(registerUserDto: RegisterUserDto | any): Promise<UserEntity> {
     const isEmailDuplicate = await this.userRepository.findOne({
       where: { email: registerUserDto.email },
     });
 
     if (isEmailDuplicate) {
       throw new BadRequestException('Email already exist!');
+    }
+
+    const isPhoneDuplicate = await this.userRepository.findOne({
+      where: { phone: registerUserDto.phone },
+    });
+
+    if (isPhoneDuplicate) {
+      throw new BadRequestException('Phone number already exists!');
     }
 
     registerUserDto.password = await this.crypto.hashPassword(
@@ -50,11 +58,11 @@ export class UserService {
     const userEntity = {
       ...registerUserDto,
       verification_token: verificationToken,
-      is_active: ActiveStatusEnum.ACTIVE,
+      is_active: registerUserDto.is_active || ActiveStatusEnum.ACTIVE,
       refresh_token: refreshToken,
+      is_verified: registerUserDto.is_verified || false, // User needs to verify phone
       created_at: new Date(),
     };
-
 
     const user = await this.userRepository.save(userEntity);
     delete user.password;
@@ -64,9 +72,22 @@ export class UserService {
   async validateUserEmailPass(
     localUser: LocalAuthUserDto,
   ): Promise<UserReponseDto> {
-    const user = await this.userRepository.findOne({
-      where: { email: localUser.email },
-    });
+    // Check if user is trying to login with email or phone
+    let user: UserEntity;
+    
+    if (localUser.email && localUser.email.includes('@')) {
+      // Login with email
+      user = await this.userRepository.findOne({
+        where: { email: localUser.email },
+      });
+    } else if (localUser.phone) {
+      // Login with phone
+      user = await this.userRepository.findOne({
+        where: { phone: localUser.phone },
+      });
+    } else {
+      throw new UnauthorizedException('Invalid login credentials');
+    }
 
     if (!user) {
       throw new UnauthorizedException();
@@ -76,6 +97,11 @@ export class UserService {
       !(await this.crypto.comparePassword(localUser.password, user.password))
     ) {
       throw new UnauthorizedException('Login credentials not accepted');
+    }
+
+    // Check if user is verified
+    if (!user.is_verified) {
+      throw new UnauthorizedException('Please verify your phone number before logging in');
     }
 
     delete user.password;
@@ -94,7 +120,8 @@ export class UserService {
       id: user.id,
       email: user.email,
       userName: user.name,
-      role: user.role
+      role: user.role,
+      phone: user.phone
     };
 
     const token = this.jwtService.sign(payload, {
@@ -112,8 +139,6 @@ export class UserService {
         where: { refresh_token: token },
       });
 
-      
-
       if (!user) {
         throw new NotFoundException('Refresh token is not valid');
       }
@@ -126,7 +151,7 @@ export class UserService {
 
       return { ...user, access_token };
     } catch (error) {
-      throw new BadRequestException();
+      throw new BadRequestException(error.message);
     }
   }
 
@@ -344,17 +369,42 @@ export class UserService {
   }
 
   async findByIds(userIds: string[]): Promise<UserEntity[]> {
-    const queryBuilder = this.userRepository.createQueryBuilder('user');
+    return await this.userRepository.findByIds(userIds);
+  }
 
-    queryBuilder.where('user.id IN (:...userIds)', { userIds });
+  async findByPhone(phone: string): Promise<UserEntity | null> {
+    return await this.userRepository.findOne({
+      where: { phone },
+    });
+  }
 
-    const users = await queryBuilder.getMany();
+  async resetPasswordByPhone(phone: string, newPassword: string): Promise<UserEntity> {
+    const user = await this.userRepository.findOne({
+      where: { phone },
+    });
 
-    if (users.length !== userIds.length) {
-      throw new NotFoundException('One or more users not found');
+    if (!user) {
+      throw new BadRequestException('User not found');
     }
 
-    return users;
+    const hashedPassword = await this.crypto.hashPassword(newPassword);
+    user.password = hashedPassword;
+    
+    return await this.userRepository.save(user);
+  }
+
+  async verifyUserByPhone(phone: string): Promise<UserEntity> {
+    const user = await this.userRepository.findOne({
+      where: { phone },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    user.is_verified = true;
+    
+    return await this.userRepository.save(user);
   }
 
   async logOut(userId: string) {

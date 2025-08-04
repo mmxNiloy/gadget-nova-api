@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as moment from 'moment';
+import moment from 'moment';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { BrandService } from 'src/brand/brand.service';
 import { CategoryService } from 'src/category/category.service';
@@ -30,6 +30,23 @@ export class ProductsService {
     private readonly s3Service: S3Service,
     private readonly promoDiscountUtil: PromoDiscountUtil
   ) {}
+
+  private calculateAverageRating(product: ProductEntity): number {
+    if (!product.ratings || product.ratings.length === 0) {
+      return 0;
+    }
+    const sum = product.ratings.reduce((acc, rating) => acc + rating.star_count, 0);
+    return Number((sum / product.ratings.length).toFixed(1));
+  }
+
+  private addAverageRatingToProduct(product: ProductEntity) {
+    const averageRating = this.calculateAverageRating(product);
+    return {
+      ...product,
+      average_rating: averageRating,
+      total_ratings: product.ratings ? product.ratings.length : 0
+    };
+  }
 
   async create(
     createProductDto: CreateProductDto,
@@ -152,7 +169,7 @@ export class ProductsService {
       const products = await query.getMany();
 
       const updatedProducts = products.map((product) => ({
-        ...product,
+        ...this.addAverageRatingToProduct(product),
         ...this.promoDiscountUtil.filterActivePromo(product),
       }));
 
@@ -293,7 +310,19 @@ export class ProductsService {
           featuredEndDate: productSearchDto.featuredEndDate,
         });
       }
-      
+
+      // Price range filtering
+      if (productSearchDto.minPrice !== undefined) {
+        query.andWhere('product.regularPrice >= :minPrice', {
+          minPrice: productSearchDto.minPrice,
+        });
+      }
+
+      if (productSearchDto.maxPrice !== undefined) {
+        query.andWhere('product.regularPrice <= :maxPrice', {
+          maxPrice: productSearchDto.maxPrice,
+        });
+      }
 
       sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
       const orderFields = ['name', 'created_at', 'updated_at'];
@@ -307,7 +336,7 @@ export class ProductsService {
       const [products, total] = await query.getManyAndCount();
 
       const updatedProducts = products.map((product) => ({
-        ...product,
+        ...this.addAverageRatingToProduct(product),
         ...this.promoDiscountUtil.filterActivePromo(product),
       }));
 
@@ -349,7 +378,7 @@ export class ProductsService {
     }
 
     return {
-      ...product,
+      ...this.addAverageRatingToProduct(product),
       ...this.promoDiscountUtil.filterActivePromo(product),
     };
   }

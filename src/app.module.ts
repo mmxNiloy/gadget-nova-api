@@ -15,6 +15,10 @@ import { UserModule } from './user/user.module';
 import { PromotionalDiscountModule } from './promotional-discount/promotional-discount.module';
 import { PromotionModule } from './promotion/promotion.module';
 import { ShippingInfoModule } from './shipping-info/shipping-info.module';
+import { PaymentModule } from './payment/payment.module';
+import { DistrictModule } from './district/district.module';
+import { SmsModule } from './sms/sms.module';
+import { RedisModule } from './config/redis.module';
 
 @Module({
   imports: [
@@ -49,6 +53,10 @@ import { ShippingInfoModule } from './shipping-info/shipping-info.module';
     PromotionalDiscountModule,
     PromotionModule,
     ShippingInfoModule,
+    PaymentModule,
+    DistrictModule,
+    SmsModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],

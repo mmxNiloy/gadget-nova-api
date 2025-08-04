@@ -16,6 +16,7 @@ import { RefreshAuthUserDto } from './dto/refresh-auth-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ForgetPasswordDto, VerifyOtpDto, ResetPasswordDto as ResetPasswordWithOtpDto } from './dto/forget-password.dto';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { RefreshAuthGuard } from './guards/refresh-auth.guard';
@@ -35,9 +36,11 @@ export class AuthController {
     return { message: 'Registered successfully!', payload };
   }
 
-  @UseGuards(LocalAuthGuard)
+  // @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Body() localUser: LocalAuthUserDto) {
+    console.log({localUser});
+    
     const payload = await this.authService.validateLocalStrategyUser(localUser);
     return { message: 'Loged in successful!', payload };
   }
@@ -49,6 +52,29 @@ export class AuthController {
     return { payload: jwtPayload };
   }
 
+  @Post('forget-password')
+  async forgetPassword(@Body() forgetPasswordDto: ForgetPasswordDto) {
+    const payload = await this.authService.forgetPassword(forgetPasswordDto);
+    return { message: 'OTP sent for password reset', payload };
+  }
+
+  @Post('verify-otp')
+  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+    const payload = await this.authService.verifyOtpForPasswordReset(verifyOtpDto);
+    return { message: 'OTP verified successfully', payload };
+  }
+
+  @Post('verify-phone')
+  async verifyPhone(@Body() verifyOtpDto: VerifyOtpDto) {
+    const payload = await this.authService.verifyPhoneForRegistration(verifyOtpDto);
+    return { message: 'Phone verified successfully', payload };
+  }
+
+  @Post('reset-password-with-otp')
+  async resetPasswordWithOtp(@Body() resetPasswordDto: ResetPasswordWithOtpDto) {
+    const payload = await this.authService.resetPasswordWithOtp(resetPasswordDto);
+    return { message: 'Password reset successfully', payload };
+  }
 
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {

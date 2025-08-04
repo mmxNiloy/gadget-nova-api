@@ -4,6 +4,7 @@ import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from
 import { ApiQueryPaginationBaseDTO } from 'src/common/dtos/pagination/api-query-pagination-base.dto';
 import { OrderStatus } from 'src/common/enums/order-status.enum';
 import { CreateShippingInfoDto } from '../../shipping-info/dto/create-shipping-info.dto';
+import { PaymentMethodEnum } from 'src/common/enums/payment-method.enum';
 
 export class CreateOrderDto {
   // @ApiProperty({ type: [String] })
@@ -22,6 +23,19 @@ export class CreateOrderDto {
   @Type(() => CreateShippingInfoDto)
   @IsNotEmpty({ message: 'Shipping info must be provided' })
   shippingInfo: CreateShippingInfoDto;
+
+  @ApiPropertyOptional({ enum: PaymentMethodEnum}) 
+  @IsEnum(PaymentMethodEnum, { message: 'Payment method must be one of the following: COD, SSL, BKASH' })
+  @IsNotEmpty({ message: 'Payment method must be provided' })
+  paymentMethod: PaymentMethodEnum;
+
+  @ApiPropertyOptional({
+    description: 'OTP code for verification',
+    example: '123456',
+  })
+  @IsOptional()
+  @IsString()
+  otp?: string;
 }
 
 export class OrderSearchDto extends ApiQueryPaginationBaseDTO {

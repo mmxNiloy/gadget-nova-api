@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 
@@ -13,6 +13,13 @@ export class UserDto {
   @IsNotEmpty({ message: 'Must be non empty' })
   @IsString({ message: 'Must be a string' })
   email: string;
+
+  @ApiProperty({ default: '01712345678' })
+  @IsNotEmpty({ message: 'Phone number is required' })
+  @IsString({ message: 'Phone must be a string' })
+  @Matches(/^01[3-9]\d{8}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
+  @MaxLength(15, { message: 'Maximum 15 characters supported' })
+  phone: string;
 
   @ApiProperty()
   @IsOptional()

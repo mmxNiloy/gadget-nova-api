@@ -7,8 +7,6 @@ import { CreateProductQuestionsDto } from '../dto/create-product-questions.dto';
 import { ProductsQuestionsService } from './products-questions.service';
 
 @ApiTags('Product-questions')
-@ApiBearerAuth('jwt')
-@UseGuards(JwtAuthGuard)
 @Controller({
   path: 'Product-questions',
   version: '1',
@@ -16,6 +14,8 @@ import { ProductsQuestionsService } from './products-questions.service';
 export class ProductsQuestionsController {
   constructor(private readonly productsQuestionsService: ProductsQuestionsService) {}
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
   @Post()
   async create(
     @Body() createProductDto: CreateProductQuestionsDto,
@@ -37,6 +37,8 @@ export class ProductsQuestionsController {
     return { message: 'Question details', payload };
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async remove(
     @Param('id') id: string,
