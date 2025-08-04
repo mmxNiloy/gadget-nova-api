@@ -37,7 +37,7 @@ import { RedisModule } from './config/redis.module';
         database: String(configService.get('DATABASE_DB')),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
-        logging: true,
+        logging: false,
         autoLoadEntities: true,
       }),
     }),
