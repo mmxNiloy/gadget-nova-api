@@ -9,11 +9,13 @@ import { BkashPaymentService } from './bkash-payment.service';
 import { PaymentController } from './payment.controller';
 import { PaymentEntity } from './entities/payment.entity';
 import { OrderModule } from '../order/order.module';
+import { RedisModule } from '../config/redis.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([PaymentEntity]),
     forwardRef(() => OrderModule),
+    RedisModule,
   ],
   controllers: [PaymentController],
   providers: [

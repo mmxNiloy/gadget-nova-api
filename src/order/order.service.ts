@@ -226,7 +226,7 @@ export class OrderService {
         paymentMethod: createOrderDto.paymentMethod,
         providerResponse: JSON.stringify(paymentResult),
         paymentId:paymentResult?.providerResponse?.paymentID,
-        paymentStatus:PaymentStatus.INITIATED,
+        paymentStatus:PaymentStatus.PENDING,
         orderAmount: savedOrder.totalPrice
       });
 

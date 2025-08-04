@@ -435,24 +435,4 @@ export class PaymentController {
       };
     }
   }
-
-  // Test bKash environments
-  @Get('bkash/test-environments')
-  @UseGuards(JwtAuthGuard)
-  async testBkashEnvironments() {
-    try {
-      const results = await this.bkashPaymentService.testBkashEnvironments();
-      
-      return {
-        success: true,
-        message: 'bKash environment test completed',
-        results
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message
-      };
-    }
-  }
 } 
