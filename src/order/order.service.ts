@@ -23,6 +23,7 @@ import { PaymentMethodEnum } from 'src/common/enums/payment-method.enum';
 import { SmsService } from 'src/sms/sms.service';
 import { UserEntity } from 'src/user/entities/user.entity/user.entity';
 import { OtpService } from 'src/common/services/otp.service';
+import { PaymentStatus } from 'src/common/enums/payment-status.enum';
 
 @Injectable()
 export class OrderService {
@@ -183,6 +184,9 @@ export class OrderService {
       console.log('Processing COD payment...');
       // For COD, create order with pending status and return immediately
       const payment = this.paymentRepository.create({
+        created_by: jwtPayload.id,
+        created_user_name: jwtPayload.userName,
+        created_at: new Date(),
         order: savedOrder,
         paymentMethod: createOrderDto.paymentMethod,
         providerResponse: JSON.stringify({
@@ -190,6 +194,8 @@ export class OrderService {
           method: 'COD',
           message: 'Cash on Delivery selected. Admin will confirm by phone.',
         }),
+        paymentStatus:PaymentStatus.PENDING,
+        orderAmount: savedOrder.totalPrice
       });
 
       await this.paymentRepository.save(payment);
@@ -213,9 +219,15 @@ export class OrderService {
       console.log('Payment result received:', paymentResult);
 
       const payment = this.paymentRepository.create({
+        created_by: jwtPayload.id,
+        created_user_name: jwtPayload.userName,
+        created_at: new Date(),
         order: savedOrder,
         paymentMethod: createOrderDto.paymentMethod,
         providerResponse: JSON.stringify(paymentResult),
+        paymentId:paymentResult?.providerResponse?.paymentID,
+        paymentStatus:PaymentStatus.INITIATED,
+        orderAmount: savedOrder.totalPrice
       });
 
       await this.paymentRepository.save(payment);
@@ -232,7 +244,7 @@ export class OrderService {
       savedOrder['paymentId'] = paymentResult.providerResponse?.paymentID || paymentResult.providerResponse?.sessionKey;
 
       console.log('Returning online payment order with URL');
-      return savedOrder;
+      return paymentResult.providerResponse?.bkashURL;
     }
   }
 

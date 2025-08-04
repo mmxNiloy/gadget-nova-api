@@ -12,6 +12,9 @@ import {
   Inject,
   forwardRef,
   Version,
+  BadRequestException,
+  BadGatewayException,
+  UseInterceptors,
 } from '@nestjs/common';
 import { Response } from 'express';
 import axios from 'axios';
@@ -26,8 +29,14 @@ import { Like } from 'typeorm';
 import { PaymentEntity } from './entities/payment.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ApiTags } from '@nestjs/swagger';
+import { PaymentStatus } from 'src/common/enums/payment-status.enum';
 
-@Controller('payment')
+@ApiTags('payment')
+@Controller({
+  path: 'payment',
+  version: '1',
+})
 export class PaymentController {
   constructor(
     private readonly sslCommerzService: SslCommerzService,
@@ -259,97 +268,103 @@ export class PaymentController {
 
   // bKash callback endpoint for GET requests (with query parameters)
   @Get('bkash/callback')
+  @UseInterceptors()
   async bkashPaymentCallbackGet(
     @Query() query: any,
-    @Res() res: Response,
-  ) {
+    @Res({ passthrough: false }) res: Response
+  ): Promise<{ message: string; payload: any }> {
     try {
       console.log('bKash payment callback GET received:', query);
-
-      const { paymentID, status, signature, apiVersion } = query;
-      
-      // For GET requests, we need to query the payment status first
-      if (paymentID) {
-        const paymentStatus = await this.bkashPaymentService.queryPayment(paymentID);
-        console.log('Payment status:', paymentStatus);
-
-        if (paymentStatus.transactionStatus === 'Initiated') {
-          // Payment is initiated but not executed yet
-          // We need to execute the payment
-          console.log('Executing bKash payment for paymentID:', paymentID);
+  
+      const { paymentID, status } = query;
+  
+      if (!paymentID) {
+        console.error('No paymentID received in callback');
+        const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Payment ID not found')}`;
+        res.redirect(redirectUrl);
+        return { message: 'Redirecting due to missing paymentID', payload: null };
+      }
+  
+      console.log('Processing paymentID:', paymentID);
+  
+      let executeResult: any;
+  
+      if (status === 'success') {
+        console.log('Executing bKash payment for paymentID:', paymentID);
+        try {
+          executeResult = await this.bkashPaymentService.executePayment(paymentID);
           
-          try {
-            const executeResult = await this.bkashPaymentService.executePayment(paymentID);
-            console.log('Execute payment result:', executeResult);
-            
-            if (executeResult.transactionStatus === 'Completed') {
-              // Payment executed successfully
-              const order = await this.findOrderByPaymentId(paymentID);
-              
-              if (order) {
-                // Update order status to PAID
-                await this.orderService.updateOrderStatus(
-                  order.id,
-                  OrderStatus.PAID,
-                );
-
-                const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${order.id}&paymentId=${paymentID}`;
-                return res.redirect(redirectUrl);
-              } else {
-                const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Order not found')}`;
-                return res.redirect(redirectUrl);
-              }
-            } else {
-              // Payment execution failed
-              const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('Payment execution failed')}`;
-              return res.redirect(redirectUrl);
-            }
-          } catch (executeError) {
-            console.error('Payment execution failed:', executeError);
-            const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('Payment execution failed')}`;
-            return res.redirect(redirectUrl);
+        } catch (error) {
+          console.error('bKash execution error:', error);
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('bKash execution failed')}`;
+          res.redirect(redirectUrl);
+          return { message: 'Redirecting due to missing paymentID', payload: null }
+        }
+      }
+  
+      console.log('Execute payment result:', executeResult);
+  
+      if (executeResult?.transactionStatus === 'Completed') {
+        console.log('Payment completed successfully! Money deducted.');
+  
+        let order;
+        try {
+          order = await this.findOrderByPaymentId(paymentID);
+        } catch (error) {
+          console.error('Order fetch error:', error);
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Order not found')}`;
+          res.redirect(redirectUrl);
+          return { message: 'Redirecting due to missing paymentID', payload: null };
+        }
+  
+        if (order) {
+          await this.orderService.updateOrderStatus(order.id, OrderStatus.PAID);
+  
+          // Handle date formatting here before update
+          const rawTime = executeResult.paymentExecuteTime;
+          const cleanedTime = rawTime.replace(/:(\d+)\sGMT\+\d+$/, '.$1');
+          const parsedTime = new Date(cleanedTime);
+  
+          if (isNaN(parsedTime.getTime())) {
+            console.warn('Invalid payment time format after cleanup:', cleanedTime);
           }
-        } else if (paymentStatus.transactionStatus === 'Completed') {
-          // Payment already completed
-          const order = await this.findOrderByPaymentId(paymentID);
-          
-          if (order) {
-            // Update order status to PAID
-            await this.orderService.updateOrderStatus(
-              order.id,
-              OrderStatus.PAID,
-            );
-
-            const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${order.id}&paymentId=${paymentID}`;
-            return res.redirect(redirectUrl);
-          } else {
-            const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Order not found')}`;
-            return res.redirect(redirectUrl);
-          }
+  
+          executeResult.paymentExecuteTime = parsedTime;
+  
+          await this.updatePaymentWithTransactionDetails(paymentID, executeResult);
+  
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${order.id}&paymentId=${paymentID}&trxID=${executeResult.trxID}`;
+          res.redirect(redirectUrl);
+          return { message: 'Redirecting due to missing paymentID', payload: null };
         } else {
-          // Payment failed or cancelled
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('Payment not completed')}`;
-          return res.redirect(redirectUrl);
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Order not found')}`;
+          res.redirect(redirectUrl);
+          return { message: 'Redirecting due to missing paymentID', payload: null };
         }
       } else {
-        const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Payment ID not found')}`;
-        return res.redirect(redirectUrl);
+        console.error('Payment execution failed. Status:', executeResult?.transactionStatus);
+        const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('Payment execution failed')}`;
+        res.redirect(redirectUrl);
+        return { message: 'Redirecting due to missing paymentID', payload: null };
       }
     } catch (error) {
       console.error('bKash payment callback GET processing error:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
-      return res.redirect(redirectUrl);
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message || 'Unknown error')}`;
+      res.redirect(redirectUrl);
+      return { message: 'Redirecting due to missing paymentID', payload: null };
     }
   }
+  
 
-  // Helper method to find order by payment ID
   private async findOrderByPaymentId(paymentID: string) {
     try {
-      // You might need to adjust this based on your payment entity structure
       const payment = await this.paymentRepository.findOne({
-        where: { providerResponse: Like(`%${paymentID}%`) },
+        where: { paymentId: paymentID},
         relations: ['order'],
       });
+
+      console.log("Payment response before returnig",{payment});
+      
       
       return payment?.order;
     } catch (error) {
@@ -358,9 +373,53 @@ export class PaymentController {
     }
   }
 
-  // bKash payment status check
+  // Helper method to update payment with transaction details
+  private async updatePaymentWithTransactionDetails(paymentID: string, executeResult: any) {
+    try {
+      const payment = await this.paymentRepository.findOne({
+        where: { paymentId: paymentID },
+      });
+      
+      if (payment) {
+        let paymentTime: Date | null = null;
+
+      const rawTime = executeResult.paymentExecuteTime;
+
+      if (typeof rawTime === 'string') {
+        const cleanedTime = rawTime.replace(/:(\d+)\sGMT\+\d+$/, '.$1');
+        paymentTime = new Date(cleanedTime);
+
+        if (isNaN(paymentTime.getTime())) {
+          console.warn('Invalid payment time format (string):', rawTime);
+          paymentTime = null;
+        }
+      } else if (rawTime instanceof Date) {
+        paymentTime = rawTime;
+      } else {
+        console.warn('Unexpected paymentExecuteTime type:', typeof rawTime);
+      }
+
+      payment.paymentStatus = PaymentStatus.PAID;
+      payment.executeResponse = JSON.stringify(executeResult);
+      payment.payerReference = executeResult.payerReference;
+      payment.paymentTime = isNaN(paymentTime.getTime()) ? null : paymentTime;
+      payment.paidAmount = parseFloat(executeResult.amount);
+      payment.transactionId = executeResult.trxID;
+      payment.transactionStatus = executeResult.transactionStatus;
+      payment.merchantInvoiceNumber = executeResult.merchantInvoiceNumber;
+
+      await this.paymentRepository.save(payment);
+        
+        console.log('Payment provider response updated with transaction details:', executeResult.trxID);
+      }
+    } catch (error) {
+      console.error('Error updating payment with transaction details:', error);
+    }
+  }
+
+  // bKash payment status check (no auth required for testing)
   @Get('bkash/status/:paymentID')
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   async getBkashPaymentStatus(@Param('paymentID') paymentID: string) {
     try {
       const result = await this.bkashPaymentService.queryPayment(paymentID);
