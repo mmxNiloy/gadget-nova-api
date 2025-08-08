@@ -9,6 +9,7 @@ export class UserFilterUtil {
       is_active: user.is_active,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       is_verified: user.is_verified,
       profile_image_url: user.profile_image_url,
       role: user.role
