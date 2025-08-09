@@ -283,7 +283,7 @@ export class OrderService {
         .leftJoinAndSelect('items.product', 'product');
 
       if (jwtPayload.role === RolesEnum.USER) {
-        query.where('orders.userId = :userId', { userId: jwtPayload.id });
+        query.where('orders.user_id = :userId', { userId: jwtPayload.id });
       }
 
       if (orderSearchDto.name) {
@@ -311,7 +311,7 @@ export class OrderService {
 
       return [orders, total];
     } catch (error) {
-      console.log("Error fetching orders:", error);
+      // console.log("Error fetching orders:", error);
       throw new BadRequestException({
         message: 'Error fetching orders',
         details: error.message,
