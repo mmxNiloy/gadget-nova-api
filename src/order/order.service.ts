@@ -311,6 +311,7 @@ export class OrderService {
 
       return [orders, total];
     } catch (error) {
+      console.log("Error fetching orders:", error);
       throw new BadRequestException({
         message: 'Error fetching orders',
         details: error.message,
