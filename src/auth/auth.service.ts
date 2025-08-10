@@ -29,11 +29,18 @@ export class AuthService {
 
     // Create user with phone number
     await this.userService.create(registerUserDto);
+
+    const session = await this.userService.validateUserEmailPass({
+      email: registerUserDto.email,
+      password: registerUserDto.password,
+      phone: registerUserDto.phone
+    })
     
     return {
       success: true,
       message: 'Registration successful. Please verify your phone number with the OTP sent.',
       data: {
+        session,
         phone: registerUserDto.phone,
         otpSent: true,
       },
