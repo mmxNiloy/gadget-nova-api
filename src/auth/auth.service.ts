@@ -27,14 +27,20 @@ export class AuthService {
       throw new Error(`Failed to send OTP: ${smsResult.message}`);
     }
 
-    // Create user with phone number
-    await this.userService.create(registerUserDto);
+    // Take plaintext before encryption
+    const {
+      email,
+      password,
+      phone
+    } = registerUserDto
 
+    // Create user with phone number
+    await this.userService.create(registerUserDto); // Caveat: This method mutates the argument
 
     const session = await this.userService.validateUserEmailPass({
-      email: registerUserDto.email,
-      password: registerUserDto.password,
-      phone: registerUserDto.phone
+      email,
+      phone,
+      password
     })
     
     return {

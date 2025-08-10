@@ -72,7 +72,6 @@ export class UserService {
   async validateUserEmailPass(
     localUser: LocalAuthUserDto,
   ): Promise<UserReponseDto> {
-    console.log("[UserService] > [validateUserEmailPass] > Local User DTO >", localUser);
     // Check if user is trying to login with email or phone
     let user: UserEntity;
     
