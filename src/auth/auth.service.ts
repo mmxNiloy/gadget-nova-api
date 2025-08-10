@@ -16,9 +16,7 @@ export class AuthService {
   ) {}
 
   //register a new user
-  async signUp(registerUserDto: RegisterUserDto) {
-    console.log('[AuthService] > [signUp] > Register User DTO >', registerUserDto);
-    
+  async signUp(registerUserDto: RegisterUserDto) {    
     // Send OTP for phone verification
     const smsResult = await this.smsService.sendOtp(registerUserDto.phone);
 
