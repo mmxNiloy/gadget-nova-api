@@ -12,6 +12,7 @@ import { PaymentModule } from '../payment/payment.module';
 import { DistrictModule } from '../district/district.module';
 import { SmsModule } from '../sms/sms.module';
 import { OtpService } from '../common/services/otp.service';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { OtpService } from '../common/services/otp.service';
     ShippingInfoModule,
     DistrictModule,
     SmsModule,
+    NotificationModule,
     forwardRef(() => PaymentModule)
   ],
   controllers: [OrderController],
