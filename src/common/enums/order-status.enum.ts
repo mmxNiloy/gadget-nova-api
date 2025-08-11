@@ -6,4 +6,5 @@ export enum OrderStatus {
   PAID = 'Paid',
   FAILED = 'Failed',
   CANCELLED = 'Cancelled',
+  ON_HOLD = 'On Hold',
 }

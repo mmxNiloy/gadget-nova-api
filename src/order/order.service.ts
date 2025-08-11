@@ -24,6 +24,7 @@ import { SmsService } from 'src/sms/sms.service';
 import { UserEntity } from 'src/user/entities/user.entity/user.entity';
 import { OtpService } from 'src/common/services/otp.service';
 import { PaymentStatus } from 'src/common/enums/payment-status.enum';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable()
 export class OrderService {
@@ -43,7 +44,8 @@ export class OrderService {
     @Inject(forwardRef(() => PGWContext))
     private readonly pgwContext: PGWContext,
     private readonly smsService: SmsService,
-    private readonly otpService: OtpService
+    private readonly otpService: OtpService,
+    private readonly notificationService: NotificationService
   ) {}
 
   async createOrder(
@@ -165,6 +167,22 @@ export class OrderService {
     console.log('Order object created, saving to database...');
     const savedOrder = await this.orderRepository.save(order);
     console.log('Order saved successfully:', savedOrder.id);
+
+    // Load user information for notifications
+    const userWithContactInfo = await this.userRepository.findOne({
+      where: { id: jwtPayload.id },
+      select: ['id', 'email', 'phone']
+    });
+
+    // Attach user contact info to the order for notifications
+    savedOrder.user = userWithContactInfo;
+
+    // Send order placed notification
+    try {
+      await this.notificationService.sendOrderPlacedNotification(savedOrder);
+    } catch (error) {
+      console.error('Failed to send order placed notification:', error);
+    }
 
     // Update product stock and deactivate cart
     for (const item of cart.items) {
@@ -347,14 +365,32 @@ export class OrderService {
   ): Promise<OrderEntity> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: ['cart'],
+      relations: ['cart', 'cart.items', 'cart.items.product', 'shippingInfo', 'user'],
     });
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
 
+    const previousStatus = order.status;
     order.status = status as OrderStatus;
-    return this.orderRepository.save(order);
+    const updatedOrder = await this.orderRepository.save(order);
+
+    // Send notifications based on status change
+    try {
+      if (status === OrderStatus.CANCELLED && previousStatus !== OrderStatus.CANCELLED) {
+        await this.notificationService.sendOrderCancelledNotification(updatedOrder);
+      } else if (status === OrderStatus.CONFIRMED && previousStatus !== OrderStatus.CONFIRMED) {
+        await this.notificationService.sendOrderConfirmedNotification(updatedOrder);
+      } else if (status === OrderStatus.ON_THE_WAY && previousStatus !== OrderStatus.ON_THE_WAY) {
+        await this.notificationService.sendOrderShippedNotification(updatedOrder);
+      } else if (status === OrderStatus.ON_HOLD && previousStatus !== OrderStatus.ON_HOLD) {
+        await this.notificationService.sendOrderOnHoldNotification(updatedOrder);
+      }
+    } catch (error) {
+      console.error('Failed to send status change notification:', error);
+    }
+
+    return updatedOrder;
   }
 }

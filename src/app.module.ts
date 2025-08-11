@@ -19,6 +19,8 @@ import { PaymentModule } from './payment/payment.module';
 import { DistrictModule } from './district/district.module';
 import { SmsModule } from './sms/sms.module';
 import { RedisModule } from './config/redis.module';
+import { MailModule } from './mail/mail.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -57,6 +59,8 @@ import { RedisModule } from './config/redis.module';
     DistrictModule,
     SmsModule,
     RedisModule,
+    MailModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

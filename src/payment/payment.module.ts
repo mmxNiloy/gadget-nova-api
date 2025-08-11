@@ -10,12 +10,14 @@ import { PaymentController } from './payment.controller';
 import { PaymentEntity } from './entities/payment.entity';
 import { OrderModule } from '../order/order.module';
 import { RedisModule } from '../config/redis.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([PaymentEntity]),
     forwardRef(() => OrderModule),
     RedisModule,
+    NotificationModule,
   ],
   controllers: [PaymentController],
   providers: [
