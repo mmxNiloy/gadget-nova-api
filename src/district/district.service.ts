@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DistrictEntity } from '../common/entities/district.entity';
 import districtsData from '../common/data/bangladesh-districts.json';
-import { PaginationDTO } from '../common/dtos/pagination/pagination.dto';
 
 @Injectable()
 export class DistrictService implements OnModuleInit {
@@ -27,27 +26,30 @@ export class DistrictService implements OnModuleInit {
     }
   }
 
-  async findAll(pagination: PaginationDTO, name?: string) {
-    const queryBuilder = this.districtRepository.createQueryBuilder('district');
-
+  async findAll(name?: string) {
     if (name) {
-      queryBuilder.where('district.name ILIKE :name', { name: `%${name}%` });
+      // Search districts by name using simple ORM
+      const districts = await this.districtRepository
+        .createQueryBuilder('district')
+        .where('district.name ILIKE :name', { name: `%${name}%` })
+        .orderBy('district.name', 'ASC')
+        .getMany();
+      
+      return {
+        districts,
+        total: districts.length
+      };
+    } else {
+      // Get all districts using simple ORM
+      const districts = await this.districtRepository.find({
+        order: { name: 'ASC' }
+      });
+      
+      return {
+        districts,
+        total: districts.length
+      };
     }
-
-    queryBuilder
-      .orderBy(`district.${pagination.order}`, pagination.sort as 'ASC' | 'DESC')
-      .skip((pagination.page - 1) * pagination.limit)
-      .take(pagination.limit);
-
-    const [districts, total] = await queryBuilder.getManyAndCount();
-
-    return {
-      districts,
-      total,
-      page: pagination.page,
-      limit: pagination.limit,
-      totalPages: Math.ceil(total / pagination.limit),
-    };
   }
 
   async findOne(id: string) {

@@ -31,6 +31,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ApiTags } from '@nestjs/swagger';
 import { PaymentStatus } from 'src/common/enums/payment-status.enum';
+import { NotificationService } from '../notification/notification.service';
 
 @ApiTags('payment')
 @Controller({
@@ -45,6 +46,7 @@ export class PaymentController {
     private readonly bkashPaymentService: BkashPaymentService,
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   @Post('ssl/initiate')
@@ -98,10 +100,17 @@ export class PaymentController {
           result.order.id,
           OrderStatus.PAID,
         );
+        
+        // Send order placed notification (since payment is now successful)
+        try {
+          await this.notificationService.sendOrderPlacedNotification(result.order);
+        } catch (error) {
+          console.error('Failed to send order placed notification:', error);
+        }
       }
 
       // Redirect to success page
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${result.order.id}&paymentId=${result.payment.id}`;
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/profile/order/success/${result.order.id}`;
       
       return res.redirect(redirectUrl);
     } catch (error) {
@@ -236,8 +245,18 @@ export class PaymentController {
             orderID,
             OrderStatus.PAID,
           );
+          
+          // Send order placed notification (since payment is now successful)
+          try {
+            const order = await this.orderService.findOne(orderID);
+            if (order) {
+              await this.notificationService.sendOrderPlacedNotification(order);
+            }
+          } catch (error) {
+            console.error('Failed to send order placed notification:', error);
+          }
 
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${orderID}&paymentId=${paymentID}`;
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/profile/order/success/${orderID}`;
           return res.redirect(redirectUrl);
         } else {
           // Payment execution failed
@@ -317,9 +336,16 @@ export class PaymentController {
           return { message: 'Redirecting due to missing paymentID', payload: null };
         }
   
-        if (order) {
+                if (order) {
           await this.orderService.updateOrderStatus(order.id, OrderStatus.PAID);
-  
+
+          // Send order placed notification (since payment is now successful)
+          try {
+            await this.notificationService.sendOrderPlacedNotification(order);
+          } catch (error) {
+            console.error('Failed to send order placed notification:', error);
+          }
+
           // Handle date formatting here before update
           const rawTime = executeResult.paymentExecuteTime;
           const cleanedTime = rawTime.replace(/:(\d+)\sGMT\+\d+$/, '.$1');
@@ -333,7 +359,7 @@ export class PaymentController {
   
           await this.updatePaymentWithTransactionDetails(paymentID, executeResult);
   
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/success?orderId=${order.id}&paymentId=${paymentID}&trxID=${executeResult.trxID}`;
+          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/profile/order/success/${order.id}`;
           res.redirect(redirectUrl);
           return { message: 'Redirecting due to missing paymentID', payload: null };
         } else {
@@ -360,7 +386,7 @@ export class PaymentController {
     try {
       const payment = await this.paymentRepository.findOne({
         where: { paymentId: paymentID},
-        relations: ['order'],
+        relations: ['order', 'order.user', 'order.shippingInfo'],
       });
 
       console.log("Payment response before returnig",{payment});
