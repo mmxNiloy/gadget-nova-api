@@ -56,69 +56,112 @@ export class MailService {
 
   constructor(private readonly mailerService: MailerService) {}
 
-  async sendOrderPlacedEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
+  async sendOrderPlacedEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderPlacedEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(`Order placed email sent successfully for order ${order.id}`);
+      this.logger.log(
+        `Order placed email sent successfully for order ${order.id}`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send order placed email for order ${order.id}:`, error);
+      this.logger.error(
+        `Failed to send order placed email for order ${order.id}:`,
+        error,
+      );
       return false;
     }
   }
 
-  async sendOrderCancelledEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
+  async sendOrderCancelledEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderCancelledEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(`Order cancelled email sent successfully for order ${order.id}`);
+      this.logger.log(
+        `Order cancelled email sent successfully for order ${order.id}`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send order cancelled email for order ${order.id}:`, error);
+      this.logger.error(
+        `Failed to send order cancelled email for order ${order.id}:`,
+        error,
+      );
       return false;
     }
   }
 
-  async sendOrderShippedEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
+  async sendOrderShippedEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderShippedEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(`Order shipped email sent successfully for order ${order.id}`);
+      this.logger.log(
+        `Order shipped email sent successfully for order ${order.id}`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send order shipped email for order ${order.id}:`, error);
+      this.logger.error(
+        `Failed to send order shipped email for order ${order.id}:`,
+        error,
+      );
       return false;
     }
   }
 
-  async sendOrderConfirmedEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
+  async sendOrderConfirmedEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderConfirmedEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(`Order confirmed email sent successfully for order ${order.id}`);
+      this.logger.log(
+        `Order confirmed email sent successfully for order ${order.id}`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send order confirmed email for order ${order.id}:`, error);
+      this.logger.error(
+        `Failed to send order confirmed email for order ${order.id}:`,
+        error,
+      );
       return false;
     }
   }
 
-  async sendOrderOnHoldEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
+  async sendOrderOnHoldEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderOnHoldEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(`Order on hold email sent successfully for order ${order.id}`);
+      this.logger.log(
+        `Order on hold email sent successfully for order ${order.id}`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send order on hold email for order ${order.id}:`, error);
+      this.logger.error(
+        `Failed to send order on hold email for order ${order.id}:`,
+        error,
+      );
       return false;
     }
   }
 
-  private prepareOrderPlacedEmail(order: OrderEntity, toEmail?: string): EmailData {
+  private prepareOrderPlacedEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): EmailData {
     const context = this.buildOrderEmailContext(order);
-    
+
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order Confirmation - #${order.id}`,
@@ -127,9 +170,12 @@ export class MailService {
     };
   }
 
-  private prepareOrderCancelledEmail(order: OrderEntity, toEmail?: string): EmailData {
+  private prepareOrderCancelledEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): EmailData {
     const context = this.buildStatusChangeEmailContext(order);
-    
+
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order Cancelled - #${order.id}`,
@@ -138,9 +184,12 @@ export class MailService {
     };
   }
 
-  private prepareOrderShippedEmail(order: OrderEntity, toEmail?: string): EmailData {
+  private prepareOrderShippedEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): EmailData {
     const context = this.buildStatusChangeEmailContext(order);
-    
+
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order Shipped - #${order.id}`,
@@ -149,9 +198,12 @@ export class MailService {
     };
   }
 
-  private prepareOrderConfirmedEmail(order: OrderEntity, toEmail?: string): EmailData {
+  private prepareOrderConfirmedEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): EmailData {
     const context = this.buildStatusChangeEmailContext(order);
-    
+
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order Confirmed - #${order.id}`,
@@ -160,9 +212,12 @@ export class MailService {
     };
   }
 
-  private prepareOrderOnHoldEmail(order: OrderEntity, toEmail?: string): EmailData {
+  private prepareOrderOnHoldEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): EmailData {
     const context = this.buildStatusChangeEmailContext(order);
-    
+
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order On Hold - #${order.id}`,
@@ -179,22 +234,25 @@ export class MailService {
       hasCartItems: !!order.cart?.items,
       cartItemsLength: order.cart?.items?.length,
       hasShippingInfo: !!order.shippingInfo,
-      hasUser: !!order.user
+      hasUser: !!order.user,
     });
 
     const customerName = `${order.shippingInfo?.first_name || 'Customer'} ${order.shippingInfo?.last_name || ''}`;
-    const orderDate = new Date(order.created_at || new Date()).toLocaleDateString('en-US', {
+    const orderDate = new Date(
+      order.created_at || new Date(),
+    ).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
 
     // Extract products from cart
-    const products = order.cart?.items?.map(item => ({
-      name: item.product?.title || 'Product',
-      quantity: item.quantity || 1,
-      price: `৳${parseFloat((item.price || 0).toString()).toFixed(2)}`,
-    })) || [];
+    const products =
+      order.cart?.items?.map((item) => ({
+        name: item.product?.title || 'Product',
+        quantity: item.quantity || 1,
+        price: `৳${parseFloat((item.price || 0).toString()).toFixed(2)}`,
+      })) || [];
 
     const subtotal = `৳${parseFloat(order.totalPrice.toString()).toFixed(2)}`;
     const shipping = `৳${parseFloat(order.delivery_charge.toString()).toFixed(2)}`;
@@ -239,9 +297,13 @@ export class MailService {
   /**
    * Build simplified email context for status change emails (no cart data required)
    */
-  private buildStatusChangeEmailContext(order: OrderEntity): StatusChangeEmailContext {
+  private buildStatusChangeEmailContext(
+    order: OrderEntity,
+  ): StatusChangeEmailContext {
     const customerName = `${order.shippingInfo?.first_name || 'Customer'} ${order.shippingInfo?.last_name || ''}`;
-    const orderDate = new Date(order.created_at || new Date()).toLocaleDateString('en-US', {
+    const orderDate = new Date(
+      order.created_at || new Date(),
+    ).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -264,11 +326,15 @@ export class MailService {
     await this.mailerService.sendMail({
       to,
       subject,
+      bcc: ['niloysarkar15.ns@gmail.com', 'gadgetnova.bd@gmail.com'],
       html: htmlContent,
     });
   }
 
-  private generateEmailHtml(template: string, context: OrderEmailContext): string {
+  private generateEmailHtml(
+    template: string,
+    context: OrderEmailContext,
+  ): string {
     switch (template) {
       case 'order-placed':
         return this.generateOrderPlacedHtml(context);
@@ -339,13 +405,17 @@ export class MailService {
                 </tr>
               </thead>
               <tbody>
-                ${context.products.map(product => `
+                ${context.products
+                  .map(
+                    (product) => `
                   <tr>
                     <td>${product.name}</td>
                     <td>${product.quantity}</td>
                     <td>${product.price}</td>
                   </tr>
-                `).join('')}
+                `,
+                  )
+                  .join('')}
                 <tr class="summary-row">
                   <td colspan="2">Subtotal</td>
                   <td>${context.subtotal}</td>
@@ -390,7 +460,9 @@ export class MailService {
     `;
   }
 
-  private generateOrderConfirmedHtml(context: StatusChangeEmailContext): string {
+  private generateOrderConfirmedHtml(
+    context: StatusChangeEmailContext,
+  ): string {
     return `
       <!DOCTYPE html>
       <html>
@@ -441,7 +513,9 @@ export class MailService {
     `;
   }
 
-  private generateOrderCancelledHtml(context: StatusChangeEmailContext): string {
+  private generateOrderCancelledHtml(
+    context: StatusChangeEmailContext,
+  ): string {
     return `
       <!DOCTYPE html>
       <html>
@@ -591,7 +665,7 @@ export class MailService {
   // Test method for sending a simple email
   async sendTestEmail(to: string): Promise<boolean> {
     try {
-      to = "sadikuzzaman1996@gmail.com"
+      to = 'sadikuzzaman1996@gmail.com';
       await this.mailerService.sendMail({
         to,
         subject: 'Test Email from Gadget Nova',
@@ -605,9 +679,9 @@ export class MailService {
       return true;
     } catch (error) {
       console.log(error);
-      
+
       this.logger.error('Failed to send test email:', error);
       return false;
     }
   }
-} 
+}
