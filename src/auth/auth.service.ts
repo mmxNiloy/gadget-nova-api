@@ -41,6 +41,8 @@ export class AuthService {
       email,
       phone,
       password
+    }, {
+      bypassPhoneVerification: true
     })
     
     return {
