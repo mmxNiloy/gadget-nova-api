@@ -318,7 +318,7 @@ export class OrderService {
         .leftJoinAndSelect('orders.cart', 'cart')
         .leftJoinAndSelect('cart.items', 'items')
         .leftJoinAndSelect('items.product', 'product')
-        .leftJoinAndSelect('orders.district', 'district');
+        .leftJoinAndSelect('orders.shippingInfo.district', 'district');
 
       if (jwtPayload.role === RolesEnum.USER) {
         query.where('orders.user_id = :userId', { userId: jwtPayload.id });
@@ -366,7 +366,7 @@ export class OrderService {
       .leftJoinAndSelect('orders.cart', 'cart')
       .leftJoinAndSelect('cart.items', 'items')
       .leftJoinAndSelect('items.product', 'product')
-      .leftJoinAndSelect('orders.district', 'district');
+      .leftJoinAndSelect('orders.shippingInfo.district', 'district');
 
     if (userId) {
       query.andWhere('orders.userId = :userId', { userId });
