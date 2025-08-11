@@ -175,6 +175,7 @@ export class MailService {
     // Debug logging
     console.log('Building email context for order:', {
       orderId: order.id,
+      readableOrderId: order.orderId,
       hasCart: !!order.cart,
       hasCartItems: !!order.cart?.items,
       cartItemsLength: order.cart?.items?.length,
@@ -223,7 +224,7 @@ export class MailService {
 
     return {
       customerName,
-      orderNumber: order.id,
+      orderNumber: order.orderId?.toString() || order.id,
       orderDate,
       products,
       subtotal,
@@ -249,7 +250,7 @@ export class MailService {
 
     return {
       customerName,
-      orderNumber: order.id,
+      orderNumber: order.orderId?.toString() || order.id,
       orderDate,
     };
   }
@@ -401,12 +402,12 @@ export class MailService {
         <style>
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
           .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; }
-          .header { background-color: #28a745; color: white; padding: 30px 20px; text-align: left; }
+          .header { background-color: #F92903; color: white; padding: 30px 20px; text-align: left; }
           .header h1 { margin: 0; font-size: 24px; }
           .content { padding: 30px 20px; }
           .greeting { font-size: 16px; margin-bottom: 20px; }
-          .order-info { background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .order-info h2 { color: #28a745; margin: 0 0 10px 0; font-size: 18px; }
+          .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
           .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
           .contact-info { color: #007bff; text-decoration: none; }
         </style>
@@ -452,12 +453,12 @@ export class MailService {
         <style>
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
           .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; }
-          .header { background-color: #dc3545; color: white; padding: 30px 20px; text-align: left; }
+          .header { background-color: #F92903; color: white; padding: 30px 20px; text-align: left; }
           .header h1 { margin: 0; font-size: 24px; }
           .content { padding: 30px 20px; }
           .greeting { font-size: 16px; margin-bottom: 20px; }
-          .order-info { background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .order-info h2 { color: #dc3545; margin: 0 0 10px 0; font-size: 18px; }
+          .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
           .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
           .contact-info { color: #007bff; text-decoration: none; }
         </style>
@@ -501,12 +502,12 @@ export class MailService {
         <style>
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
           .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; }
-          .header { background-color: #28a745; color: white; padding: 30px 20px; text-align: left; }
+          .header { background-color: #F92903; color: white; padding: 30px 20px; text-align: left; }
           .header h1 { margin: 0; font-size: 24px; }
           .content { padding: 30px 20px; }
           .greeting { font-size: 16px; margin-bottom: 20px; }
-          .order-info { background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .order-info h2 { color: #28a745; margin: 0 0 10px 0; font-size: 18px; }
+          .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
           .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
           .contact-info { color: #007bff; text-decoration: none; }
         </style>
@@ -550,12 +551,12 @@ export class MailService {
         <style>
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
           .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; }
-          .header { background-color: #ffc107; color: #212529; padding: 30px 20px; text-align: left; }
+          .header { background-color: #F92903; color: white; padding: 30px 20px; text-align: left; }
           .header h1 { margin: 0; font-size: 24px; }
           .content { padding: 30px 20px; }
           .greeting { font-size: 16px; margin-bottom: 20px; }
-          .order-info { background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .order-info h2 { color: #856404; margin: 0 0 10px 0; font-size: 18px; }
+          .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
           .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
           .contact-info { color: #007bff; text-decoration: none; }
         </style>
