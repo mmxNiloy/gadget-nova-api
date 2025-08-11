@@ -366,7 +366,7 @@ export class OrderService {
       .leftJoinAndSelect('orders.cart', 'cart')
       .leftJoinAndSelect('cart.items', 'items')
       .leftJoinAndSelect('items.product', 'product')
-      .leftJoinAndSelect('orders.shippingInfo.district', 'district');
+      .leftJoinAndSelect('shippingInfo.district', 'district');
 
     if (userId) {
       query.andWhere('orders.userId = :userId', { userId });
