@@ -286,35 +286,35 @@ export class NotificationService {
   private generateOrderPlacedSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
     const total = parseFloat(order.totalPrice.toString()) + parseFloat(order.delivery_charge.toString());
-    const orderNumber = order.orderId?.toString() || order.id;
+    const orderNumber = order.id;
     
     return `Hi ${customerName}, your order #${orderNumber} has been placed successfully. Total: ৳${total.toFixed(2)}. Pay with cash upon delivery. - Gadget Nova`;
   }
 
   private generateOrderCancelledSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
-    const orderNumber = order.orderId?.toString() || order.id;
+    const orderNumber = order.id;
     
     return `Hi ${customerName}, your order #${orderNumber} has been cancelled. Contact us for any questions. - Gadget Nova`;
   }
 
   private generateOrderShippedSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
-    const orderNumber = order.orderId?.toString() || order.id;
+    const orderNumber = order.id;
     
     return `Hi ${customerName}, your order #${orderNumber} has been shipped and is on its way! Track it in your dashboard. - Gadget Nova`;
   }
 
   private generateOrderOnHoldSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
-    const orderNumber = order.orderId?.toString() || order.id;
+    const orderNumber = order.id;
     
     return `Hi ${customerName}, your order #${orderNumber} is on hold. We'll review and update you soon. - Gadget Nova`;
   }
 
   private generateOrderConfirmedSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
-    const orderNumber = order.orderId?.toString() || order.id;
+    const orderNumber = order.id;
     
     return `Hi ${customerName}, your order #${orderNumber} has been confirmed and is being processed. We'll ship it soon! - Gadget Nova`;
   }

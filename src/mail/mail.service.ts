@@ -21,7 +21,7 @@ export interface OrderEmailContext {
   }>;
   subtotal: string;
   shipping: string;
-  shippingMethod: string;
+  // shippingMethod: string;
   paymentMethod: string;
   total: string;
   billingAddress: {
@@ -175,7 +175,6 @@ export class MailService {
     // Debug logging
     console.log('Building email context for order:', {
       orderId: order.id,
-      readableOrderId: order.orderId,
       hasCart: !!order.cart,
       hasCartItems: !!order.cart?.items,
       cartItemsLength: order.cart?.items?.length,
@@ -224,12 +223,12 @@ export class MailService {
 
     return {
       customerName,
-      orderNumber: order.orderId?.toString() || order.id,
+      orderNumber: order.id,
       orderDate,
       products,
       subtotal,
       shipping,
-      shippingMethod: 'Fast Shipping',
+      // shippingMethod: 'Fast Shipping',
       paymentMethod: 'Cash on delivery',
       total,
       billingAddress,
@@ -250,7 +249,7 @@ export class MailService {
 
     return {
       customerName,
-      orderNumber: order.orderId?.toString() || order.id,
+      orderNumber: order.id,
       orderDate,
     };
   }
