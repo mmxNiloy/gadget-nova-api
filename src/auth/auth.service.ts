@@ -42,7 +42,7 @@ export class AuthService {
       phone,
       password
     }, {
-      bypassPhoneVerification: true
+      bypassPhoneNumberVerification: true
     })
     
     return {
