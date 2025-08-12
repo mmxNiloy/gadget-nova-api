@@ -302,34 +302,33 @@ export class OrderService {
         .leftJoinAndSelect('orders.cart', 'cart')
         .leftJoinAndSelect('cart.items', 'items')
         .leftJoinAndSelect('items.product', 'product');
-
+  
       if (jwtPayload.role === RolesEnum.USER) {
         query.where('user.id = :userId', { userId: jwtPayload.id });
       }
-
+  
       if (orderSearchDto.name) {
-        query.where('LOWER(user.name) LIKE :name', {
+        query.andWhere('LOWER(user.name) LIKE :name', {
           name: `%${orderSearchDto.name.toLowerCase()}%`,
         });
       }
-
+  
       if (orderSearchDto.status) {
         query.andWhere('orders.status = :status', {
           status: orderSearchDto.status,
         });
       }
-
-      sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
-      const orderFields = ['created_at', 'updated_at'];
-      order = orderFields.includes(order) ? order : 'updated_at';
-
+  
+      // ✅ Default sorting: Pending first, then recent date
       query
-        .orderBy(`orders.${order}`, sort)
+        .orderBy(`CASE WHEN orders.status = :pending THEN 0 ELSE 1 END`, 'ASC')
+        .addOrderBy('orders.created_at', 'DESC')
+        .setParameter('pending', OrderStatus.PENDING)
         .skip((page - 1) * limit)
         .take(limit);
-
+  
       const [orders, total] = await query.getManyAndCount();
-
+  
       return [orders, total];
     } catch (error) {
       throw new BadRequestException({
@@ -338,6 +337,7 @@ export class OrderService {
       });
     }
   }
+  
 
   async findOne(id: string, userId?: string): Promise<OrderEntity> {
     const query = this.orderRepository
