@@ -71,6 +71,9 @@ export class UserService {
 
   async validateUserEmailPass(
     localUser: LocalAuthUserDto,
+    options?: {
+      bypassPhoneNumberVerification?: boolean;
+    }
   ): Promise<UserReponseDto> {
     // Check if user is trying to login with email or phone
     let user: UserEntity;
@@ -100,7 +103,7 @@ export class UserService {
     }
 
     // Check if user is verified
-    if (!user.is_verified) {
+    if (!user.is_verified && !options?.bypassPhoneNumberVerification) {
       throw new UnauthorizedException('Please verify your phone number before logging in');
     }
 
