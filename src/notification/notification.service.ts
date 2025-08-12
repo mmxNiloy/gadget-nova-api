@@ -287,35 +287,40 @@ export class NotificationService {
     const customerName = order.shippingInfo.first_name;
     const total = parseFloat(order.totalPrice.toString()) + parseFloat(order.delivery_charge.toString());
     const orderNumber = order.id;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
     
-    return `Hi ${customerName}, your order #${orderNumber} has been placed successfully. Total: ৳${total.toFixed(2)}. Pay with cash upon delivery. - Gadget Nova`;
+    return `Hi ${customerName}, your order #${orderNumber} has been placed successfully. Total: ৳${total.toFixed(2)}. Payment: ${paymentMethod}. - Gadget Nova`;
   }
 
   private generateOrderCancelledSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
     const orderNumber = order.id;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
     
-    return `Hi ${customerName}, your order #${orderNumber} has been cancelled. Contact us for any questions. - Gadget Nova`;
+    return `Hi ${customerName}, your order #${orderNumber} has been cancelled. Payment was: ${paymentMethod}. Contact us for any questions. - Gadget Nova`;
   }
 
   private generateOrderShippedSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
     const orderNumber = order.id;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
     
-    return `Hi ${customerName}, your order #${orderNumber} has been shipped and is on its way! Track it in your dashboard. - Gadget Nova`;
+    return `Hi ${customerName}, your order #${orderNumber} has been shipped and is on its way! Payment was: ${paymentMethod}. Track it in your dashboard. - Gadget Nova`;
   }
 
   private generateOrderOnHoldSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
     const orderNumber = order.id;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
     
-    return `Hi ${customerName}, your order #${orderNumber} is on hold. We'll review and update you soon. - Gadget Nova`;
+    return `Hi ${customerName}, your order #${orderNumber} is on hold. Payment was: ${paymentMethod}. We'll review and update you soon. - Gadget Nova`;
   }
 
   private generateOrderConfirmedSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
     const orderNumber = order.id;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
     
-    return `Hi ${customerName}, your order #${orderNumber} has been confirmed and is being processed. We'll ship it soon! - Gadget Nova`;
+    return `Hi ${customerName}, your order #${orderNumber} has been confirmed and is being processed. Payment was: ${paymentMethod}. We'll ship it soon! - Gadget Nova`;
   }
 } 
