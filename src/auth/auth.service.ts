@@ -16,7 +16,7 @@ export class AuthService {
   ) {}
 
   //register a new user
-  async signUp(registerUserDto: RegisterUserDto) {
+  async signUp(registerUserDto: RegisterUserDto) {    
     // Send OTP for phone verification
     const smsResult = await this.smsService.sendOtp(registerUserDto.phone);
 
@@ -27,13 +27,29 @@ export class AuthService {
       throw new Error(`Failed to send OTP: ${smsResult.message}`);
     }
 
+    // Take plaintext before encryption
+    const {
+      email,
+      password,
+      phone
+    } = registerUserDto
+
     // Create user with phone number
-    await this.userService.create(registerUserDto);
+    await this.userService.create(registerUserDto); // Caveat: This method mutates the argument
+
+    const session = await this.userService.validateUserEmailPass({
+      email,
+      phone,
+      password
+    }, {
+      bypassPhoneNumberVerification: true
+    })
     
     return {
       success: true,
       message: 'Registration successful. Please verify your phone number with the OTP sent.',
       data: {
+        session,
         phone: registerUserDto.phone,
         otpSent: true,
       },
