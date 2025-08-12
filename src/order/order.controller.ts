@@ -70,7 +70,7 @@ export class OrderController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.ADMIN)
+  @Roles(RolesEnum.USER)
   @Get('pagination')
   async pagination(
     @PaginationDecorator() pagination: PaginationDTO,
