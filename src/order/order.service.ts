@@ -304,7 +304,7 @@ export class OrderService {
         .leftJoinAndSelect('items.product', 'product');
 
       if (jwtPayload.role === RolesEnum.USER) {
-        query.where('orders.userId = :userId', { userId: jwtPayload.id });
+        query.where('user.id = :userId', { userId: jwtPayload.id });
       }
 
       if (orderSearchDto.name) {
