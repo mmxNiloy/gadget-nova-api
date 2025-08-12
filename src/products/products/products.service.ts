@@ -18,7 +18,6 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductAttributeService } from '../product-attribute/product-attribute.service';
 
-
 @Injectable()
 export class ProductsService {
   constructor(
@@ -28,14 +27,17 @@ export class ProductsService {
     private readonly brandService: BrandService,
     private readonly productAttributeService: ProductAttributeService,
     private readonly s3Service: S3Service,
-    private readonly promoDiscountUtil: PromoDiscountUtil
+    private readonly promoDiscountUtil: PromoDiscountUtil,
   ) {}
 
   private calculateAverageRating(product: ProductEntity): number {
     if (!product.ratings || product.ratings.length === 0) {
       return 0;
     }
-    const sum = product.ratings.reduce((acc, rating) => acc + rating.star_count, 0);
+    const sum = product.ratings.reduce(
+      (acc, rating) => acc + rating.star_count,
+      0,
+    );
     return Number((sum / product.ratings.length).toFixed(1));
   }
 
@@ -44,7 +46,7 @@ export class ProductsService {
     return {
       ...product,
       average_rating: averageRating,
-      total_ratings: product.ratings ? product.ratings.length : 0
+      total_ratings: product.ratings ? product.ratings.length : 0,
     };
   }
 
@@ -142,7 +144,7 @@ export class ProductsService {
   async findAll(title?: string) {
     try {
       const query = this.productRepository
-        .createQueryBuilder('product') 
+        .createQueryBuilder('product')
         .where('product.is_active = :status', {
           status: ActiveStatusEnum.ACTIVE,
         })
@@ -173,7 +175,7 @@ export class ProductsService {
         ...this.promoDiscountUtil.filterActivePromo(product),
       }));
 
-      return updatedProducts
+      return updatedProducts;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -186,7 +188,6 @@ export class ProductsService {
     order: string,
     productSearchDto: ProductSearchDto,
   ) {
-    
     try {
       const query = this.productRepository
         .createQueryBuilder('product')
@@ -220,7 +221,9 @@ export class ProductsService {
       }
 
       if (productSearchDto.category_ids) {
-        productSearchDto.category_ids = Array.isArray(productSearchDto.category_ids)
+        productSearchDto.category_ids = Array.isArray(
+          productSearchDto.category_ids,
+        )
           ? productSearchDto.category_ids
           : [productSearchDto.category_ids];
 
@@ -238,13 +241,13 @@ export class ProductsService {
           brand_ids: productSearchDto.brand_ids,
         });
       }
-      
+
       if (productSearchDto.isTrending !== undefined) {
         console.log('Trend', productSearchDto.isTrending);
         query.andWhere('product.isTrending = :isTrending', {
           isTrending: productSearchDto.isTrending === Bool.YES ? 1 : 0,
         });
-  
+
         if (productSearchDto.isTrending === Bool.YES) {
           const currentDate = moment().toDate();
           query.andWhere('product.trendingStartDate <= :currentDate', {
@@ -262,13 +265,13 @@ export class ProductsService {
           isBestSeller: productSearchDto.isBestSeller === Bool.YES ? 1 : 0,
         });
       }
-  
+
       if (productSearchDto.isFeatured !== undefined) {
         console.log('Feature', productSearchDto.isFeatured);
         query.andWhere('product.isFeatured = :isFeatured', {
           isFeatured: productSearchDto.isFeatured === Bool.YES ? 1 : 0,
         });
-  
+
         if (productSearchDto.isFeatured === Bool.YES) {
           const currentDate = moment().toDate();
           query.andWhere('product.featuredStartDate <= :currentDate', {
@@ -279,32 +282,32 @@ export class ProductsService {
           });
         }
       }
-      
+
       if (productSearchDto.isInStock !== undefined) {
         console.log('Stock', productSearchDto.isInStock);
         query.andWhere('product.isInStock = :isInStock', {
           isInStock: productSearchDto.isInStock === Bool.YES ? 1 : 0,
         });
       }
-      
+
       if (productSearchDto.trendingStartDate) {
         query.andWhere('product.trendingStartDate >= :trendingStartDate', {
           trendingStartDate: productSearchDto.trendingStartDate,
         });
       }
-      
+
       if (productSearchDto.trendingEndDate) {
         query.andWhere('product.trendingEndDate <= :trendingEndDate', {
           trendingEndDate: productSearchDto.trendingEndDate,
         });
       }
-      
+
       if (productSearchDto.featuredStartDate) {
         query.andWhere('product.featuredStartDate >= :featuredStartDate', {
           featuredStartDate: productSearchDto.featuredStartDate,
         });
       }
-      
+
       if (productSearchDto.featuredEndDate) {
         query.andWhere('product.featuredEndDate <= :featuredEndDate', {
           featuredEndDate: productSearchDto.featuredEndDate,
@@ -368,6 +371,7 @@ export class ProductsService {
       .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
       .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
       .where('product.id = :id', { id })
+      .orWhere('product.slug = :slug', { slug: id })
       .andWhere('product.is_active = :status', {
         status: ActiveStatusEnum.ACTIVE,
       })
@@ -395,13 +399,17 @@ export class ProductsService {
       }
 
       if (updateProductDto.category_id) {
-        const category = await this.categoryService.findOne(updateProductDto.category_id);
+        const category = await this.categoryService.findOne(
+          updateProductDto.category_id,
+        );
         if (!category) throw new NotFoundException('Category not found');
         product.category = category;
       }
-  
+
       if (updateProductDto.brand_id) {
-        const brand = await this.brandService.findOne(updateProductDto.brand_id);
+        const brand = await this.brandService.findOne(
+          updateProductDto.brand_id,
+        );
         if (!brand) throw new NotFoundException('Brand not found');
         product.brand = brand;
       }
@@ -411,14 +419,16 @@ export class ProductsService {
           updateProductDto.thumbnail,
           'products/thumbnails',
         );
-        
+
         product.thumbnail = uploaded.Location;
       }
-      
+
       if (updateProductDto.gallery?.length) {
         const galleryUrls = await Promise.all(
           updateProductDto.gallery.map((file) =>
-            this.s3Service.uploadFile(file, 'products/gallery').then((res) => res.Location),
+            this.s3Service
+              .uploadFile(file, 'products/gallery')
+              .then((res) => res.Location),
           ),
         );
         product.gallery = galleryUrls;
@@ -432,7 +442,7 @@ export class ProductsService {
         attribute_value_ids,
         ...rest
       } = updateProductDto;
-  
+
       Object.assign(product, {
         ...rest,
         updated_by: jwtPayload.id,
