@@ -180,6 +180,20 @@ export class OrderService {
     const savedOrder = await this.orderRepository.save(order);
     console.log('Order saved successfully:', savedOrder.id);
 
+    // Deactivate cart immediately after order is saved to prevent constraint violations
+    cart.is_active = ActiveStatusEnum.INACTIVE;
+    await this.cartRepository.save(cart);
+    console.log('Cart deactivated successfully');
+
+    // Update product stock and hold amounts
+    for (const item of cart.items) {
+      const product = item.product;
+      product.stockAmount -= item.quantity;
+      product.holdAmount -= item.quantity;
+      await this.productRepository.save(product);
+    }
+    console.log('Product stock and hold amounts updated');
+
     // Load user information for notifications
     const userWithContactInfo = await this.userRepository.findOne({
       where: { id: jwtPayload.id },
@@ -188,26 +202,6 @@ export class OrderService {
 
     // Attach user contact info to the order for notifications
     savedOrder.user = userWithContactInfo;
-
-    // Send order placed notification
-    try {
-      await this.notificationService.sendOrderPlacedNotification(savedOrder);
-    } catch (error) {
-      console.error('Failed to send order placed notification:', error);
-    }
-
-    // Update product stock and deactivate cart
-    for (const item of cart.items) {
-      const product = item.product;
-      product.stockAmount -= item.quantity;
-      product.holdAmount -= item.quantity;
-      await this.productRepository.save(product);
-    }
-
-    cart.is_active = ActiveStatusEnum.INACTIVE;
-    await this.cartRepository.save(cart);
-
-    console.log('Payment method:', createOrderDto.paymentMethod);
 
     // Handle different payment methods
     if (createOrderDto.paymentMethod === PaymentMethodEnum.COD) {
@@ -237,11 +231,19 @@ export class OrderService {
       }
       savedOrder.payments.push(payment);
 
+      // For COD orders, send notification immediately
+      try {
+        await this.notificationService.sendOrderPlacedNotification(savedOrder);
+      } catch (error) {
+        console.error('Failed to send COD order notification:', error);
+      }
+
       console.log('Returning COD order');
       return savedOrder;
     } else {
       console.log('Processing online payment:', createOrderDto.paymentMethod);
       // For bKash/SSL, create order with pending status and return payment URL
+      // Don't send notification yet - wait for successful payment
       const paymentResult = await this.pgwContext
         .getStrategy(createOrderDto.paymentMethod)
         .pay(savedOrder, createOrderDto, jwtPayload);
@@ -314,6 +316,7 @@ export class OrderService {
       const query = this.orderRepository
         .createQueryBuilder('orders')
         .leftJoinAndSelect('orders.user', 'user')
+        .leftJoinAndSelect('orders.payments', 'payments')
         .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
         .leftJoinAndSelect('orders.cart', 'cart')
         .leftJoinAndSelect('cart.items', 'items')
@@ -362,6 +365,7 @@ export class OrderService {
       .createQueryBuilder('orders')
       .where('orders.id = :id', { id })
       .leftJoinAndSelect('orders.user', 'user')
+      .leftJoinAndSelect('orders.payments', 'payments')
       .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
       .leftJoinAndSelect('orders.cart', 'cart')
       .leftJoinAndSelect('cart.items', 'items')

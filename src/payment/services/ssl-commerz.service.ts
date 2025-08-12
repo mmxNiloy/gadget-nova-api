@@ -138,7 +138,7 @@ export class SslCommerzService {
           order: { id: orderId },
           paymentMethod: PaymentMethodEnum.SSL,
         },
-        relations: ['order'],
+        relations: ['order', 'order.cart', 'order.cart.items', 'order.cart.items.product'],
       });
 
       if (!payment) {
@@ -173,7 +173,7 @@ export class SslCommerzService {
   async getPaymentStatus(paymentId: string): Promise<any> {
     const payment = await this.paymentRepository.findOne({
       where: { id: paymentId },
-      relations: ['order'],
+      relations: ['order', 'order.cart', 'order.cart.items', 'order.cart.items.product'],
     });
 
     if (!payment) {

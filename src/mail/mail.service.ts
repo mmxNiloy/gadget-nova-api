@@ -48,6 +48,15 @@ export interface StatusChangeEmailContext {
   customerName: string;
   orderNumber: string;
   orderDate: string;
+  products: Array<{
+    name: string;
+    quantity: number;
+    price: string;
+  }>;
+  subtotal: string;
+  shipping: string;
+  paymentMethod: string;
+  total: string;
 }
 
 @Injectable()
@@ -254,9 +263,20 @@ export class MailService {
         price: `৳${parseFloat((item.price || 0).toString()).toFixed(2)}`,
       })) || [];
 
-    const subtotal = `৳${parseFloat(order.totalPrice.toString()).toFixed(2)}`;
+    // Calculate subtotal (products only, without shipping)
+    // Since order.totalPrice includes shipping, we need to calculate subtotal from cart items
+    const productSubtotal = order.cart?.items?.reduce((sum, item) => {
+      return sum + (parseFloat(item.price.toString()) * item.quantity);
+    }, 0) || 0;
+    
+    const subtotal = `৳${productSubtotal.toFixed(2)}`;
     const shipping = `৳${parseFloat(order.delivery_charge.toString()).toFixed(2)}`;
-    const total = `৳${(parseFloat(order.totalPrice.toString()) + parseFloat(order.delivery_charge.toString())).toFixed(2)}`;
+    
+    // Total should be subtotal + shipping
+    const total = `৳${(productSubtotal + parseFloat(order.delivery_charge.toString())).toFixed(2)}`;
+
+    // Get payment method from the first payment
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
 
     const addressParts = (order.shippingInfo?.address || '').split(',');
     const billingAddress = {
@@ -287,7 +307,7 @@ export class MailService {
       subtotal,
       shipping,
       // shippingMethod: 'Fast Shipping',
-      paymentMethod: 'Cash on delivery',
+      paymentMethod,
       total,
       billingAddress,
       shippingAddress,
@@ -309,10 +329,36 @@ export class MailService {
       day: 'numeric',
     });
 
+    // Extract products from cart for price breakdown
+    const products = order.cart?.items?.map(item => ({
+      name: item.product?.title || 'Product',
+      quantity: item.quantity || 1,
+      price: `৳${parseFloat((item.price || 0).toString()).toFixed(2)}`,
+    })) || [];
+
+    // Calculate subtotal (products only, without shipping)
+    const productSubtotal = order.cart?.items?.reduce((sum, item) => {
+      return sum + (parseFloat(item.price.toString()) * item.quantity);
+    }, 0) || 0;
+    
+    const subtotal = `৳${productSubtotal.toFixed(2)}`;
+    const shipping = `৳${parseFloat(order.delivery_charge.toString()).toFixed(2)}`;
+    
+    // Total should be subtotal + shipping
+    const total = `৳${(productSubtotal + parseFloat(order.delivery_charge.toString())).toFixed(2)}`;
+
+    // Get payment method from the first payment
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
+
     return {
       customerName,
       orderNumber: order.id,
       orderDate,
+      products,
+      subtotal,
+      shipping,
+      paymentMethod,
+      total,
     };
   }
 
@@ -390,7 +436,7 @@ export class MailService {
             
             <p>Just to let you know — we've received your order #${context.orderNumber}, and it is now being processed:</p>
             
-            <p><strong>Pay with cash upon delivery.</strong></p>
+            <p><strong>Payment Method: ${context.paymentMethod}</strong></p>
             
             <div class="order-info">
               <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
@@ -479,6 +525,10 @@ export class MailService {
           .greeting { font-size: 16px; margin-bottom: 20px; }
           .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
           .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
+          .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .order-table th, .order-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          .order-table th { background-color: #f8f9fa; font-weight: bold; }
+          .summary-row { background-color: #f8f9fa; font-weight: bold; }
           .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
           .contact-info { color: #007bff; text-decoration: none; }
         </style>
@@ -497,6 +547,41 @@ export class MailService {
             <div class="order-info">
               <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
             </div>
+            
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${context.products.map(product => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="2">Subtotal</td>
+                  <td>${context.subtotal}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Shipping</td>
+                  <td>${context.shipping}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Payment method</td>
+                  <td>${context.paymentMethod}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2"><strong>Total</strong></td>
+                  <td><strong>${context.total}</strong></td>
+                </tr>
+              </tbody>
+            </table>
             
             <p>We're preparing your order and will ship it soon. You'll receive another notification when your order is shipped.</p>
             
@@ -532,6 +617,10 @@ export class MailService {
           .greeting { font-size: 16px; margin-bottom: 20px; }
           .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
           .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
+          .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .order-table th, .order-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          .order-table th { background-color: #f8f9fa; font-weight: bold; }
+          .summary-row { background-color: #f8f9fa; font-weight: bold; }
           .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
           .contact-info { color: #007bff; text-decoration: none; }
         </style>
@@ -550,6 +639,41 @@ export class MailService {
             <div class="order-info">
               <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
             </div>
+            
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${context.products.map(product => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="2">Subtotal</td>
+                  <td>${context.subtotal}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Shipping</td>
+                  <td>${context.shipping}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Payment method</td>
+                  <td>${context.paymentMethod}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2"><strong>Total</strong></td>
+                  <td><strong>${context.total}</strong></td>
+                </tr>
+              </tbody>
+            </table>
             
             <p>If you have any questions about this cancellation, please don't hesitate to contact our customer support team.</p>
           </div>
@@ -581,6 +705,10 @@ export class MailService {
           .greeting { font-size: 16px; margin-bottom: 20px; }
           .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
           .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
+          .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .order-table th, .order-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          .order-table th { background-color: #f8f9fa; font-weight: bold; }
+          .summary-row { background-color: #f8f9fa; font-weight: bold; }
           .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
           .contact-info { color: #007bff; text-decoration: none; }
         </style>
@@ -599,6 +727,41 @@ export class MailService {
             <div class="order-info">
               <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
             </div>
+            
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${context.products.map(product => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="2">Subtotal</td>
+                  <td>${context.subtotal}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Shipping</td>
+                  <td>${context.shipping}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Payment method</td>
+                  <td>${context.paymentMethod}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2"><strong>Total</strong></td>
+                  <td><strong>${context.total}</strong></td>
+                </tr>
+              </tbody>
+            </table>
             
             <p>You can track your order status through your account dashboard. We'll notify you once it's delivered.</p>
           </div>
@@ -630,6 +793,10 @@ export class MailService {
           .greeting { font-size: 16px; margin-bottom: 20px; }
           .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
           .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
+          .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .order-table th, .order-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          .order-table th { background-color: #f8f9fa; font-weight: bold; }
+          .summary-row { background-color: #f8f9fa; font-weight: bold; }
           .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
           .contact-info { color: #007bff; text-decoration: none; }
         </style>
@@ -648,6 +815,41 @@ export class MailService {
             <div class="order-info">
               <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
             </div>
+            
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${context.products.map(product => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="2">Subtotal</td>
+                  <td>${context.subtotal}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Shipping</td>
+                  <td>${context.shipping}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Payment method</td>
+                  <td>${context.paymentMethod}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2"><strong>Total</strong></td>
+                  <td><strong>${context.total}</strong></td>
+                </tr>
+              </tbody>
+            </table>
             
             <p>If you have any questions about this hold, please don't hesitate to contact our customer support team.</p>
           </div>
