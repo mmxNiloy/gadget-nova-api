@@ -110,12 +110,12 @@ export class PaymentController {
       }
 
       // Redirect to success page
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/profile/order/success/${result.order.id}`;
+      const redirectUrl = `${process.env.FRONTEND_URL}/profile/order/success/${result.order.id}`;
       
       return res.redirect(redirectUrl);
     } catch (error) {
       console.error('Payment success processing error:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
+      const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
       return res.redirect(redirectUrl);
     }
   }
@@ -140,11 +140,11 @@ export class PaymentController {
         );
       }
 
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?orderId=${orderId}&error=${encodeURIComponent(responseData.error || 'Payment failed')}`;
+      const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
       return res.redirect(redirectUrl);
     } catch (error) {
       console.error('Payment failure processing error:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
+      const redirectUrl = `${process.env.FRONTEND_URL}/payment//failed`;
       return res.redirect(redirectUrl);
     }
   }
@@ -169,11 +169,11 @@ export class PaymentController {
         );
       }
 
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/cancelled?orderId=${orderId}`;
+      const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
       return res.redirect(redirectUrl);
     } catch (error) {
       console.error('Payment cancellation processing error:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
+      const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
       return res.redirect(redirectUrl);
     }
   }
@@ -256,7 +256,7 @@ export class PaymentController {
             console.error('Failed to send order confirmed notification:', error);
           }
 
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/profile/order/success/${orderID}`;
+          const redirectUrl = `${process.env.FRONTEND_URL}/profile/order/success/${orderID}`;
           return res.redirect(redirectUrl);
         } else {
           // Payment execution failed
@@ -265,7 +265,7 @@ export class PaymentController {
             OrderStatus.FAILED,
           );
 
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?orderId=${orderID}&error=${encodeURIComponent('Payment execution failed')}`;
+          const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
           return res.redirect(redirectUrl);
         }
       } else {
@@ -275,12 +275,12 @@ export class PaymentController {
           OrderStatus.FAILED,
         );
 
-        const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?orderId=${orderID}&error=${encodeURIComponent('Payment failed')}`;
+        const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
         return res.redirect(redirectUrl);
       }
     } catch (error) {
       console.error('bKash payment callback processing error:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message)}`;
+      const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
       return res.redirect(redirectUrl);
     }
   }
@@ -299,7 +299,7 @@ export class PaymentController {
   
       if (!paymentID) {
         console.error('No paymentID received in callback');
-        const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Payment ID not found')}`;
+        const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
         res.redirect(redirectUrl);
         return { message: 'Redirecting due to missing paymentID', payload: null };
       }
@@ -315,7 +315,7 @@ export class PaymentController {
           
         } catch (error) {
           console.error('bKash execution error:', error);
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('bKash execution failed')}`;
+          const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
           res.redirect(redirectUrl);
           return { message: 'Redirecting due to missing paymentID', payload: null }
         }
@@ -331,7 +331,7 @@ export class PaymentController {
           order = await this.findOrderByPaymentId(paymentID);
         } catch (error) {
           console.error('Order fetch error:', error);
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Order not found')}`;
+          const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
           res.redirect(redirectUrl);
           return { message: 'Redirecting due to missing paymentID', payload: null };
         }
@@ -359,23 +359,23 @@ export class PaymentController {
   
           await this.updatePaymentWithTransactionDetails(paymentID, executeResult);
   
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/profile/order/success/${order.id}`;
+          const redirectUrl = `${process.env.FRONTEND_URL}/profile/order/success/${order.id}`;
           res.redirect(redirectUrl);
           return { message: 'Redirecting due to missing paymentID', payload: null };
         } else {
-          const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent('Order not found')}`;
+          const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
           res.redirect(redirectUrl);
           return { message: 'Redirecting due to missing paymentID', payload: null };
         }
       } else {
         console.error('Payment execution failed. Status:', executeResult?.transactionStatus);
-        const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/failed?paymentId=${paymentID}&error=${encodeURIComponent('Payment execution failed')}`;
+        const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
         res.redirect(redirectUrl);
         return { message: 'Redirecting due to missing paymentID', payload: null };
       }
     } catch (error) {
       console.error('bKash payment callback GET processing error:', error);
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/payment/error?message=${encodeURIComponent(error.message || 'Unknown error')}`;
+      const redirectUrl = `${process.env.FRONTEND_URL}/payment/failed`;
       res.redirect(redirectUrl);
       return { message: 'Redirecting due to missing paymentID', payload: null };
     }
