@@ -45,7 +45,7 @@ export class OrderService {
     private readonly pgwContext: PGWContext,
     private readonly smsService: SmsService,
     private readonly otpService: OtpService,
-    private readonly notificationService: NotificationService,
+    private readonly notificationService: NotificationService
   ) {}
 
   async createOrder(
@@ -53,11 +53,11 @@ export class OrderService {
     jwtPayload: JwtPayloadInterface,
   ): Promise<OrderEntity> {
     console.log('Starting order creation process...');
-
+    
     // Check if OTP verification is required
     if (createOrderDto.otp) {
       console.log('OTP verification required for phone:', jwtPayload.phone);
-
+      
       // Verify the OTP using phone from JWT payload
       const isOtpValid = await this.otpService.verifyOtp(
         jwtPayload.phone,
@@ -67,10 +67,10 @@ export class OrderService {
       if (!isOtpValid) {
         throw new BadRequestException('Invalid OTP. Please try again.');
       }
-
+      
       console.log('OTP verified successfully');
     }
-
+    
     const cart = await this.cartRepository.findOne({
       where: {
         user: { id: jwtPayload.id },
@@ -88,8 +88,7 @@ export class OrderService {
     let calculatedTotalPrice = 0;
     for (const item of cart.items) {
       const product = item.product;
-      calculatedTotalPrice +=
-        parseFloat(product.discountPrice.toString()) * item.quantity;
+      calculatedTotalPrice += parseFloat(product.discountPrice.toString()) * item.quantity;
     }
 
     let totalPrice = 0;
@@ -99,21 +98,15 @@ export class OrderService {
     }
 
     console.log('Price calculation debug:');
-    console.log(
-      'calculatedTotalPrice (from product.discountPrice):',
-      calculatedTotalPrice,
-    );
+    console.log('calculatedTotalPrice (from product.discountPrice):', calculatedTotalPrice);
     console.log('totalPrice (from item.price):', totalPrice);
-    console.log(
-      'Cart items:',
-      cart.items.map((item) => ({
-        productTitle: item.product.title,
-        discountPrice: item.product.discountPrice,
-        itemPrice: item.price,
-        quantity: item.quantity,
-        itemTotal: parseFloat(item.price.toString()) * item.quantity,
-      })),
-    );
+    console.log('Cart items:', cart.items.map(item => ({
+      productTitle: item.product.title,
+      discountPrice: item.product.discountPrice,
+      itemPrice: item.price,
+      quantity: item.quantity,
+      itemTotal: parseFloat(item.price.toString()) * item.quantity
+    })));
 
     if (calculatedTotalPrice !== totalPrice) {
       cart.items = [];
@@ -129,9 +122,7 @@ export class OrderService {
     }
 
     // Calculate delivery charge based on district
-    const district = await this.districtService.findOne(
-      createOrderDto.shippingInfo.district_id,
-    );
+    const district = await this.districtService.findOne(createOrderDto.shippingInfo.district_id);
     if (!district) {
       throw new BadRequestException('Invalid district selected');
     }
@@ -172,10 +163,7 @@ export class OrderService {
     console.log('Final price calculation:');
     console.log('totalPrice (products):', totalPrice);
     console.log('deliveryCharge:', deliveryCharge);
-    console.log(
-      'final totalPrice:',
-      totalPrice + parseFloat(deliveryCharge.toString()),
-    );
+    console.log('final totalPrice:', totalPrice + parseFloat(deliveryCharge.toString()));
     console.log('Order object created, saving to database...');
     const savedOrder = await this.orderRepository.save(order);
     console.log('Order saved successfully:', savedOrder.id);
@@ -197,7 +185,7 @@ export class OrderService {
     // Load user information for notifications
     const userWithContactInfo = await this.userRepository.findOne({
       where: { id: jwtPayload.id },
-      select: ['id', 'email', 'phone'],
+      select: ['id', 'email', 'phone']
     });
 
     // Attach user contact info to the order for notifications
@@ -218,8 +206,8 @@ export class OrderService {
           method: 'COD',
           message: 'Cash on Delivery selected. Admin will confirm by phone.',
         }),
-        paymentStatus: PaymentStatus.PENDING,
-        orderAmount: savedOrder.totalPrice,
+        paymentStatus:PaymentStatus.PENDING,
+        orderAmount: savedOrder.totalPrice
       });
 
       await this.paymentRepository.save(payment);
@@ -257,9 +245,9 @@ export class OrderService {
         order: savedOrder,
         paymentMethod: createOrderDto.paymentMethod,
         providerResponse: JSON.stringify(paymentResult),
-        paymentId: paymentResult?.providerResponse?.paymentID,
-        paymentStatus: PaymentStatus.PENDING,
-        orderAmount: savedOrder.totalPrice,
+        paymentId:paymentResult?.providerResponse?.paymentID,
+        paymentStatus:PaymentStatus.PENDING,
+        orderAmount: savedOrder.totalPrice
       });
 
       await this.paymentRepository.save(payment);
@@ -272,22 +260,15 @@ export class OrderService {
       savedOrder.payments.push(payment);
 
       // Add payment URL to the response for bKash/SSL
-      savedOrder['paymentUrl'] =
-        paymentResult.providerResponse?.bkashURL ||
-        paymentResult.providerResponse?.redirectUrl;
-      savedOrder['paymentId'] =
-        paymentResult.providerResponse?.paymentID ||
-        paymentResult.providerResponse?.sessionKey;
+      savedOrder['paymentUrl'] = paymentResult.providerResponse?.bkashURL || paymentResult.providerResponse?.redirectUrl;
+      savedOrder['paymentId'] = paymentResult.providerResponse?.paymentID || paymentResult.providerResponse?.sessionKey;
 
       console.log('Returning online payment order with URL');
       return paymentResult.providerResponse?.bkashURL;
     }
   }
 
-  async confirmPayment(
-    orderId: string,
-    paymentId: string,
-  ): Promise<OrderEntity> {
+  async confirmPayment(orderId: string, paymentId: string): Promise<OrderEntity> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
       relations: ['payments'],
@@ -320,11 +301,10 @@ export class OrderService {
         .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
         .leftJoinAndSelect('orders.cart', 'cart')
         .leftJoinAndSelect('cart.items', 'items')
-        .leftJoinAndSelect('items.product', 'product')
-        .leftJoinAndSelect('shippingInfo.district', 'district');
+        .leftJoinAndSelect('items.product', 'product');
 
       if (jwtPayload.role === RolesEnum.USER) {
-        query.where('orders.user_id = :userId', { userId: jwtPayload.id });
+        query.where('orders.userId = :userId', { userId: jwtPayload.id });
       }
 
       if (orderSearchDto.name) {
@@ -352,7 +332,6 @@ export class OrderService {
 
       return [orders, total];
     } catch (error) {
-      // console.log("Error fetching orders:", error);
       throw new BadRequestException({
         message: 'Error fetching orders',
         details: error.message,
@@ -367,10 +346,10 @@ export class OrderService {
       .leftJoinAndSelect('orders.user', 'user')
       .leftJoinAndSelect('orders.payments', 'payments')
       .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
+      .leftJoinAndSelect('shippingInfo.district', 'district')
       .leftJoinAndSelect('orders.cart', 'cart')
       .leftJoinAndSelect('cart.items', 'items')
-      .leftJoinAndSelect('items.product', 'product')
-      .leftJoinAndSelect('shippingInfo.district', 'district');
+      .leftJoinAndSelect('items.product', 'product');
 
     if (userId) {
       query.andWhere('orders.userId = :userId', { userId });
@@ -391,13 +370,7 @@ export class OrderService {
   ): Promise<OrderEntity> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: [
-        'cart',
-        'cart.items',
-        'cart.items.product',
-        'shippingInfo',
-        'user',
-      ],
+      relations: ['cart', 'cart.items', 'cart.items.product', 'shippingInfo', 'user', 'payments'],
     });
 
     if (!order) {
@@ -408,36 +381,24 @@ export class OrderService {
     order.status = status as OrderStatus;
     const updatedOrder = await this.orderRepository.save(order);
 
-    // Send notifications based on status change
+    // Send notifications for ALL status changes with price breakdown
     try {
-      if (
-        status === OrderStatus.CANCELLED &&
-        previousStatus !== OrderStatus.CANCELLED
-      ) {
-        await this.notificationService.sendOrderCancelledNotification(
-          updatedOrder,
-        );
-      } else if (
-        status === OrderStatus.CONFIRMED &&
-        previousStatus !== OrderStatus.CONFIRMED
-      ) {
-        await this.notificationService.sendOrderConfirmedNotification(
-          updatedOrder,
-        );
-      } else if (
-        status === OrderStatus.ON_THE_WAY &&
-        previousStatus !== OrderStatus.ON_THE_WAY
-      ) {
-        await this.notificationService.sendOrderShippedNotification(
-          updatedOrder,
-        );
-      } else if (
-        status === OrderStatus.ON_HOLD &&
-        previousStatus !== OrderStatus.ON_HOLD
-      ) {
-        await this.notificationService.sendOrderOnHoldNotification(
-          updatedOrder,
-        );
+      // Map status to notification method
+      const statusNotificationMap = {
+        [OrderStatus.CANCELLED]: this.notificationService.sendOrderCancelledNotification,
+        [OrderStatus.CONFIRMED]: this.notificationService.sendOrderConfirmedNotification,
+        [OrderStatus.ON_THE_WAY]: this.notificationService.sendOrderShippedNotification,
+        [OrderStatus.ON_HOLD]: this.notificationService.sendOrderOnHoldNotification,
+        [OrderStatus.DELIVERED]: this.notificationService.sendOrderDeliveredNotification,
+        [OrderStatus.PAID]: this.notificationService.sendOrderPaidNotification,
+        [OrderStatus.FAILED]: this.notificationService.sendOrderFailedNotification,
+        [OrderStatus.PENDING]: this.notificationService.sendOrderPendingNotification,
+      };
+
+      const notificationMethod = statusNotificationMap[status];
+      if (notificationMethod && previousStatus !== status) {
+        await notificationMethod.call(this.notificationService, updatedOrder);
+        console.log(`Status change notification sent for order ${orderId}: ${previousStatus} -> ${status}`);
       }
     } catch (error) {
       console.error('Failed to send status change notification:', error);

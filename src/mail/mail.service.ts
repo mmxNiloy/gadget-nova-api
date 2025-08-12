@@ -7,7 +7,7 @@ export interface EmailData {
   to: string;
   subject: string;
   template: string;
-  context: any;
+  context: OrderEmailContext | StatusChangeEmailContext;
 }
 
 export interface OrderEmailContext {
@@ -65,112 +65,117 @@ export class MailService {
 
   constructor(private readonly mailerService: MailerService) {}
 
-  async sendOrderPlacedEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): Promise<boolean> {
+  async sendOrderPlacedEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
     try {
       const emailData = this.prepareOrderPlacedEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(
-        `Order placed email sent successfully for order ${order.id}`,
-      );
+      this.logger.log(`Order placed email sent successfully for order ${order.id}`);
       return true;
     } catch (error) {
-      this.logger.error(
-        `Failed to send order placed email for order ${order.id}:`,
-        error,
-      );
+      this.logger.error(`Failed to send order placed email for order ${order.id}:`, error);
       return false;
     }
   }
 
-  async sendOrderCancelledEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): Promise<boolean> {
+  async sendOrderCancelledEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
     try {
       const emailData = this.prepareOrderCancelledEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(
-        `Order cancelled email sent successfully for order ${order.id}`,
-      );
+      this.logger.log(`Order cancelled email sent successfully for order ${order.id}`);
       return true;
     } catch (error) {
-      this.logger.error(
-        `Failed to send order cancelled email for order ${order.id}:`,
-        error,
-      );
+      this.logger.error(`Failed to send order cancelled email for order ${order.id}:`, error);
       return false;
     }
   }
 
-  async sendOrderShippedEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): Promise<boolean> {
+  async sendOrderShippedEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
     try {
       const emailData = this.prepareOrderShippedEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(
-        `Order shipped email sent successfully for order ${order.id}`,
-      );
+      this.logger.log(`Order shipped email sent successfully for order ${order.id}`);
       return true;
     } catch (error) {
-      this.logger.error(
-        `Failed to send order shipped email for order ${order.id}:`,
-        error,
-      );
+      this.logger.error(`Failed to send order shipped email for order ${order.id}:`, error);
       return false;
     }
   }
 
-  async sendOrderConfirmedEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): Promise<boolean> {
+  async sendOrderConfirmedEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
     try {
       const emailData = this.prepareOrderConfirmedEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(
-        `Order confirmed email sent successfully for order ${order.id}`,
-      );
+      this.logger.log(`Order confirmed email sent successfully for order ${order.id}`);
       return true;
     } catch (error) {
-      this.logger.error(
-        `Failed to send order confirmed email for order ${order.id}:`,
-        error,
-      );
+      this.logger.error(`Failed to send order confirmed email for order ${order.id}:`, error);
       return false;
     }
   }
 
-  async sendOrderOnHoldEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): Promise<boolean> {
+  async sendOrderOnHoldEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
     try {
       const emailData = this.prepareOrderOnHoldEmail(order, toEmail);
       await this.sendEmail(emailData);
-      this.logger.log(
-        `Order on hold email sent successfully for order ${order.id}`,
-      );
+      this.logger.log(`Order on hold email sent successfully for order ${order.id}`);
       return true;
     } catch (error) {
-      this.logger.error(
-        `Failed to send order on hold email for order ${order.id}:`,
-        error,
-      );
+      this.logger.error(`Failed to send order on hold email for order ${order.id}:`, error);
       return false;
     }
   }
 
-  private prepareOrderPlacedEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): EmailData {
-    const context = this.buildOrderEmailContext(order);
+  async sendOrderDeliveredEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
+    try {
+      const emailData = this.prepareOrderDeliveredEmail(order, toEmail);
+      await this.sendEmail(emailData);
+      this.logger.log(`Order delivered email sent successfully for order ${order.id}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send order delivered email for order ${order.id}:`, error);
+      return false;
+    }
+  }
 
+  async sendOrderPaidEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
+    try {
+      const emailData = this.prepareOrderPaidEmail(order, toEmail);
+      await this.sendEmail(emailData);
+      this.logger.log(`Order paid email sent successfully for order ${order.id}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send order paid email for order ${order.id}:`, error);
+      return false;
+    }
+  }
+
+  async sendOrderFailedEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
+    try {
+      const emailData = this.prepareOrderFailedEmail(order, toEmail);
+      await this.sendEmail(emailData);
+      this.logger.log(`Order failed email sent successfully for order ${order.id}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send order failed email for order ${order.id}:`, error);
+      return false;
+    }
+  }
+
+  async sendOrderPendingEmail(order: OrderEntity, toEmail?: string): Promise<boolean> {
+    try {
+      const emailData = this.prepareOrderPendingEmail(order, toEmail);
+      await this.sendEmail(emailData);
+      this.logger.log(`Order pending email sent successfully for order ${order.id}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send order pending email for order ${order.id}:`, error);
+      return false;
+    }
+  }
+
+  private prepareOrderPlacedEmail(order: OrderEntity, toEmail?: string): EmailData {
+    const context = this.buildOrderEmailContext(order);
+    
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order Confirmation - #${order.id}`,
@@ -179,12 +184,9 @@ export class MailService {
     };
   }
 
-  private prepareOrderCancelledEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): EmailData {
+  private prepareOrderCancelledEmail(order: OrderEntity, toEmail?: string): EmailData {
     const context = this.buildStatusChangeEmailContext(order);
-
+    
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order Cancelled - #${order.id}`,
@@ -193,12 +195,9 @@ export class MailService {
     };
   }
 
-  private prepareOrderShippedEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): EmailData {
+  private prepareOrderShippedEmail(order: OrderEntity, toEmail?: string): EmailData {
     const context = this.buildStatusChangeEmailContext(order);
-
+    
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order Shipped - #${order.id}`,
@@ -207,12 +206,9 @@ export class MailService {
     };
   }
 
-  private prepareOrderConfirmedEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): EmailData {
+  private prepareOrderConfirmedEmail(order: OrderEntity, toEmail?: string): EmailData {
     const context = this.buildStatusChangeEmailContext(order);
-
+    
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order Confirmed - #${order.id}`,
@@ -221,16 +217,57 @@ export class MailService {
     };
   }
 
-  private prepareOrderOnHoldEmail(
-    order: OrderEntity,
-    toEmail?: string,
-  ): EmailData {
+  private prepareOrderOnHoldEmail(order: OrderEntity, toEmail?: string): EmailData {
     const context = this.buildStatusChangeEmailContext(order);
-
+    
     return {
       to: toEmail || order.shippingInfo.email,
       subject: `Order On Hold - #${order.id}`,
       template: 'order-on-hold',
+      context,
+    };
+  }
+
+  private prepareOrderDeliveredEmail(order: OrderEntity, toEmail?: string): EmailData {
+    const context = this.buildStatusChangeEmailContext(order);
+    
+    return {
+      to: toEmail || order.shippingInfo.email,
+      subject: `Order Delivered - #${order.id}`,
+      template: 'order-delivered',
+      context,
+    };
+  }
+
+  private prepareOrderPaidEmail(order: OrderEntity, toEmail?: string): EmailData {
+    const context = this.buildStatusChangeEmailContext(order);
+    
+    return {
+      to: toEmail || order.shippingInfo.email,
+      subject: `Order Payment Received - #${order.id}`,
+      template: 'order-paid',
+      context,
+    };
+  }
+
+  private prepareOrderFailedEmail(order: OrderEntity, toEmail?: string): EmailData {
+    const context = this.buildStatusChangeEmailContext(order);
+    
+    return {
+      to: toEmail || order.shippingInfo.email,
+      subject: `Order Payment Failed - #${order.id}`,
+      template: 'order-failed',
+      context,
+    };
+  }
+
+  private prepareOrderPendingEmail(order: OrderEntity, toEmail?: string): EmailData {
+    const context = this.buildStatusChangeEmailContext(order);
+    
+    return {
+      to: toEmail || order.shippingInfo.email,
+      subject: `Order Pending - #${order.id}`,
+      template: 'order-pending',
       context,
     };
   }
@@ -243,30 +280,26 @@ export class MailService {
       hasCartItems: !!order.cart?.items,
       cartItemsLength: order.cart?.items?.length,
       hasShippingInfo: !!order.shippingInfo,
-      hasUser: !!order.user,
+      hasUser: !!order.user
     });
 
     const customerName = `${order.shippingInfo?.first_name || 'Customer'} ${order.shippingInfo?.last_name || ''}`;
-    const orderDate = new Date(
-      order.created_at || new Date(),
-    ).toLocaleDateString('en-US', {
+    const orderDate = new Date(order.created_at || new Date()).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
 
     // Extract products from cart
-    const products =
-      order.cart?.items?.map((item) => ({
-        name: item.product?.title || 'Product',
-        quantity: item.quantity || 1,
-        price: `৳${parseFloat((item.price || 0).toString()).toFixed(2)}`,
-      })) || [];
+    const products = order.cart?.items?.map(item => ({
+      name: item.product?.title || 'Product',
+      quantity: item.quantity || 1,
+      price: `৳${parseFloat((item.product?.discountPrice || 0).toString()).toFixed(2)}`,
+    })) || [];
 
     // Calculate subtotal (products only, without shipping)
-    // Since order.totalPrice includes shipping, we need to calculate subtotal from cart items
     const productSubtotal = order.cart?.items?.reduce((sum, item) => {
-      return sum + (parseFloat(item.price.toString()) * item.quantity);
+      return sum + (parseFloat(item.product?.discountPrice.toString()) * item.quantity);
     }, 0) || 0;
     
     const subtotal = `৳${productSubtotal.toFixed(2)}`;
@@ -317,13 +350,9 @@ export class MailService {
   /**
    * Build simplified email context for status change emails (no cart data required)
    */
-  private buildStatusChangeEmailContext(
-    order: OrderEntity,
-  ): StatusChangeEmailContext {
+  private buildStatusChangeEmailContext(order: OrderEntity): StatusChangeEmailContext {
     const customerName = `${order.shippingInfo?.first_name || 'Customer'} ${order.shippingInfo?.last_name || ''}`;
-    const orderDate = new Date(
-      order.created_at || new Date(),
-    ).toLocaleDateString('en-US', {
+    const orderDate = new Date(order.created_at || new Date()).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -333,12 +362,12 @@ export class MailService {
     const products = order.cart?.items?.map(item => ({
       name: item.product?.title || 'Product',
       quantity: item.quantity || 1,
-      price: `৳${parseFloat((item.price || 0).toString()).toFixed(2)}`,
+      price: `৳${parseFloat((item.product?.discountPrice || 0).toString()).toFixed(2)}`,
     })) || [];
 
     // Calculate subtotal (products only, without shipping)
     const productSubtotal = order.cart?.items?.reduce((sum, item) => {
-      return sum + (parseFloat(item.price.toString()) * item.quantity);
+      return sum + (parseFloat(item.product?.discountPrice.toString()) * item.quantity);
     }, 0) || 0;
     
     const subtotal = `৳${productSubtotal.toFixed(2)}`;
@@ -372,28 +401,32 @@ export class MailService {
     await this.mailerService.sendMail({
       to,
       subject,
-      bcc: ['niloysarkar15.ns@gmail.com', 'gadgetnova.bd@gmail.com'],
       html: htmlContent,
     });
   }
 
-  private generateEmailHtml(
-    template: string,
-    context: OrderEmailContext,
-  ): string {
+  private generateEmailHtml(template: string, context: OrderEmailContext | StatusChangeEmailContext): string {
     switch (template) {
       case 'order-placed':
-        return this.generateOrderPlacedHtml(context);
+        return this.generateOrderPlacedHtml(context as OrderEmailContext);
       case 'order-cancelled':
-        return this.generateOrderCancelledHtml(context);
+        return this.generateOrderCancelledHtml(context as StatusChangeEmailContext);
       case 'order-confirmed':
-        return this.generateOrderConfirmedHtml(context);
+        return this.generateOrderConfirmedHtml(context as StatusChangeEmailContext);
       case 'order-shipped':
-        return this.generateOrderShippedHtml(context);
+        return this.generateOrderShippedHtml(context as StatusChangeEmailContext);
       case 'order-on-hold':
-        return this.generateOrderOnHoldHtml(context);
+        return this.generateOrderOnHoldHtml(context as StatusChangeEmailContext);
+      case 'order-delivered':
+        return this.generateOrderDeliveredHtml(context as StatusChangeEmailContext);
+      case 'order-paid':
+        return this.generateOrderPaidHtml(context as StatusChangeEmailContext);
+      case 'order-failed':
+        return this.generateOrderFailedHtml(context as StatusChangeEmailContext);
+      case 'order-pending':
+        return this.generateOrderPendingHtml(context as StatusChangeEmailContext);
       default:
-        return this.generateOrderPlacedHtml(context);
+        return this.generateOrderPlacedHtml(context as OrderEmailContext);
     }
   }
 
@@ -451,17 +484,13 @@ export class MailService {
                 </tr>
               </thead>
               <tbody>
-                ${context.products
-                  .map(
-                    (product) => `
+                ${context.products.map(product => `
                   <tr>
                     <td>${product.name}</td>
                     <td>${product.quantity}</td>
                     <td>${product.price}</td>
                   </tr>
-                `,
-                  )
-                  .join('')}
+                `).join('')}
                 <tr class="summary-row">
                   <td colspan="2">Subtotal</td>
                   <td>${context.subtotal}</td>
@@ -506,9 +535,7 @@ export class MailService {
     `;
   }
 
-  private generateOrderConfirmedHtml(
-    context: StatusChangeEmailContext,
-  ): string {
+  private generateOrderConfirmedHtml(context: StatusChangeEmailContext): string {
     return `
       <!DOCTYPE html>
       <html>
@@ -598,9 +625,7 @@ export class MailService {
     `;
   }
 
-  private generateOrderCancelledHtml(
-    context: StatusChangeEmailContext,
-  ): string {
+  private generateOrderCancelledHtml(context: StatusChangeEmailContext): string {
     return `
       <!DOCTYPE html>
       <html>
@@ -864,10 +889,362 @@ export class MailService {
     `;
   }
 
+  private generateOrderDeliveredHtml(context: StatusChangeEmailContext): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Order Delivered</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+          .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; }
+          .header { background-color: #F92903; color: white; padding: 30px 20px; text-align: left; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .content { padding: 30px 20px; }
+          .greeting { font-size: 16px; margin-bottom: 20px; }
+          .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
+          .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .order-table th, .order-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          .order-table th { background-color: #f8f9fa; font-weight: bold; }
+          .summary-row { background-color: #f8f9fa; font-weight: bold; }
+          .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
+          .contact-info { color: #007bff; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Order Delivered</h1>
+          </div>
+          
+          <div class="content">
+            <div class="greeting">Hi ${context.customerName},</div>
+            
+            <p>Great news! Your order #${context.orderNumber} has been delivered successfully.</p>
+            
+            <div class="order-info">
+              <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
+            </div>
+            
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${context.products.map(product => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="2">Subtotal</td>
+                  <td>${context.subtotal}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Shipping</td>
+                  <td>${context.shipping}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Payment method</td>
+                  <td>${context.paymentMethod}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2"><strong>Total</strong></td>
+                  <td><strong>${context.total}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <p>Thank you for choosing Gadget Nova! We hope you enjoy your purchase.</p>
+          </div>
+          
+          <div class="footer">
+            <p>Thanks for using gadgetnovabd.com!</p>
+            <p><a href="https://gadgetnovabd.com" class="contact-info">gadgetnovabd.com</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private generateOrderPaidHtml(context: StatusChangeEmailContext): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Order Payment Received</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+          .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; }
+          .header { background-color: #F92903; color: white; padding: 30px 20px; text-align: left; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .content { padding: 30px 20px; }
+          .greeting { font-size: 16px; margin-bottom: 20px; }
+          .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
+          .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .order-table th, .order-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          .order-table th { background-color: #f8f9fa; font-weight: bold; }
+          .summary-row { background-color: #f8f9fa; font-weight: bold; }
+          .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
+          .contact-info { color: #007bff; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Order Payment Received</h1>
+          </div>
+          
+          <div class="content">
+            <div class="greeting">Hi ${context.customerName},</div>
+            
+            <p>Great news! Your payment for order #${context.orderNumber} has been received successfully.</p>
+            
+            <div class="order-info">
+              <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
+            </div>
+            
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${context.products.map(product => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="2">Subtotal</td>
+                  <td>${context.subtotal}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Shipping</td>
+                  <td>${context.shipping}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Payment method</td>
+                  <td>${context.paymentMethod}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2"><strong>Total</strong></td>
+                  <td><strong>${context.total}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <p>Your order is now being processed and will be shipped soon!</p>
+          </div>
+          
+          <div class="footer">
+            <p>Thanks for using gadgetnovabd.com!</p>
+            <p><a href="https://gadgetnovabd.com" class="contact-info">gadgetnovabd.com</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private generateOrderFailedHtml(context: StatusChangeEmailContext): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Order Payment Failed</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+          .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; }
+          .header { background-color: #F92903; color: white; padding: 30px 20px; text-align: left; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .content { padding: 30px 20px; }
+          .greeting { font-size: 16px; margin-bottom: 20px; }
+          .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
+          .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .order-table th, .order-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          .order-table th { background-color: #f8f9fa; font-weight: bold; }
+          .summary-row { background-color: #f8f9fa; font-weight: bold; }
+          .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
+          .contact-info { color: #007bff; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Order Payment Failed</h1>
+          </div>
+          
+          <div class="content">
+            <div class="greeting">Hi ${context.customerName},</div>
+            
+            <p>We're sorry, but the payment for your order #${context.orderNumber} has failed.</p>
+            
+            <div class="order-info">
+              <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
+            </div>
+            
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${context.products.map(product => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="2">Subtotal</td>
+                  <td>${context.subtotal}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Shipping</td>
+                  <td>${context.shipping}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Payment method</td>
+                  <td>${context.paymentMethod}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2"><strong>Total</strong></td>
+                  <td><strong>${context.total}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <p>Please contact our customer support team for assistance with your payment.</p>
+          </div>
+          
+          <div class="footer">
+            <p>Thanks for using gadgetnovabd.com!</p>
+            <p><a href="https://gadgetnovabd.com" class="contact-info">gadgetnovabd.com</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private generateOrderPendingHtml(context: StatusChangeEmailContext): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Order Pending</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+          .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; }
+          .header { background-color: #F92903; color: white; padding: 30px 20px; text-align: left; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .content { padding: 30px 20px; }
+          .greeting { font-size: 16px; margin-bottom: 20px; }
+          .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
+          .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .order-table th, .order-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          .order-table th { background-color: #f8f9fa; font-weight: bold; }
+          .summary-row { background-color: #f8f9fa; font-weight: bold; }
+          .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
+          .contact-info { color: #007bff; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Order Pending</h1>
+          </div>
+          
+          <div class="content">
+            <div class="greeting">Hi ${context.customerName},</div>
+            
+            <p>Your order #${context.orderNumber} is now pending. We'll update you on the status soon.</p>
+            
+            <div class="order-info">
+              <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
+            </div>
+            
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${context.products.map(product => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price}</td>
+                  </tr>
+                `).join('')}
+                <tr class="summary-row">
+                  <td colspan="2">Subtotal</td>
+                  <td>${context.subtotal}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Shipping</td>
+                  <td>${context.shipping}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Payment method</td>
+                  <td>${context.paymentMethod}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2"><strong>Total</strong></td>
+                  <td><strong>${context.total}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <p>We're processing your order and will keep you updated on any status changes.</p>
+          </div>
+          
+          <div class="footer">
+            <p>Thanks for using gadgetnovabd.com!</p>
+            <p><a href="https://gadgetnovabd.com" class="contact-info">gadgetnovabd.com</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
   // Test method for sending a simple email
   async sendTestEmail(to: string): Promise<boolean> {
     try {
-      to = 'sadikuzzaman1996@gmail.com';
+      to = "sadikuzzaman1996@gmail.com"
       await this.mailerService.sendMail({
         to,
         subject: 'Test Email from Gadget Nova',
@@ -881,9 +1258,9 @@ export class MailService {
       return true;
     } catch (error) {
       console.log(error);
-
+      
       this.logger.error('Failed to send test email:', error);
       return false;
     }
   }
-}
+} 
