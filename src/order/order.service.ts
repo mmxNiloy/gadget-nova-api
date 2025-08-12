@@ -346,6 +346,7 @@ export class OrderService {
       .leftJoinAndSelect('orders.user', 'user')
       .leftJoinAndSelect('orders.payments', 'payments')
       .leftJoinAndSelect('orders.shippingInfo', 'shippingInfo')
+      .leftJoinAndSelect('shippingInfo.district', 'district')
       .leftJoinAndSelect('orders.cart', 'cart')
       .leftJoinAndSelect('cart.items', 'items')
       .leftJoinAndSelect('items.product', 'product');
@@ -369,7 +370,7 @@ export class OrderService {
   ): Promise<OrderEntity> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: ['cart', 'cart.items', 'cart.items.product', 'shippingInfo', 'user'],
+      relations: ['cart', 'cart.items', 'cart.items.product', 'shippingInfo', 'user', 'payments'],
     });
 
     if (!order) {
@@ -380,16 +381,24 @@ export class OrderService {
     order.status = status as OrderStatus;
     const updatedOrder = await this.orderRepository.save(order);
 
-    // Send notifications based on status change
+    // Send notifications for ALL status changes with price breakdown
     try {
-      if (status === OrderStatus.CANCELLED && previousStatus !== OrderStatus.CANCELLED) {
-        await this.notificationService.sendOrderCancelledNotification(updatedOrder);
-      } else if (status === OrderStatus.CONFIRMED && previousStatus !== OrderStatus.CONFIRMED) {
-        await this.notificationService.sendOrderConfirmedNotification(updatedOrder);
-      } else if (status === OrderStatus.ON_THE_WAY && previousStatus !== OrderStatus.ON_THE_WAY) {
-        await this.notificationService.sendOrderShippedNotification(updatedOrder);
-      } else if (status === OrderStatus.ON_HOLD && previousStatus !== OrderStatus.ON_HOLD) {
-        await this.notificationService.sendOrderOnHoldNotification(updatedOrder);
+      // Map status to notification method
+      const statusNotificationMap = {
+        [OrderStatus.CANCELLED]: this.notificationService.sendOrderCancelledNotification,
+        [OrderStatus.CONFIRMED]: this.notificationService.sendOrderConfirmedNotification,
+        [OrderStatus.ON_THE_WAY]: this.notificationService.sendOrderShippedNotification,
+        [OrderStatus.ON_HOLD]: this.notificationService.sendOrderOnHoldNotification,
+        [OrderStatus.DELIVERED]: this.notificationService.sendOrderDeliveredNotification,
+        [OrderStatus.PAID]: this.notificationService.sendOrderPaidNotification,
+        [OrderStatus.FAILED]: this.notificationService.sendOrderFailedNotification,
+        [OrderStatus.PENDING]: this.notificationService.sendOrderPendingNotification,
+      };
+
+      const notificationMethod = statusNotificationMap[status];
+      if (notificationMethod && previousStatus !== status) {
+        await notificationMethod.call(this.notificationService, updatedOrder);
+        console.log(`Status change notification sent for order ${orderId}: ${previousStatus} -> ${status}`);
       }
     } catch (error) {
       console.error('Failed to send status change notification:', error);

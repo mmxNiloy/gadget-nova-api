@@ -249,6 +249,194 @@ export class NotificationService {
     }
   }
 
+  async sendOrderDeliveredNotification(order: OrderEntity): Promise<void> {
+    try {
+      const contactInfo = this.getContactInfo(order);
+      
+      if (!contactInfo.hasEmail && !contactInfo.hasPhone) {
+        this.logger.warn(`No contact information available for order ${order.id}`);
+        return;
+      }
+
+      const promises: Promise<any>[] = [];
+
+      if (contactInfo.hasEmail) {
+        promises.push(
+          this.mailService.sendOrderDeliveredEmail(order, contactInfo.email)
+            .then(success => {
+              if (success) {
+                this.logger.log(`Order delivered email sent successfully for order ${order.id} to ${contactInfo.email}`);
+              } else {
+                this.logger.error(`Failed to send order delivered email for order ${order.id} to ${contactInfo.email}`);
+              }
+            })
+        );
+      }
+
+      if (contactInfo.hasPhone) {
+        const message = this.generateOrderDeliveredSmsMessage(order);
+        promises.push(
+          this.smsService.sendSms(contactInfo.phone, message)
+            .then(success => {
+              if (success) {
+                this.logger.log(`Order delivered SMS sent successfully for order ${order.id} to ${contactInfo.phone}`);
+              } else {
+                this.logger.error(`Failed to send order delivered SMS for order ${order.id} to ${contactInfo.phone}`);
+              }
+            })
+        );
+      }
+
+      if (promises.length > 0) {
+        await Promise.allSettled(promises);
+        this.logger.log(`Order delivered notifications processed for order ${order.id}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error sending order delivered notifications for order ${order.id}:`, error);
+    }
+  }
+
+  async sendOrderPaidNotification(order: OrderEntity): Promise<void> {
+    try {
+      const contactInfo = this.getContactInfo(order);
+      
+      if (!contactInfo.hasEmail && !contactInfo.hasPhone) {
+        this.logger.warn(`No contact information available for order ${order.id}`);
+        return;
+      }
+
+      const promises: Promise<any>[] = [];
+
+      if (contactInfo.hasEmail) {
+        promises.push(
+          this.mailService.sendOrderPaidEmail(order, contactInfo.email)
+            .then(success => {
+              if (success) {
+                this.logger.log(`Order paid email sent successfully for order ${order.id} to ${contactInfo.email}`);
+              } else {
+                this.logger.error(`Failed to send order paid email for order ${order.id} to ${contactInfo.email}`);
+              }
+            })
+        );
+      }
+
+      if (contactInfo.hasPhone) {
+        const message = this.generateOrderPaidSmsMessage(order);
+        promises.push(
+          this.smsService.sendSms(contactInfo.phone, message)
+            .then(success => {
+              if (success) {
+                this.logger.log(`Order paid SMS sent successfully for order ${order.id} to ${contactInfo.phone}`);
+              } else {
+                this.logger.error(`Failed to send order paid SMS for order ${order.id} to ${contactInfo.phone}`);
+              }
+            })
+        );
+      }
+
+      if (promises.length > 0) {
+        await Promise.allSettled(promises);
+        this.logger.log(`Order paid notifications processed for order ${order.id}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error sending order paid notifications for order ${order.id}:`, error);
+    }
+  }
+
+  async sendOrderFailedNotification(order: OrderEntity): Promise<void> {
+    try {
+      const contactInfo = this.getContactInfo(order);
+      
+      if (!contactInfo.hasEmail && !contactInfo.hasPhone) {
+        this.logger.warn(`No contact information available for order ${order.id}`);
+        return;
+      }
+
+      const promises: Promise<any>[] = [];
+
+      if (contactInfo.hasEmail) {
+        promises.push(
+          this.mailService.sendOrderFailedEmail(order, contactInfo.email)
+            .then(success => {
+              if (success) {
+                this.logger.log(`Order failed email sent successfully for order ${order.id} to ${contactInfo.email}`);
+              } else {
+                this.logger.error(`Failed to send order failed email for order ${order.id} to ${contactInfo.email}`);
+              }
+            })
+        );
+      }
+
+      if (contactInfo.hasPhone) {
+        const message = this.generateOrderFailedSmsMessage(order);
+        promises.push(
+          this.smsService.sendSms(contactInfo.phone, message)
+            .then(success => {
+              if (success) {
+                this.logger.log(`Order failed SMS sent successfully for order ${order.id} to ${contactInfo.phone}`);
+              } else {
+                this.logger.error(`Failed to send order failed SMS for order ${order.id} to ${contactInfo.phone}`);
+              }
+            })
+        );
+      }
+
+      if (promises.length > 0) {
+        await Promise.allSettled(promises);
+        this.logger.log(`Order failed notifications processed for order ${order.id}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error sending order failed notifications for order ${order.id}:`, error);
+    }
+  }
+
+  async sendOrderPendingNotification(order: OrderEntity): Promise<void> {
+    try {
+      const contactInfo = this.getContactInfo(order);
+      
+      if (!contactInfo.hasEmail && !contactInfo.hasPhone) {
+        this.logger.warn(`No contact information available for order ${order.id}`);
+        return;
+      }
+
+      const promises: Promise<any>[] = [];
+
+      if (contactInfo.hasEmail) {
+        promises.push(
+          this.mailService.sendOrderPendingEmail(order, contactInfo.email)
+            .then(success => {
+              if (success) {
+                this.logger.log(`Order pending email sent successfully for order ${order.id} to ${contactInfo.email}`);
+              } else {
+                this.logger.error(`Failed to send order pending email for order ${order.id} to ${contactInfo.email}`);
+              }
+            })
+        );
+      }
+
+      if (contactInfo.hasPhone) {
+        const message = this.generateOrderPendingSmsMessage(order);
+        promises.push(
+          this.smsService.sendSms(contactInfo.phone, message)
+            .then(success => {
+              if (success) {
+                this.logger.log(`Order pending SMS sent successfully for order ${order.id} to ${contactInfo.phone}`);
+              } else {
+                this.logger.error(`Failed to send order pending SMS for order ${order.id} to ${contactInfo.phone}`);
+              }
+            })
+        );
+      }
+
+      if (promises.length > 0) {
+        await Promise.allSettled(promises);
+        this.logger.log(`Order pending notifications processed for order ${order.id}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error sending order pending notifications for order ${order.id}:`, error);
+    }
+  }
+
   /**
    * Get contact information with priority: user table first, then shipping info
    */
@@ -285,7 +473,11 @@ export class NotificationService {
 
   private generateOrderPlacedSmsMessage(order: OrderEntity): string {
     const customerName = order.shippingInfo.first_name;
-    const total = parseFloat(order.totalPrice.toString()) + parseFloat(order.delivery_charge.toString());
+    // Calculate total using discount prices from cart items + delivery charge
+    const productSubtotal = order.cart?.items?.reduce((sum, item) => {
+      return sum + (parseFloat(item.product?.discountPrice.toString()) * item.quantity);
+    }, 0) || 0;
+    const total = productSubtotal + parseFloat(order.delivery_charge.toString());
     const orderNumber = order.id;
     const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
     
@@ -322,5 +514,37 @@ export class NotificationService {
     const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
     
     return `Hi ${customerName}, your order #${orderNumber} has been confirmed and is being processed. Payment was: ${paymentMethod}. We'll ship it soon! - Gadget Nova`;
+  }
+
+  private generateOrderDeliveredSmsMessage(order: OrderEntity): string {
+    const customerName = order.shippingInfo.first_name;
+    const orderNumber = order.id;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
+    
+    return `Hi ${customerName}, your order #${orderNumber} has been delivered successfully! Payment was: ${paymentMethod}. Thank you for choosing Gadget Nova! - Gadget Nova`;
+  }
+
+  private generateOrderPaidSmsMessage(order: OrderEntity): string {
+    const customerName = order.shippingInfo.first_name;
+    const orderNumber = order.id;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
+    
+    return `Hi ${customerName}, your order #${orderNumber} payment has been received successfully! Payment method: ${paymentMethod}. Your order is now being processed. - Gadget Nova`;
+  }
+
+  private generateOrderFailedSmsMessage(order: OrderEntity): string {
+    const customerName = order.shippingInfo.first_name;
+    const orderNumber = order.id;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
+    
+    return `Hi ${customerName}, your order #${orderNumber} payment has failed. Payment method was: ${paymentMethod}. Please contact us for assistance. - Gadget Nova`;
+  }
+
+  private generateOrderPendingSmsMessage(order: OrderEntity): string {
+    const customerName = order.shippingInfo.first_name;
+    const orderNumber = order.id;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
+    
+    return `Hi ${customerName}, your order #${orderNumber} is now pending. Payment method: ${paymentMethod}. We'll update you on the status soon. - Gadget Nova`;
   }
 } 
