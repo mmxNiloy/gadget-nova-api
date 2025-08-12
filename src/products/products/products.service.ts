@@ -355,7 +355,13 @@ export class ProductsService {
   }
 
   async findOne(id: string): Promise<ProductEntity> {
-    const product = await this.productRepository
+    // Check if the given is is a slug or an id
+    const isUUID =
+      /([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})/.test(
+        id,
+      );
+
+    const query = this.productRepository
       .createQueryBuilder('product')
       .where('product.is_active = :status', {
         status: ActiveStatusEnum.ACTIVE,
@@ -369,13 +375,15 @@ export class ProductsService {
       .leftJoinAndSelect('product.promotionalDiscounts', 'promotionalDiscounts')
       .leftJoinAndSelect('product.productAttributes', 'productAttributes')
       .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
-      .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-      .where('product.slug = :slug', { slug: id })
-      .orWhere('product.id = :id', { id })
-      .andWhere('product.is_active = :status', {
-        status: ActiveStatusEnum.ACTIVE,
-      })
-      .getOne();
+      .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup');
+
+    if (isUUID) {
+      query.where('product.id = :id', { id });
+    } else {
+      query.where('product.slug = :slug', { slug: id });
+    }
+
+    const product = await query.getOne();
 
     if (!product) {
       throw new NotFoundException('Product not found');
