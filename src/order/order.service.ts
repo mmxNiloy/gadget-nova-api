@@ -319,18 +319,27 @@ export class OrderService {
         });
       }
   
-      // ✅ Default sorting: Pending first, then recent date
+      // ✅ Fetch data first, then sort in JavaScript for reliability
       query
-        .orderBy(`CASE WHEN orders.status = :pending THEN 0 ELSE 1 END`, 'ASC')
-        .addOrderBy('orders.created_at', 'DESC')
-        .setParameter('pending', OrderStatus.PENDING)
         .skip((page - 1) * limit)
         .take(limit);
-  
+
       const [orders, total] = await query.getManyAndCount();
-  
-      return [orders, total];
+      
+      // Sort orders: PENDING first, then by creation date (newest first)
+      const sortedOrders = orders.sort((a, b) => {
+        // PENDING orders get highest priority
+        if (a.status === OrderStatus.PENDING && b.status !== OrderStatus.PENDING) return -1;
+        if (a.status !== OrderStatus.PENDING && b.status === OrderStatus.PENDING) return 1;
+        
+        // If both have same status priority, sort by creation date (newest first)
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+      return [sortedOrders, total];
     } catch (error) {
+      console.log(error);
+      
       throw new BadRequestException({
         message: 'Error fetching orders',
         details: error.message,
