@@ -370,8 +370,8 @@ export class ProductsService {
       .leftJoinAndSelect('product.productAttributes', 'productAttributes')
       .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
       .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-      .where('product.id = :id', { id })
-      .orWhere('product.slug = :slug', { slug: id })
+      .where('product.slug = :slug', { slug: id })
+      .orWhere('product.id = :id', { id })
       .andWhere('product.is_active = :status', {
         status: ActiveStatusEnum.ACTIVE,
       })
