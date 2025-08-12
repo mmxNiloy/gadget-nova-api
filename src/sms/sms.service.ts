@@ -62,6 +62,8 @@ export class SmsService {
 
     // Generate OTP
     const otp = this.generateOtp();
+    console.log({otp});
+    
     
     // Send SMS
     const smsMessage = `Your OTP is: ${otp}. Valid for 5 minutes.`;

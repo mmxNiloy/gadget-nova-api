@@ -101,11 +101,11 @@ export class PaymentController {
           OrderStatus.PAID,
         );
         
-        // Send order placed notification (since payment is now successful)
+        // Send order confirmed notification (since payment is now successful)
         try {
-          await this.notificationService.sendOrderPlacedNotification(result.order);
+          await this.notificationService.sendOrderConfirmedNotification(result.order);
         } catch (error) {
-          console.error('Failed to send order placed notification:', error);
+          console.error('Failed to send order confirmed notification:', error);
         }
       }
 
@@ -246,14 +246,14 @@ export class PaymentController {
             OrderStatus.PAID,
           );
           
-          // Send order placed notification (since payment is now successful)
+          // Send order confirmed notification (since payment is now successful)
           try {
-            const order = await this.orderService.findOne(orderID);
+            const order = await this.findOrderByPaymentId(paymentID);
             if (order) {
-              await this.notificationService.sendOrderPlacedNotification(order);
+              await this.notificationService.sendOrderConfirmedNotification(order);
             }
           } catch (error) {
-            console.error('Failed to send order placed notification:', error);
+            console.error('Failed to send order confirmed notification:', error);
           }
 
           const redirectUrl = `${process.env.FRONTEND_URL || 'http://relovohr.com:6020'}/profile/order/success/${orderID}`;
@@ -339,11 +339,11 @@ export class PaymentController {
                 if (order) {
           await this.orderService.updateOrderStatus(order.id, OrderStatus.PAID);
 
-          // Send order placed notification (since payment is now successful)
+          // Send order confirmed notification (since payment is now successful)
           try {
-            await this.notificationService.sendOrderPlacedNotification(order);
+            await this.notificationService.sendOrderConfirmedNotification(order);
           } catch (error) {
-            console.error('Failed to send order placed notification:', error);
+            console.error('Failed to send order confirmed notification:', error);
           }
 
           // Handle date formatting here before update
@@ -386,7 +386,7 @@ export class PaymentController {
     try {
       const payment = await this.paymentRepository.findOne({
         where: { paymentId: paymentID},
-        relations: ['order', 'order.user', 'order.shippingInfo'],
+        relations: ['order', 'order.user', 'order.shippingInfo', 'order.payments', 'order.cart', 'order.cart.items', 'order.cart.items.product'],
       });
 
       console.log("Payment response before returnig",{payment});
