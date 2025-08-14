@@ -48,6 +48,43 @@ export class OrderService {
     private readonly notificationService: NotificationService
   ) {}
 
+  /**
+   * Generates a unique order ID in the format DDMMYYYY + sequential number
+   * Example: 150820251 (15th August 2025, 1st order)
+   * Example: 1508202515 (15th August 2025, 15th order)
+   * Example: 1608202516 (16th August 2025, 16th order - continuing sequence)
+   */
+  private async generateOrderId(): Promise<number> {
+    const today = new Date();
+    const day = today.getDate().toString().padStart(2, '0');
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    const year = today.getFullYear();
+    
+    const datePrefix = parseInt(`${day}${month}${year}`);
+    
+    // Find the highest order ID across all orders (not just today)
+    const lastOrder = await this.orderRepository
+      .createQueryBuilder('order')
+      .where('order.orderId IS NOT NULL')
+      .orderBy('order.orderId', 'DESC')
+      .getOne();
+    
+    let sequenceNumber = 1;
+    if (lastOrder && lastOrder.orderId) {
+      // Extract the sequence number from the last order ID
+      const lastOrderIdStr = lastOrder.orderId.toString();
+      if (lastOrderIdStr.length >= 8) {
+        const lastSequence = parseInt(lastOrderIdStr.substring(8));
+        sequenceNumber = lastSequence + 1;
+      }
+    }
+    
+    // Combine date prefix with sequence number
+    const orderId = parseInt(`${datePrefix}${sequenceNumber}`);
+    
+    return orderId;
+  }
+
   async createOrder(
     createOrderDto: CreateOrderDto,
     jwtPayload: JwtPayloadInterface,
@@ -148,10 +185,15 @@ export class OrderService {
 
     console.log('Shipping info created:', shippingInfo.id);
 
+    // Generate unique order ID
+    const orderId = await this.generateOrderId();
+    console.log('Generated order ID:', orderId);
+
     const order = this.orderRepository.create({
       user: { id: jwtPayload.id },
       cart,
       shippingInfo,
+      orderId,
       totalPrice: totalPrice + parseFloat(deliveryCharge.toString()),
       delivery_charge: deliveryCharge,
       status: OrderStatus.PENDING,
@@ -312,31 +354,37 @@ export class OrderService {
           name: `%${orderSearchDto.name.toLowerCase()}%`,
         });
       }
+
+      if(orderSearchDto.email){
+        query.andWhere('LOWER(user.email) LIKE :email', {
+          email: `%${orderSearchDto.email.toLowerCase()}%`,
+        });
+      }
+
+      if(orderSearchDto.phone){
+        query.andWhere('LOWER(user.phone) LIKE :phone', {
+          phone: `%${orderSearchDto.phone.toLowerCase()}%`,
+        });
+      }
   
       if (orderSearchDto.status) {
         query.andWhere('orders.status = :status', {
           status: orderSearchDto.status,
         });
       }
+
+      if (orderSearchDto.orderId) {
+        query.andWhere('orders.orderId = :orderId', {
+          orderId: orderSearchDto.orderId,
+        });
+      }
   
-      // ✅ Fetch data first, then sort in JavaScript for reliability
       query
-        .skip((page - 1) * limit)
-        .take(limit);
+      .orderBy('orders.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
-      const [orders, total] = await query.getManyAndCount();
-      
-      // Sort orders: PENDING first, then by creation date (newest first)
-      const sortedOrders = orders.sort((a, b) => {
-        // PENDING orders get highest priority
-        if (a.status === OrderStatus.PENDING && b.status !== OrderStatus.PENDING) return -1;
-        if (a.status !== OrderStatus.PENDING && b.status === OrderStatus.PENDING) return 1;
-        
-        // If both have same status priority, sort by creation date (newest first)
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
-
-      return [sortedOrders, total];
+      return await query.getManyAndCount();
     } catch (error) {
       console.log(error);
       

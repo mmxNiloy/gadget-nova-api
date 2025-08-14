@@ -221,16 +221,15 @@ export class ProductsService {
       }
 
       if (productSearchDto.category_ids) {
-        productSearchDto.category_ids = Array.isArray(
-          productSearchDto.category_ids,
-        )
+        const categoryIds = Array.isArray(productSearchDto.category_ids)
           ? productSearchDto.category_ids
           : [productSearchDto.category_ids];
-
-        query.andWhere('category.id IN (:...category_ids)', {
-          category_ids: productSearchDto.category_ids,
+      
+        query.andWhere('category.id IN (:...categoryIds)', {
+          categoryIds,
         });
       }
+      
 
       if (productSearchDto.brand_ids) {
         productSearchDto.brand_ids = Array.isArray(productSearchDto.brand_ids)

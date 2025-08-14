@@ -12,7 +12,7 @@ export interface EmailData {
 
 export interface OrderEmailContext {
   customerName: string;
-  orderNumber: string;
+  orderNumber: number;
   orderDate: string;
   products: Array<{
     name: string;
@@ -46,7 +46,7 @@ export interface OrderEmailContext {
 
 export interface StatusChangeEmailContext {
   customerName: string;
-  orderNumber: string;
+  orderNumber: number;
   orderDate: string;
   products: Array<{
     name: string;
@@ -73,12 +73,12 @@ export class MailService {
       const emailData = this.prepareOrderPlacedEmail(order, toEmail);
       await this.sendEmail(emailData);
       this.logger.log(
-        `Order placed email sent successfully for order ${order.id}`,
+        `Order placed email sent successfully for order ${order.orderId}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to send order placed email for order ${order.id}:`,
+        `Failed to send order placed email for order ${order.orderId}:`,
         error,
       );
       return false;
@@ -93,12 +93,12 @@ export class MailService {
       const emailData = this.prepareOrderCancelledEmail(order, toEmail);
       await this.sendEmail(emailData);
       this.logger.log(
-        `Order cancelled email sent successfully for order ${order.id}`,
+        `Order cancelled email sent successfully for order ${order.orderId}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to send order cancelled email for order ${order.id}:`,
+        `Failed to send order cancelled email for order ${order.orderId}:`,
         error,
       );
       return false;
@@ -113,12 +113,12 @@ export class MailService {
       const emailData = this.prepareOrderShippedEmail(order, toEmail);
       await this.sendEmail(emailData);
       this.logger.log(
-        `Order shipped email sent successfully for order ${order.id}`,
+        `Order shipped email sent successfully for order ${order.orderId}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to send order shipped email for order ${order.id}:`,
+        `Failed to send order shipped email for order ${order.orderId}:`,
         error,
       );
       return false;
@@ -133,12 +133,12 @@ export class MailService {
       const emailData = this.prepareOrderConfirmedEmail(order, toEmail);
       await this.sendEmail(emailData);
       this.logger.log(
-        `Order confirmed email sent successfully for order ${order.id}`,
+        `Order confirmed email sent successfully for order ${order.orderId}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to send order confirmed email for order ${order.id}:`,
+        `Failed to send order confirmed email for order ${order.orderId}:`,
         error,
       );
       return false;
@@ -153,12 +153,12 @@ export class MailService {
       const emailData = this.prepareOrderOnHoldEmail(order, toEmail);
       await this.sendEmail(emailData);
       this.logger.log(
-        `Order on hold email sent successfully for order ${order.id}`,
+        `Order on hold email sent successfully for order ${order.orderId}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to send order on hold email for order ${order.id}:`,
+        `Failed to send order on hold email for order ${order.orderId}:`,
         error,
       );
       return false;
@@ -173,12 +173,12 @@ export class MailService {
       const emailData = this.prepareOrderDeliveredEmail(order, toEmail);
       await this.sendEmail(emailData);
       this.logger.log(
-        `Order delivered email sent successfully for order ${order.id}`,
+        `Order delivered email sent successfully for order ${order.orderId}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to send order delivered email for order ${order.id}:`,
+        `Failed to send order delivered email for order ${order.orderId}:`,
         error,
       );
       return false;
@@ -193,12 +193,12 @@ export class MailService {
       const emailData = this.prepareOrderPaidEmail(order, toEmail);
       await this.sendEmail(emailData);
       this.logger.log(
-        `Order paid email sent successfully for order ${order.id}`,
+        `Order paid email sent successfully for order ${order.orderId}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to send order paid email for order ${order.id}:`,
+        `Failed to send order paid email for order ${order.orderId}:`,
         error,
       );
       return false;
@@ -213,12 +213,12 @@ export class MailService {
       const emailData = this.prepareOrderFailedEmail(order, toEmail);
       await this.sendEmail(emailData);
       this.logger.log(
-        `Order failed email sent successfully for order ${order.id}`,
+        `Order failed email sent successfully for order ${order.orderId}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to send order failed email for order ${order.id}:`,
+        `Failed to send order failed email for order ${order.orderId}:`,
         error,
       );
       return false;
@@ -233,12 +233,12 @@ export class MailService {
       const emailData = this.prepareOrderPendingEmail(order, toEmail);
       await this.sendEmail(emailData);
       this.logger.log(
-        `Order pending email sent successfully for order ${order.id}`,
+        `Order pending email sent successfully for order ${order.orderId}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `Failed to send order pending email for order ${order.id}:`,
+        `Failed to send order pending email for order ${order.orderId}:`,
         error,
       );
       return false;
@@ -253,7 +253,7 @@ export class MailService {
 
     return {
       to: toEmail || order.shippingInfo.email,
-      subject: `Order Confirmation - #${order.id}`,
+      subject: `Order Confirmation - #${order.orderId}`,
       template: 'order-placed',
       context,
     };
@@ -267,7 +267,7 @@ export class MailService {
 
     return {
       to: toEmail || order.shippingInfo.email,
-      subject: `Order Cancelled - #${order.id}`,
+      subject: `Order Cancelled - #${order.orderId}`,
       template: 'order-cancelled',
       context,
     };
@@ -281,7 +281,7 @@ export class MailService {
 
     return {
       to: toEmail || order.shippingInfo.email,
-      subject: `Order Shipped - #${order.id}`,
+      subject: `Order Shipped - #${order.orderId}`,
       template: 'order-shipped',
       context,
     };
@@ -295,7 +295,7 @@ export class MailService {
 
     return {
       to: toEmail || order.shippingInfo.email,
-      subject: `Order Confirmed - #${order.id}`,
+      subject: `Order Confirmed - #${order.orderId}`,
       template: 'order-confirmed',
       context,
     };
@@ -309,7 +309,7 @@ export class MailService {
 
     return {
       to: toEmail || order.shippingInfo.email,
-      subject: `Order On Hold - #${order.id}`,
+      subject: `Order On Hold - #${order.orderId}`,
       template: 'order-on-hold',
       context,
     };
@@ -323,7 +323,7 @@ export class MailService {
 
     return {
       to: toEmail || order.shippingInfo.email,
-      subject: `Order Delivered - #${order.id}`,
+      subject: `Order Delivered - #${order.orderId}`,
       template: 'order-delivered',
       context,
     };
@@ -337,7 +337,7 @@ export class MailService {
 
     return {
       to: toEmail || order.shippingInfo.email,
-      subject: `Order Payment Received - #${order.id}`,
+      subject: `Order Payment Received - #${order.orderId}`,
       template: 'order-paid',
       context,
     };
@@ -351,7 +351,7 @@ export class MailService {
 
     return {
       to: toEmail || order.shippingInfo.email,
-      subject: `Order Payment Failed - #${order.id}`,
+      subject: `Order Payment Failed - #${order.orderId}`,
       template: 'order-failed',
       context,
     };
@@ -365,7 +365,7 @@ export class MailService {
 
     return {
       to: toEmail || order.shippingInfo.email,
-      subject: `Order Pending - #${order.id}`,
+      subject: `Order Pending - #${order.orderId}`,
       template: 'order-pending',
       context,
     };
@@ -374,7 +374,7 @@ export class MailService {
   private buildOrderEmailContext(order: OrderEntity): OrderEmailContext {
     // Debug logging
     console.log('Building email context for order:', {
-      orderId: order.id,
+      orderId: order.orderId,
       hasCart: !!order.cart,
       hasCartItems: !!order.cart?.items,
       cartItemsLength: order.cart?.items?.length,
@@ -441,7 +441,7 @@ export class MailService {
 
     return {
       customerName,
-      orderNumber: order.id,
+      orderNumber: order.orderId,
       orderDate,
       products,
       subtotal,
@@ -498,7 +498,7 @@ export class MailService {
 
     return {
       customerName,
-      orderNumber: order.id,
+      orderNumber: order.orderId,
       orderDate,
       products,
       subtotal,
