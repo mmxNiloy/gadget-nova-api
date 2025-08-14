@@ -82,6 +82,16 @@ export class BrandController {
     };
   }
 
+  @Get('slug/:slug')
+  async findBySlug(@Param('slug') slug: string) {
+    try {
+      const payload = await this.brandService.findBySlug(slug);
+      return { message: 'Brand details by slug', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const payload = await this.brandService.findOne(id);

@@ -15,6 +15,7 @@ import {
   BadRequestException,
   BadGatewayException,
   UseInterceptors,
+  Patch,
 } from '@nestjs/common';
 import { Response } from 'express';
 import axios from 'axios';
@@ -29,9 +30,17 @@ import { Like } from 'typeorm';
 import { PaymentEntity } from './entities/payment.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentStatus } from 'src/common/enums/payment-status.enum';
 import { NotificationService } from '../notification/notification.service';
+import { PaymentService } from './payment.service';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesGuard } from 'src/common/guard/roles.guard';
+import { UserPayload } from 'src/common/decorators/user-payload.decorator';
+import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @ApiTags('payment')
 @Controller({
@@ -47,6 +56,7 @@ export class PaymentController {
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
     private readonly notificationService: NotificationService,
+    private readonly paymentService: PaymentService,
   ) {}
 
   @Post('ssl/initiate')
@@ -459,6 +469,27 @@ export class PaymentController {
         success: false,
         error: error.message,
       };
+    }
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
+  @Patch(':id')
+  async updatePayment(
+    @Param('id') id: string,
+    @Body() updatePaymentDto: UpdatePaymentDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    try {
+      const payload = await this.paymentService.updatePayment(
+        id,
+        updatePaymentDto,
+        jwtPayload,
+      );
+      return { message: 'Payment updated successfully', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message || error.message);
     }
   }
 } 

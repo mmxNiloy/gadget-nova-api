@@ -207,6 +207,31 @@ export class CategoryService {
     }
   }
 
+  async findBySlug(slug: string): Promise<CategoryEntity> {
+    try {
+      const category = await this.categoryRepository
+        .createQueryBuilder('category')
+        .leftJoinAndSelect('category.subCategories', 'subCategory')
+        .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+        .leftJoinAndSelect('category.brands', 'brands')
+        .where('category.slug = :slug', { slug })
+        .andWhere('category.is_active = :status', {
+          status: ActiveStatusEnum.ACTIVE,
+        })
+        .getOne();
+
+      if (!category) {
+        throw new NotFoundException('Category Not found');
+      }
+
+      return category;
+    } catch (error) {
+      throw new BadRequestException(
+        error?.response?.message || 'Failed to retrieve category',
+      );
+    }
+  }
+
   async findMany(ids: string[]): Promise<CategoryEntity[]> {
     try {
       const categories = await this.categoryRepository

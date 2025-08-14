@@ -52,4 +52,27 @@ export class OrderSearchDto extends ApiQueryPaginationBaseDTO {
   @IsEnum(OrderStatus, { message: 'Status must be one of the following: active, inactive, pending' })
   @IsOptional()
   status: OrderStatus;
+
+  @ApiPropertyOptional({
+    example: 150820251,
+    description: 'Order ID (date prefix + sequence)',
+    type: Number,
+  })
+  @IsOptional()
+  orderId: number;
+
+  @ApiPropertyOptional({
+    example: 'sadiquzzaman1996@gmail.com',
+    description: 'Customer email address',
+  })
+  @IsOptional()
+  email: string;
+
+  @ApiPropertyOptional({
+    example: '01734911480',
+    description: 'Customer phone number',
+  })
+  @IsOptional()
+  @IsString()
+  phone: string;
 }

@@ -8,6 +8,9 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'type
 
 @Entity('orders')
 export class OrderEntity extends CustomBaseEntity {
+  @Column({ name: 'order_id', type: 'bigint', unique: true, nullable: true })
+  orderId: number;
+
   @ManyToOne(() => UserEntity, (user) => user.orders, { eager: true })
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;

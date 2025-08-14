@@ -127,6 +127,19 @@ export class BrandService {
     return brand;
   }
 
+  async findBySlug(slug: string): Promise<BrandEntity> {
+    const brand = await this.brandRepository.findOne({
+      where: { slug, is_active: ActiveStatusEnum.ACTIVE },
+      relations: ['categories'],
+    });
+
+    if (!brand) {
+      throw new NotFoundException('Brand not found');
+    }
+
+    return brand;
+  }
+
   async update(
     id: string,
     updateBrandDto: UpdateBrandDto,

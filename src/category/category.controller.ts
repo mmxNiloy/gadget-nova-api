@@ -115,6 +115,16 @@ export class CategoryController {
     };
   }
 
+  @Get('slug/:slug')
+  async findBySlug(@Param('slug') slug: string) {
+    try {
+      const payload = await this.categoryService.findBySlug(slug);
+      return { message: 'Category details by slug', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {

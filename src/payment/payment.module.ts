@@ -7,6 +7,7 @@ import { BkashStrategy } from './strategies/bkash-strategy';
 import { SslCommerzService } from './services/ssl-commerz.service';
 import { BkashPaymentService } from './bkash-payment.service';
 import { PaymentController } from './payment.controller';
+import { PaymentService } from './payment.service';
 import { PaymentEntity } from './entities/payment.entity';
 import { OrderModule } from '../order/order.module';
 import { RedisModule } from '../config/redis.module';
@@ -26,8 +27,9 @@ import { NotificationModule } from '../notification/notification.module';
     BkashStrategy,
     PGWContext, 
     SslCommerzService,
-    BkashPaymentService
+    BkashPaymentService,
+    PaymentService
   ],
-  exports: [PGWContext, SslCommerzService, BkashPaymentService],
+  exports: [PGWContext, SslCommerzService, BkashPaymentService, PaymentService],
 })
 export class PaymentModule {}
