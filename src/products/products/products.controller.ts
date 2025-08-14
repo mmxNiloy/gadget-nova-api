@@ -112,6 +112,16 @@ export class ProductsController {
     };
   }
 
+  @Get('slug/:slug')
+  async findBySlug(@Param('slug') slug: string) {
+    try {
+      const payload = await this.productsService.findBySlug(slug);
+      return { message: 'Product details by slug', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const payload = await this.productsService.findOne(id);

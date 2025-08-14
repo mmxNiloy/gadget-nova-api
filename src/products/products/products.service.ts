@@ -394,6 +394,36 @@ export class ProductsService {
     };
   }
 
+  async findBySlug(slug: string): Promise<ProductEntity> {
+    const query = this.productRepository
+      .createQueryBuilder('product')
+      .where('product.slug = :slug', { slug })
+      .andWhere('product.is_active = :status', {
+        status: ActiveStatusEnum.ACTIVE,
+      })
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('product.subCategory', 'subCategory')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.questions', 'questions')
+      .leftJoinAndSelect('questions.answer', 'answer')
+      .leftJoinAndSelect('product.ratings', 'ratings')
+      .leftJoinAndSelect('product.promotionalDiscounts', 'promotionalDiscounts')
+      .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+      .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+      .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup');
+
+    const product = await query.getOne();
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return {
+      ...this.addAverageRatingToProduct(product),
+      ...this.promoDiscountUtil.filterActivePromo(product),
+    };
+  }
+
   async update(
     id: string,
     updateProductDto: UpdateProductDto,
