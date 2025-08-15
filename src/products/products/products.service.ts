@@ -541,4 +541,28 @@ export class ProductsService {
   
     return products;
   }
+
+  async getWishlisersByProduct(productId: string) {
+    // Fetch product with its wishlistedBy users
+    const product = await this.productRepository.findOne({
+      where: { id: productId },
+      relations: ['wishlistedBy'], 
+    });
+  
+    if (!product) throw new NotFoundException('Product not found');
+  
+    return product;
+  }
+
+  // async getWishlisersByProductSlug(slug: string) {
+  //   // Fetch product with its wishlistedBy users by slug
+  //   const product = await this.productRepository.findOne({
+  //     where: { slug: slug },
+  //     relations: ['wishlistedBy'], 
+  //   });
+  
+  //   if (!product) throw new NotFoundException('Product not found');
+  
+  //   return product;
+  // }
 }

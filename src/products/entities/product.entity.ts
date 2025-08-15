@@ -7,12 +7,14 @@ import {
   Column,
   Entity,
   JoinColumn,
+  ManyToMany,
   ManyToOne,
   OneToMany
 } from 'typeorm';
 import { ProductAttributeEntity } from './product-attribute.entity';
 import { ProductQuestionsEntity } from './product-questions.entity';
 import { ProductRatingEntity } from './product-rating.entity';
+import { UserEntity } from 'src/user/entities/user.entity/user.entity';
 
 @Entity('products')
 export class ProductEntity extends CustomBaseEntity {
@@ -146,4 +148,7 @@ export class ProductEntity extends CustomBaseEntity {
 
   @OneToMany(() => PromotionEntity, (promotion) => promotion.product)
   promotions: PromotionEntity[];
+
+  @ManyToMany(() => UserEntity, (user) => user.wishlist)
+  wishlistedBy: UserEntity[];
 }
