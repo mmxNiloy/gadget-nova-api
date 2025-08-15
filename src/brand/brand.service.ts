@@ -186,4 +186,21 @@ export class BrandService {
 
     return await this.brandRepository.save(brand);
   }
+
+  async findManyByIds(ids: string[]): Promise<BrandEntity[]> {
+    if (!ids.length) {
+      return [];
+    }
+  
+    const query = this.brandRepository
+      .createQueryBuilder('brand')
+      .where('brand.is_active = :status', {
+        status: ActiveStatusEnum.ACTIVE,
+      })
+      .andWhere('brand.id IN (:...ids)', { ids })
+      
+    const brands = await query.getMany();
+  
+    return brands;
+  }
 }

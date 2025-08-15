@@ -305,4 +305,21 @@ export class CategoryService {
       throw new BadRequestException(error?.response?.message);
     }
   }
+
+  async findManyByIds(ids: string[]): Promise<CategoryEntity[]> {
+    if (!ids.length) {
+      return [];
+    }
+  
+    const query = this.categoryRepository
+      .createQueryBuilder('category')
+      .where('category.is_active = :status', {
+        status: ActiveStatusEnum.ACTIVE,
+      })
+      .andWhere('category.id IN (:...ids)', { ids })
+      
+    const categories = await query.getMany();
+  
+    return categories;
+  }
 }
