@@ -15,6 +15,8 @@ import {
   MaxLength,
   Min,
   ValidateNested,
+  ValidateIf,
+  IsEmail,
 } from 'class-validator';
 import { CouponTypeEnum } from 'src/common/enums/coupon-type.enum';
 import { CouponUsageTypeEnum } from 'src/common/enums/coupon-usage-type.enum';
@@ -94,4 +96,13 @@ export class CreateCouponDto {
   @IsEnum(CouponUsageTypeEnum, { message: 'Coupon usage type must be one of the following: SINGLE_USAGE, MULTI_USAGE, First_ORDER' })
   @IsNotEmpty({ message: 'Coupon usage type must be provided' })
   couponUsageType: CouponUsageTypeEnum;
+
+  @ApiPropertyOptional({ 
+    description: 'User ID for single usage coupon. Required when couponUsageType is SINGLE_USAGE', 
+    example: '123e4567-e89b-12d3-a456-426614174000' 
+  })
+  @ValidateIf((o) => o.couponUsageType === CouponUsageTypeEnum.SINGLE_USAGE)
+  @IsNotEmpty({ message: 'User ID is required for single usage coupon' })
+  @IsUUID('4', { message: 'Please provide a valid UUID for user ID' })
+  userId?: string;
 } 

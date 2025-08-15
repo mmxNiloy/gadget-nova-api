@@ -381,6 +381,12 @@ export class UserService {
     });
   }
 
+  async findByEmail(email: string): Promise<UserEntity | null> {
+    return await this.userRepository.findOne({
+      where: { email },
+    });
+  }
+
   async resetPasswordByPhone(phone: string, newPassword: string): Promise<UserEntity> {
     const user = await this.userRepository.findOne({
       where: { phone },

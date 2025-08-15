@@ -12,26 +12,14 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { CouponTypeEnum } from 'src/common/enums/coupon-type.enum';
 import { CouponUsageTypeEnum } from 'src/common/enums/coupon-usage-type.enum';
 import { ProductsService } from 'src/products/products/products.service';
+import { UserService } from 'src/user/user.service';
+import { MailService } from 'src/mail/mail.service';
+import { SmsService } from 'src/sms/sms.service';
 import { Repository } from 'typeorm';
 import { ApplyCouponDto } from './dto/apply-coupon.dto';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { CouponUsageEntity } from './entities/coupon-usage.entity';
 import { CouponEntity } from './entities/coupon.entity';
-
-export interface CouponValidationResult {
-  isValid: boolean;
-  discountAmount: number;
-  message?: string;
-  coupon?: CouponEntity;
-}
-
-export interface CouponApplicationResult {
-  success: boolean;
-  discountAmount: number;
-  finalAmount: number;
-  message: string;
-  coupon?: CouponEntity;
-}
 
 @Injectable()
 export class CouponService {
@@ -45,6 +33,9 @@ export class CouponService {
     private readonly productsService: ProductsService,
     private readonly categoryService: CategoryService,
     private readonly brandService: BrandService,
+    private readonly userService: UserService,
+    private readonly mailService: MailService,
+    private readonly smsService: SmsService,
   ) {}
 
   async create(
@@ -68,6 +59,18 @@ export class CouponService {
         throw new BadRequestException(
           'You cannot set Usage Limit Per User more than 1 for SINGLE USAGE type',
         );
+      }
+
+      // For single usage coupons, validate user ID and check if user exists
+      if (createCouponDto.couponUsageType === CouponUsageTypeEnum.SINGLE_USAGE) {
+        if (!createCouponDto.userId) {
+          throw new BadRequestException('User ID is required for single usage coupon');
+        }
+
+        const user = await this.userService.getUserById(createCouponDto.userId);
+        if (!user) {
+          throw new BadRequestException('User with the provided ID does not exist');
+        }
       }
 
       // Validate dates
@@ -127,7 +130,19 @@ export class CouponService {
         coupon.applicableBrands = brands;
       }
 
-      return await this.couponRepository.save(coupon);
+      const savedCoupon = await this.couponRepository.save(coupon);
+
+      // Send notification for single usage coupons
+      if (createCouponDto.couponUsageType === CouponUsageTypeEnum.SINGLE_USAGE && createCouponDto.userId) {
+        try {
+          await this.sendCouponNotification(createCouponDto.userId, savedCoupon);
+        } catch (notificationError) {
+          // Log notification error but don't fail the coupon creation
+          console.error('Failed to send coupon notification:', notificationError);
+        }
+      }
+
+      return savedCoupon;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -454,5 +469,137 @@ export class CouponService {
         '(usage.usageCount IS NULL OR usage.usageCount < coupon.usageLimitPerUser)',
       )
       .getMany();
+  }
+
+  private async sendCouponNotification(userId: string, coupon: CouponEntity): Promise<void> {
+    const user = await this.userService.getUserById(userId);
+    if (!user) {
+      console.error('User not found for sending coupon notification.');
+      return;
+    }
+
+    // If user has email, send email
+    if (user.email) {
+      try {
+        const subject = `🎉 Your Exclusive Coupon: ${coupon.couponCode}`;
+        const htmlContent = this.generateCouponEmailHtml(coupon);
+        
+        await this.mailService.sendCouponEmail(user.email, subject, htmlContent);
+        console.log(`Coupon email sent successfully to ${user.email}`);
+      } catch (error) {
+        console.error('Failed to send coupon email:', error);
+        // If email fails, try SMS as fallback
+        await this.sendCouponSms(user.phone, coupon);
+      }
+    } 
+    // If user doesn't have email but has phone, send SMS
+    else if (user.phone) {
+      await this.sendCouponSms(user.phone, coupon);
+    } 
+    // If user has neither email nor phone
+    else {
+      console.error('User has no email or phone for sending coupon notification.');
+    }
+  }
+
+  private async sendCouponSms(phoneNumber: string, coupon: CouponEntity): Promise<void> {
+    try {
+      const message = this.generateCouponSmsMessage(coupon);
+      const success = await this.smsService.sendSms(phoneNumber, message);
+      
+      if (success) {
+        console.log(`Coupon SMS sent successfully to ${phoneNumber}`);
+      } else {
+        console.error('Failed to send coupon SMS');
+      }
+    } catch (error) {
+      console.error('Error sending coupon SMS:', error);
+    }
+  }
+
+  private generateCouponSmsMessage(coupon: CouponEntity): string {
+    const discountText = coupon.couponType === CouponTypeEnum.PERCENTAGE 
+      ? `${coupon.couponValue}% OFF`
+      : coupon.couponType === CouponTypeEnum.FLAT
+      ? `$${coupon.couponValue} OFF`
+      : 'FREE DELIVERY';
+
+    const validityPeriod = `Valid from ${new Date(coupon.startDate).toLocaleDateString()} to ${new Date(coupon.endDate).toLocaleDateString()}`;
+    
+    return `🎉 Your Exclusive Coupon: ${coupon.couponCode}\n\n` +
+           `${discountText}\n` +
+           `Min Order: $${coupon.minimumOrderAmount}\n` +
+           `${validityPeriod}\n\n` +
+           `Use this coupon code at checkout!\n` +
+           `Thank you for choosing Gadget Nova!`;
+  }
+
+  private generateCouponEmailHtml(coupon: CouponEntity): string {
+    const discountText = coupon.couponType === CouponTypeEnum.PERCENTAGE 
+      ? `${coupon.couponValue}% OFF`
+      : coupon.couponType === CouponTypeEnum.FLAT
+      ? `$${coupon.couponValue} OFF`
+      : 'FREE DELIVERY';
+
+    const validityPeriod = `Valid from ${new Date(coupon.startDate).toLocaleDateString()} to ${new Date(coupon.endDate).toLocaleDateString()}`;
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Exclusive Coupon</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .coupon-code { background: #fff; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; }
+          .coupon-code h2 { color: #667eea; margin: 0; font-size: 28px; letter-spacing: 2px; }
+          .discount { background: #667eea; color: white; padding: 15px; text-align: center; border-radius: 8px; margin: 20px 0; }
+          .discount h3 { margin: 0; font-size: 24px; }
+          .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .details p { margin: 10px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .cta { background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; display: inline-block; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 Exclusive Coupon Just For You!</h1>
+            <p>We're excited to offer you this special discount!</p>
+          </div>
+          
+          <div class="content">
+            <div class="coupon-code">
+              <h2>${coupon.couponCode}</h2>
+            </div>
+            
+            <div class="discount">
+              <h3>${discountText}</h3>
+            </div>
+            
+            <div class="details">
+              <p><strong>Description:</strong> ${coupon.description || 'Special discount just for you!'}</p>
+              <p><strong>Minimum Order:</strong> $${coupon.minimumOrderAmount}</p>
+              <p><strong>Validity:</strong> ${validityPeriod}</p>
+              <p><strong>Usage Limit:</strong> ${coupon.usageLimitPerUser} time${coupon.usageLimitPerUser > 1 ? 's' : ''}</p>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="#" class="cta">Shop Now & Use Coupon</a>
+            </div>
+            
+            <div class="footer">
+              <p>This coupon is exclusively created for you. Don't miss out on this amazing offer!</p>
+              <p>Thank you for choosing Gadget Nova!</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   }
 }

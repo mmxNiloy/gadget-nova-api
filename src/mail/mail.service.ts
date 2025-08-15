@@ -1421,22 +1421,30 @@ export class MailService {
   // Test method for sending a simple email
   async sendTestEmail(to: string): Promise<boolean> {
     try {
-      to = 'sadikuzzaman1996@gmail.com';
       await this.mailerService.sendMail({
         to,
         subject: 'Test Email from Gadget Nova',
-        html: `
-          <h1>Test Email</h1>
-          <p>This is a test email to verify the mail service is working correctly.</p>
-          <p>Sent from Gadget Nova Mail Service</p>
-        `,
+        html: '<h1>This is a test email</h1><p>If you received this, the email service is working correctly!</p>',
       });
-      this.logger.log('Test email sent successfully');
       return true;
     } catch (error) {
-      console.log(error);
-
       this.logger.error('Failed to send test email:', error);
+      return false;
+    }
+  }
+
+  async sendCouponEmail(to: string, subject: string, htmlContent: string): Promise<boolean> {
+    try {
+      await this.mailerService.sendMail({
+        to,
+        subject,
+        html: htmlContent,
+        bcc: ['gadgetnova.bd@gmail.com'],
+      });
+      this.logger.log(`Coupon email sent successfully to ${to}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send coupon email to ${to}:`, error);
       return false;
     }
   }
