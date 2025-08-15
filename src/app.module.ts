@@ -22,6 +22,7 @@ import { RedisModule } from './config/redis.module';
 import { MailModule } from './mail/mail.module';
 import { NotificationModule } from './notification/notification.module';
 import { CouponModule } from './coupon/coupon.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { CouponModule } from './coupon/coupon.module';
     MailModule,
     NotificationModule,
     CouponModule,
+    WishlistModule
   ],
   controllers: [AppController],
   providers: [AppService],
