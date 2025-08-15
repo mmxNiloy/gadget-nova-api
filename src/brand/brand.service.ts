@@ -45,6 +45,20 @@ export class BrandService {
       throw new BadRequestException(error.message);
     }
   }
+
+  async getBrandByCategorySlug(slug: string): Promise<BrandEntity[]> {
+    const category = await this.categoryService.findBySlug(slug);
+
+    if (!category) {
+      throw new NotFoundException(`Category with slug "${slug}" not found`);
+    }
+
+    const brands = await this.brandRepository.find({
+      where: { categories: category },
+    });
+
+    return brands;
+  }
   
   async findAll(name?: string): Promise<BrandEntity[]> {
     try {

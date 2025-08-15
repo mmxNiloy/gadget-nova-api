@@ -55,6 +55,16 @@ export class BrandController {
     }
   }
 
+  @Get(':slug/category')
+  async getSubCategories(@Param('slug') slug: string) {
+    try {
+      const payload = await this.brandService.getBrandByCategorySlug(slug);
+      return { message: 'Brands by slug', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
   @Get('pagination')
   async pagination(
     @PaginationDecorator() pagination: PaginationDTO,

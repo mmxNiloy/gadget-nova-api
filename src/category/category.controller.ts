@@ -77,6 +77,16 @@ export class CategoryController {
     }
   }
 
+  @Get(':slug/subcategories')
+  async getSubCategories(@Param('slug') slug: string) {
+    try {
+      const payload = await this.categoryService.getSubCategoriesByParentSlug(slug);
+      return { message: 'Subcategories by slug', payload };
+    } catch (error) {
+      throw new BadRequestException(error?.response?.message);
+    }
+  }
+
   @Get('subcategories/:categoryId')
   async findSubcategoriesByCategory(@Param('categoryId') categoryId: string) {
     try {
