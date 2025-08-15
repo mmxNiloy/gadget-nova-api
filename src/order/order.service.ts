@@ -466,7 +466,7 @@ export class OrderService {
   async updateOrderStatus(
     orderId: string,
     status: string,
-  ): Promise<OrderEntity> {
+  ): Promise<{ updatedOrder: OrderEntity; totalUserOrders: number }> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
       relations: [
@@ -486,6 +486,13 @@ export class OrderService {
     const previousStatus = order.status;
     order.status = status as OrderStatus;
     const updatedOrder = await this.orderRepository.save(order);
+
+    const totalUserOrders = await this.orderRepository.count({
+      where: { user: { id: order.user.id }, status: OrderStatus.DELIVERED },
+    });
+
+    console.log({totalUserOrders});
+    
 
     // Send notifications for ALL status changes with price breakdown
     try {
@@ -519,6 +526,6 @@ export class OrderService {
       console.error('Failed to send status change notification:', error);
     }
 
-    return updatedOrder;
+    return { updatedOrder, totalUserOrders };
   }
 }

@@ -19,6 +19,7 @@ import { RolesGuard } from 'src/common/guard/roles.guard';
 import { CouponService } from './coupon.service';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { ApplyCouponDto } from './dto/apply-coupon.dto';
+import { UpdateCouponDto } from './dto/update-coupon.dto';
 
 @ApiTags('Coupons')
 @Controller({
@@ -48,6 +49,9 @@ export class CouponController {
     }
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Get()
   @ApiOperation({ summary: 'Get all active coupons' })
   async findAll() {
@@ -72,6 +76,9 @@ export class CouponController {
     }
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Get(':id')
   @ApiOperation({ summary: 'Get coupon by ID' })
   async findOne(@Param('id') id: string) {
@@ -83,6 +90,9 @@ export class CouponController {
     }
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @Get('code/:code')
   @ApiOperation({ summary: 'Get coupon by code' })
   async findByCode(@Param('code') code: string) {
@@ -97,11 +107,11 @@ export class CouponController {
   @Patch(':id')
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.ADMIN)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @ApiOperation({ summary: 'Update coupon' })
   async update(
     @Param('id') id: string,
-    @Body() updateCouponDto: Partial<CreateCouponDto>,
+    @Body() updateCouponDto: UpdateCouponDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
     try {
@@ -119,7 +129,7 @@ export class CouponController {
   @Delete(':id')
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.ADMIN)
+  @Roles(RolesEnum.SUPER_ADMIN)
   @ApiOperation({ summary: 'Delete coupon' })
   async remove(
     @Param('id') id: string,

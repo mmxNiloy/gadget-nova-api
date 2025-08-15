@@ -28,7 +28,7 @@ export class CouponService {
     private readonly couponRepository: Repository<CouponEntity>,
     @InjectRepository(CouponUsageEntity)
     private readonly couponUsageRepository: Repository<CouponUsageEntity>,
-    @InjectRepository(CouponEntity)
+    @InjectRepository(CartEntity)
     private readonly cartRepository: Repository<CartEntity>,
     private readonly productsService: ProductsService,
     private readonly categoryService: CategoryService,
@@ -318,6 +318,9 @@ export class CouponService {
     if (coupon.startDate > now || coupon.endDate < now) {
       throw new BadRequestException('Coupon is not valid at this time');
     }
+
+    console.log("EXEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEC1");
+    
   
     // Per-user usage check
     let userUsage = await this.couponUsageRepository.findOne({
@@ -333,6 +336,8 @@ export class CouponService {
     if (userUsage.usageCount >= coupon.usageLimitPerUser) {
       throw new BadRequestException('You have reached usage limit for this coupon');
     }
+
+    console.log("EXEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEC2");
   
     // Fetch cart
     const cart = await this.cartRepository.findOne({
@@ -345,6 +350,9 @@ export class CouponService {
         'items.product.brand',
       ],
     });
+
+    console.log({cart});
+    
     if (!cart || !cart.items.length) throw new BadRequestException('Cart is empty');
   
     let totalDiscount = 0;
@@ -453,11 +461,11 @@ export class CouponService {
 
     return await this.couponRepository
       .createQueryBuilder('coupon')
-      .leftJoinAndSelect('coupon.applicableProducts', 'products')
-      .leftJoinAndSelect('coupon.applicableCategories', 'categories')
-      .leftJoinAndSelect('coupon.applicableSubCategories', 'subCategories')
-      .leftJoinAndSelect('coupon.applicableBrands', 'brands')
-      .leftJoinAndSelect('coupon.usages', 'usage', 'usage.user_id = :userId', {
+      .leftJoin('coupon.applicableProducts', 'products')
+      .leftJoin('coupon.applicableCategories', 'categories')
+      .leftJoin('coupon.applicableSubCategories', 'subCategories')
+      .leftJoin('coupon.applicableBrands', 'brands')
+      .leftJoin('coupon.usages', 'usage', 'usage.user_id = :userId', {
         userId,
       })
       .where('coupon.is_active = :isActive', {

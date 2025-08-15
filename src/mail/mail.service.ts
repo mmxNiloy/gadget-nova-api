@@ -24,6 +24,8 @@ export interface OrderEmailContext {
   // shippingMethod: string;
   paymentMethod: string;
   total: string;
+  couponCode?: string;
+  couponDiscount?: string;
   billingAddress: {
     name: string;
     street: string;
@@ -57,6 +59,8 @@ export interface StatusChangeEmailContext {
   shipping: string;
   paymentMethod: string;
   total: string;
+  couponCode?: string;
+  couponDiscount?: string;
 }
 
 @Injectable()
@@ -380,6 +384,9 @@ export class MailService {
       cartItemsLength: order.cart?.items?.length,
       hasShippingInfo: !!order.shippingInfo,
       hasUser: !!order.user,
+      couponCode: order.couponCode,
+      couponDiscountValue: order.couponDiscountValue,
+      orderTotalPrice: order.totalPrice,
     });
 
     const customerName = `${order.shippingInfo?.first_name || 'Customer'} ${order.shippingInfo?.last_name || ''}`;
@@ -411,12 +418,18 @@ export class MailService {
     const subtotal = `৳${productSubtotal.toFixed(2)}`;
     const shipping = `৳${parseFloat(order.delivery_charge.toString()).toFixed(2)}`;
 
-    // Total should be subtotal + shipping
-    const total = `৳${(productSubtotal + parseFloat(order.delivery_charge.toString())).toFixed(2)}`;
+    // Use the final total from order entity (which already includes coupon discount)
+    const total = `৳${parseFloat(order.totalPrice.toString()).toFixed(2)}`;
 
     // Get payment method from the first payment
     const paymentMethod =
       order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
+
+    // Add coupon information if available
+    const couponCode = order.couponCode || undefined;
+    const couponDiscount = order.couponDiscountValue 
+      ? `৳${parseFloat(order.couponDiscountValue.toString()).toFixed(2)}`
+      : undefined;
 
     const addressParts = (order.shippingInfo?.address || '').split(',');
     const billingAddress = {
@@ -449,6 +462,8 @@ export class MailService {
       // shippingMethod: 'Fast Shipping',
       paymentMethod,
       total,
+      couponCode,
+      couponDiscount,
       billingAddress,
       shippingAddress,
     };
@@ -460,6 +475,14 @@ export class MailService {
   private buildStatusChangeEmailContext(
     order: OrderEntity,
   ): StatusChangeEmailContext {
+    // Debug logging
+    console.log('Building status change email context for order:', {
+      orderId: order.orderId,
+      couponCode: order.couponCode,
+      couponDiscountValue: order.couponDiscountValue,
+      orderTotalPrice: order.totalPrice,
+    });
+
     const customerName = `${order.shippingInfo?.first_name || 'Customer'} ${order.shippingInfo?.last_name || ''}`;
     const orderDate = new Date(
       order.created_at || new Date(),
@@ -489,12 +512,18 @@ export class MailService {
     const subtotal = `৳${productSubtotal.toFixed(2)}`;
     const shipping = `৳${parseFloat(order.delivery_charge.toString()).toFixed(2)}`;
 
-    // Total should be subtotal + shipping
-    const total = `৳${(productSubtotal + parseFloat(order.delivery_charge.toString())).toFixed(2)}`;
+    // Use the final total from order entity (which already includes coupon discount)
+    const total = `৳${parseFloat(order.totalPrice.toString()).toFixed(2)}`;
 
     // Get payment method from the first payment
     const paymentMethod =
       order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
+
+    // Add coupon information if available
+    const couponCode = order.couponCode || undefined;
+    const couponDiscount = order.couponDiscountValue 
+      ? `৳${parseFloat(order.couponDiscountValue.toString()).toFixed(2)}`
+      : undefined;
 
     return {
       customerName,
@@ -505,6 +534,8 @@ export class MailService {
       shipping,
       paymentMethod,
       total,
+      couponCode,
+      couponDiscount,
     };
   }
 
@@ -563,6 +594,26 @@ export class MailService {
       default:
         return this.generateOrderPlacedHtml(context as OrderEmailContext);
     }
+  }
+
+  /**
+   * Helper function to generate coupon row HTML if coupon exists
+   */
+  private generateCouponRow(context: OrderEmailContext | StatusChangeEmailContext): string {
+    console.log('Generating coupon row with context:', {
+      couponCode: context.couponCode,
+      couponDiscount: context.couponDiscount,
+    });
+    
+    if (context.couponCode && context.couponDiscount) {
+      return `
+                <tr class="summary-row">
+                  <td colspan="2">Coupon (${context.couponCode})</td>
+                  <td>-${context.couponDiscount}</td>
+                </tr>
+      `;
+    }
+    return '';
   }
 
   private generateOrderPlacedHtml(context: OrderEmailContext): string {
@@ -638,7 +689,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -744,7 +796,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -840,7 +893,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -932,7 +986,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1024,7 +1079,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1118,7 +1174,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1210,7 +1267,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1302,7 +1360,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1394,7 +1453,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
