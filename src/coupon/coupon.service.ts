@@ -381,6 +381,19 @@ export class CouponService {
       !coupon.applicableCategories?.length &&
       !coupon.applicableSubCategories?.length &&
       !coupon.applicableBrands?.length;
+
+      if (isGlobal && coupon.minimumOrderAmount) {
+        const subtotal = cart.items.reduce(
+          (sum, item) => sum + Number(item.price) * item.quantity,
+          0
+        );
+      
+        if (subtotal < coupon.minimumOrderAmount) {
+          throw new BadRequestException(
+            `Coupon is applicable only for orders of at least ${coupon.minimumOrderAmount}`
+          );
+        }
+      }
   
     cart.items.forEach((item) => {
       const product = item.product;
