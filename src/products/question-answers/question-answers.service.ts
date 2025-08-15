@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { CreateQuestionAnswersDto } from '../dto/create-question-answers.dto';
 import { QuestionAnswersEntity } from '../entities/question-answers.entity';
 import { ProductsQuestionsService } from '../product-questions/products-questions.service';
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class QuestionAnswersService {
@@ -13,6 +14,7 @@ export class QuestionAnswersService {
     @InjectRepository(QuestionAnswersEntity)
     private readonly questionAnswersRepository: Repository<QuestionAnswersEntity>,
     private readonly productsQuestionsService: ProductsQuestionsService,
+    private readonly productsService: ProductsService,
   ) {}
 
   async create(
@@ -59,6 +61,14 @@ export class QuestionAnswersService {
   async findQuestionsByProduct(id: string): Promise<QuestionAnswersEntity[]> {
     const answers = await this.questionAnswersRepository.find({
       where: { question: { id: id }, is_active: ActiveStatusEnum.ACTIVE },
+    });
+       
+    return answers;
+  }
+
+  async findQuestionsByProductSlug(slug: string): Promise<QuestionAnswersEntity[]> {
+    const answers = await this.questionAnswersRepository.find({
+      where: { question: { product: { slug: slug } }, is_active: ActiveStatusEnum.ACTIVE },
     });
        
     return answers;

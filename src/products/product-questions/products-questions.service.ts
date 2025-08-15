@@ -4,6 +4,7 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { Repository } from 'typeorm';
 import { CreateProductQuestionsDto } from '../dto/create-product-questions.dto';
+import { CreateProductQuestionsSlugDto } from '../dto/create-product-questions-slug.dto';
 import { ProductQuestionsEntity } from '../entities/product-questions.entity';
 import { ProductsService } from '../products/products.service';
 
@@ -44,6 +45,35 @@ export class ProductsQuestionsService {
     }
   }
 
+  async createBySlug(
+    createProductQuestionsSlugDto: CreateProductQuestionsSlugDto,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<ProductQuestionsEntity> {
+    try {
+      const product = await this.productsService.findBySlug(
+        createProductQuestionsSlugDto.slug,
+      );
+
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+
+      delete createProductQuestionsSlugDto.slug;
+
+      const productQuestionsEntity = this.productQuestionRepository.create({
+        ...createProductQuestionsSlugDto,
+        product: product,
+        created_by: jwtPayload.id,
+        created_user_name: jwtPayload.userName,
+        created_at: new Date(),
+      });
+
+      return await this.productQuestionRepository.save(productQuestionsEntity);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   async findOne(id: string): Promise<ProductQuestionsEntity> {
     const question = await this.productQuestionRepository.findOne({
       where: { id, is_active: ActiveStatusEnum.ACTIVE },
@@ -59,6 +89,14 @@ export class ProductsQuestionsService {
   async findQuestionsByProduct(id: string): Promise<ProductQuestionsEntity[]> {
     const questions = await this.productQuestionRepository.find({
       where: { product: { id: id }, is_active: ActiveStatusEnum.ACTIVE },
+    });
+       
+    return questions;
+  }
+
+  async findQuestionsByProductSlug(slug: string): Promise<ProductQuestionsEntity[]> {
+    const questions = await this.productQuestionRepository.find({
+      where: { product: { slug: slug }, is_active: ActiveStatusEnum.ACTIVE },
     });
        
     return questions;

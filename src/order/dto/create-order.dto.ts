@@ -36,6 +36,11 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   otp?: string;
+
+  @ApiProperty({ description: 'Coupon code', example: 'WELCOME50' })
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 }
 
 export class OrderSearchDto extends ApiQueryPaginationBaseDTO {

@@ -45,6 +45,20 @@ export class BrandService {
       throw new BadRequestException(error.message);
     }
   }
+
+  async getBrandByCategorySlug(slug: string): Promise<BrandEntity[]> {
+    const category = await this.categoryService.findBySlug(slug);
+
+    if (!category) {
+      throw new NotFoundException(`Category with slug "${slug}" not found`);
+    }
+
+    const brands = await this.brandRepository.find({
+      where: { categories: category },
+    });
+
+    return brands;
+  }
   
   async findAll(name?: string): Promise<BrandEntity[]> {
     try {
@@ -185,5 +199,22 @@ export class BrandService {
     brand.updated_at = new Date();
 
     return await this.brandRepository.save(brand);
+  }
+
+  async findManyByIds(ids: string[]): Promise<BrandEntity[]> {
+    if (!ids.length) {
+      return [];
+    }
+  
+    const query = this.brandRepository
+      .createQueryBuilder('brand')
+      .where('brand.is_active = :status', {
+        status: ActiveStatusEnum.ACTIVE,
+      })
+      .andWhere('brand.id IN (:...ids)', { ids })
+      
+    const brands = await query.getMany();
+  
+    return brands;
   }
 }

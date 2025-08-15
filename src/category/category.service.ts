@@ -104,6 +104,22 @@ export class CategoryService {
     }
   }
 
+  async getSubCategoriesByParentSlug(slug: string): Promise<CategoryEntity[]> {
+    // First, find the parent category
+    const parentCategory = await this.categoryRepository.findOne({ where: { slug } });
+
+    if (!parentCategory) {
+      throw new NotFoundException(`Category with slug "${slug}" not found`);
+    }
+
+    // Fetch all subcategories with this parent category
+    const subCategories = await this.categoryRepository.find({
+      where: { parentCategory: { id: parentCategory.id } },
+    });
+
+    return subCategories;
+  }
+
   async findSubcategoriesByCategory(
     categoryId: string,
   ): Promise<CategoryEntity[]> {
@@ -304,5 +320,22 @@ export class CategoryService {
     } catch (error) {
       throw new BadRequestException(error?.response?.message);
     }
+  }
+
+  async findManyByIds(ids: string[]): Promise<CategoryEntity[]> {
+    if (!ids.length) {
+      return [];
+    }
+  
+    const query = this.categoryRepository
+      .createQueryBuilder('category')
+      .where('category.is_active = :status', {
+        status: ActiveStatusEnum.ACTIVE,
+      })
+      .andWhere('category.id IN (:...ids)', { ids })
+      
+    const categories = await query.getMany();
+  
+    return categories;
   }
 }

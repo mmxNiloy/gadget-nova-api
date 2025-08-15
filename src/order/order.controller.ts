@@ -117,10 +117,12 @@ export class OrderController {
     @Param('orderId') orderId: string,
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
   ) {
-    const order = await this.orderService.updateOrderStatus(
+    const payload = await this.orderService.updateOrderStatus(
       orderId,
       updateOrderStatusDto.status,
     );
-    return { message: 'Order status updated successfully', order };
+    console.log({payload});
+    
+    return { message: 'Order status updated successfully', payload };
   }
 }

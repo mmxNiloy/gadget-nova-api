@@ -47,6 +47,12 @@ export class QuestionAnswersController {
     return { message: 'Product questions and answers', payload };
   }
 
+  @Get('product/:slug')
+  async findQuestionsByProductSlug(@Param('slug') slug: string) {
+    const payload = await this.questionAnswersService.findQuestionsByProductSlug(slug);
+    return { message: 'Product questions and answers', payload };
+  }
+
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.ADMIN)
   @Delete(':id')

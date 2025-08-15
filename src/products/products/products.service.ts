@@ -552,4 +552,21 @@ export class ProductsService {
 
     return await this.productRepository.save(product);
   }
+
+  async findManyByIds(ids: string[]): Promise<ProductEntity[]> {
+    if (!ids.length) {
+      return [];
+    }
+  
+    const query = this.productRepository
+      .createQueryBuilder('product')
+      .where('product.is_active = :status', {
+        status: ActiveStatusEnum.ACTIVE,
+      })
+      .andWhere('product.id IN (:...ids)', { ids })
+      
+    const products = await query.getMany();
+  
+    return products;
+  }
 }
