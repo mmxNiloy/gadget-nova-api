@@ -220,16 +220,44 @@ export class ProductsService {
         });
       }
 
+      // Filter out products based on parent category
+      if (productSearchDto.category) {
+        query.andWhere('category.slug = :category', {
+          category: productSearchDto.category,
+        });
+      }
+
+      // Filter out products based on subcategories
+      if (productSearchDto.subcategories) {
+        const subcategories = Array.isArray(productSearchDto.subcategories)
+          ? productSearchDto.subcategories
+          : [productSearchDto.subcategories];
+
+        query.andWhere('subCategory.slug IN (:...subcategories)', {
+          subcategories,
+        });
+      }
+
+      // Filter out products based on brands
+      if (productSearchDto.brands) {
+        const brands = Array.isArray(productSearchDto.brands)
+          ? productSearchDto.brands
+          : [productSearchDto.brands];
+
+        query.andWhere('brand.slug IN (:...brands)', {
+          brands,
+        });
+      }
+
       if (productSearchDto.category_ids) {
         const categoryIds = Array.isArray(productSearchDto.category_ids)
           ? productSearchDto.category_ids
           : [productSearchDto.category_ids];
-      
+
         query.andWhere('category.id IN (:...categoryIds)', {
           categoryIds,
         });
       }
-      
 
       if (productSearchDto.brand_ids) {
         productSearchDto.brand_ids = Array.isArray(productSearchDto.brand_ids)
