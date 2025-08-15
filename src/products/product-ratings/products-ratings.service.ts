@@ -8,6 +8,7 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { Repository } from 'typeorm';
 import { CreateProductRatingsDto } from '../dto/create-product-rating.dto';
+import { CreateProductRatingsSlugDto } from '../dto/create-product-rating-slug.dto';
 import { ProductRatingEntity } from '../entities/product-rating.entity';
 import { ProductsService } from '../products/products.service';
 
@@ -61,6 +62,48 @@ export class ProductsRatingsService {
     }
   }
 
+  async createBySlug(
+    createProductRatingsSlugDto: CreateProductRatingsSlugDto,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<ProductRatingEntity> {
+    try {
+      const product = await this.productsService.findBySlug(
+        createProductRatingsSlugDto.slug,
+      );
+
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+
+      // Check if user has already rated this product
+      const existingRating = await this.productRatingsRepository.findOne({
+        where: {
+          product: { id: product.id },
+          created_by: jwtPayload.id,
+          is_active: ActiveStatusEnum.ACTIVE,
+        },
+      });
+
+      if (existingRating) {
+        throw new BadRequestException('You have already rated this product');
+      }
+
+      delete createProductRatingsSlugDto.slug;
+
+      const productRatingEntity = this.productRatingsRepository.create({
+        ...createProductRatingsSlugDto,
+        product: product,
+        created_by: jwtPayload.id,
+        created_user_name: jwtPayload.userName,
+        created_at: new Date(),
+      });
+
+      return await this.productRatingsRepository.save(productRatingEntity);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   async findOne(id: string): Promise<ProductRatingEntity> {
     const rating = await this.productRatingsRepository.findOne({
       where: { id, is_active: ActiveStatusEnum.ACTIVE },
@@ -76,6 +119,14 @@ export class ProductsRatingsService {
   async findRatingsByProduct(id: string): Promise<ProductRatingEntity[]> {
     const ratings = await this.productRatingsRepository.find({
       where: { product: { id: id }, is_active: ActiveStatusEnum.ACTIVE },
+    });
+
+    return ratings;
+  }
+
+  async findRatingsByProductSlug(slug: string): Promise<ProductRatingEntity[]> {
+    const ratings = await this.productRatingsRepository.find({
+      where: { product: { slug: slug }, is_active: ActiveStatusEnum.ACTIVE },
     });
 
     return ratings;
@@ -110,6 +161,29 @@ export class ProductsRatingsService {
     const userRating = await this.productRatingsRepository.findOne({
       where: {
         product: { id: productId },
+        created_by: jwtPayload.id,
+        is_active: ActiveStatusEnum.ACTIVE,
+      },
+    });
+
+    return { allRatings, userRating };
+  }
+
+  async getProductRatingWithUserInfoBySlug(
+    slug: string,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<{
+    allRatings: ProductRatingEntity[];
+    userRating?: ProductRatingEntity;
+  }> {
+    const allRatings = await this.productRatingsRepository.find({
+      where: { product: { slug: slug }, is_active: ActiveStatusEnum.ACTIVE },
+      order: { created_at: 'DESC' },
+    });
+
+    const userRating = await this.productRatingsRepository.findOne({
+      where: {
+        product: { slug: slug },
         created_by: jwtPayload.id,
         is_active: ActiveStatusEnum.ACTIVE,
       },

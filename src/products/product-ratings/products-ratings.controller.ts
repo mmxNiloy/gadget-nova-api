@@ -12,6 +12,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { CreateProductRatingsDto } from '../dto/create-product-rating.dto';
+import { CreateProductRatingsSlugDto } from '../dto/create-product-rating-slug.dto';
 import { ProductsRatingsService } from './products-ratings.service';
 
 @ApiTags('Product-ratings')
@@ -38,6 +39,20 @@ export class ProductsRatingsController {
     return { message: 'Rating created successfully', payload };
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
+  @Post('slug')
+  async createBySlug(
+    @Body() createProductRatingsSlugDto: CreateProductRatingsSlugDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.productsRatingsService.createBySlug(
+      createProductRatingsSlugDto,
+      jwtPayload,
+    );
+    return { message: 'Rating created successfully', payload };
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const payload = await this.productsRatingsService.findOne(id);
@@ -47,6 +62,12 @@ export class ProductsRatingsController {
   @Get('product/:id')
   async findRatingByProduct(@Param('id') id: string) {
     const payload = await this.productsRatingsService.findRatingsByProduct(id);
+    return { message: 'Rating details', payload };
+  }
+
+  @Get('product/:slug')
+  async findRatingByProductSlug(@Param('slug') slug: string) {
+    const payload = await this.productsRatingsService.findRatingsByProductSlug(slug);
     return { message: 'Rating details', payload };
   }
 
@@ -71,6 +92,21 @@ export class ProductsRatingsController {
     const payload =
       await this.productsRatingsService.getProductRatingWithUserInfo(
         productId,
+        jwtPayload,
+      );
+    return { message: 'Product ratings with user-specific rating', payload };
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
+  @Get('product/:slug/user-rating')
+  async getProductRatingWithUserInfoBySlug(
+    @Param('slug') slug: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload =
+      await this.productsRatingsService.getProductRatingWithUserInfoBySlug(
+        slug,
         jwtPayload,
       );
     return { message: 'Product ratings with user-specific rating', payload };

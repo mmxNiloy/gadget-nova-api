@@ -104,6 +104,22 @@ export class CategoryService {
     }
   }
 
+  async getSubCategoriesByParentSlug(slug: string): Promise<CategoryEntity[]> {
+    // First, find the parent category
+    const parentCategory = await this.categoryRepository.findOne({ where: { slug } });
+
+    if (!parentCategory) {
+      throw new NotFoundException(`Category with slug "${slug}" not found`);
+    }
+
+    // Fetch all subcategories with this parent category
+    const subCategories = await this.categoryRepository.find({
+      where: { parentCategory: { id: parentCategory.id } },
+    });
+
+    return subCategories;
+  }
+
   async findSubcategoriesByCategory(
     categoryId: string,
   ): Promise<CategoryEntity[]> {
