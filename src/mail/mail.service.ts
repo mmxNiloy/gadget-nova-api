@@ -1508,4 +1508,86 @@ export class MailService {
       return false;
     }
   }
+
+  async sendWishlistNotificationEmail(
+    to: string,
+    productSlug: string,
+    productTitle: string,
+  ): Promise<boolean> {
+    try {
+      const subject = '🎉 Your Wishlisted Product is Now Available!';
+      const htmlContent = this.generateWishlistNotificationHtml(productSlug, productTitle);
+      
+      await this.mailerService.sendMail({
+        to,
+        subject,
+        html: htmlContent,
+        bcc: ['gadgetnova.bd@gmail.com'],
+      });
+      
+      this.logger.log(`Wishlist notification email sent successfully to ${to}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send wishlist notification email to ${to}:`, error);
+      return false;
+    }
+  }
+
+  private generateWishlistNotificationHtml(productSlug: string, productTitle: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Product Available - Gadget Nova</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 0 auto; background-color: #f9f9f9; }
+          .header { background-color: #F92903; color: white; text-align: center; padding: 30px 20px; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .content { padding: 30px 20px; background-color: white; margin: 20px; border-radius: 8px; }
+          .greeting { font-size: 18px; margin-bottom: 20px; color: #F92903; font-weight: bold; }
+          .product-info { background-color: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F92903; }
+          .product-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #F92903; }
+          .cta-button { display: inline-block; background-color: #F92903; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+          .cta-button:hover { background-color: #d42400; }
+          .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
+          .contact-info { color: #007bff; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 Gadget Nova</h1>
+          </div>
+          
+          <div class="content">
+            <div class="greeting">Hello!</div>
+            
+            <p>Good news! The product you wishlisted is now available with a special offer.</p>
+            
+            <div class="product-info">
+              <div class="product-title">${productTitle}</div>
+              <p>Don't miss out on this amazing opportunity!</p>
+            </div>
+            
+            <p>Click the button below to check it out:</p>
+            
+            <a href="https://gadgetnovabd.com/products/${productSlug}" class="cta-button">
+              View Product Now
+            </a>
+            
+            <p>Thank you for being a valued member of our community!</p>
+          </div>
+          
+          <div class="footer">
+            <p>Thanks for using gadgetnovabd.com!</p>
+            <p><a href="https://gadgetnovabd.com" class="contact-info">gadgetnovabd.com</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }
