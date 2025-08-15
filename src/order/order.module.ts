@@ -13,6 +13,8 @@ import { DistrictModule } from '../district/district.module';
 import { SmsModule } from '../sms/sms.module';
 import { OtpService } from '../common/services/otp.service';
 import { NotificationModule } from '../notification/notification.module';
+import { CouponService } from 'src/coupon/coupon.service';
+import { CouponModule } from 'src/coupon/coupon.module';
 
 @Module({
   imports: [
@@ -21,7 +23,8 @@ import { NotificationModule } from '../notification/notification.module';
     DistrictModule,
     SmsModule,
     NotificationModule,
-    forwardRef(() => PaymentModule)
+    CouponModule,
+    forwardRef(() => PaymentModule),
   ],
   controllers: [OrderController],
   providers: [OrderService, OtpService],

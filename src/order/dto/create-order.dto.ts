@@ -40,7 +40,7 @@ export class CreateOrderDto {
   @ApiProperty({ description: 'Coupon code', example: 'WELCOME50' })
   @IsOptional()
   @IsString()
-  couponCode: string;
+  couponCode?: string;
 }
 
 export class OrderSearchDto extends ApiQueryPaginationBaseDTO {

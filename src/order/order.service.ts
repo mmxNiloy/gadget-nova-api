@@ -44,7 +44,6 @@ export class OrderService {
     private readonly districtService: DistrictService,
     @Inject(forwardRef(() => PGWContext))
     private readonly pgwContext: PGWContext,
-    private readonly smsService: SmsService,
     private readonly otpService: OtpService,
     private readonly couponService: CouponService,
     private readonly notificationService: NotificationService,
