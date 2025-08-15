@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ProductsService } from 'src/products/products/products.service';
+import { MailService } from 'src/mail/mail.service';
 import { UserEntity } from 'src/user/entities/user.entity/user.entity';
 import { Repository } from 'typeorm';
 
@@ -13,6 +14,7 @@ import { Repository } from 'typeorm';
 export class WishlistService {
   constructor(
     private readonly productsService: ProductsService,
+    private readonly mailService: MailService,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
   ) {}
@@ -83,4 +85,117 @@ export class WishlistService {
 
     return product.wishlistedBy;
   }
+
+  // async getWishlisersByProductSlug(slug: string) {
+  //   const product =
+  //     await this.productsService.getWishlisersByProductSlug(slug);
+
+  //   if (!product) throw new NotFoundException('Product not found');
+
+  //   return product.wishlistedBy;
+  // }
+
+  async sendWishlistNotificationEmails(productId: string) {
+    try {
+      const product = await this.productsService.getWishlisersByProduct(productId);
+      
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+
+      if (!product.wishlistedBy || product.wishlistedBy.length === 0) {
+        return {
+          message: 'No users have this product in their wishlist',
+          emailsSent: 0,
+          totalUsers: 0
+        };
+      }
+
+      let emailsSent = 0;
+      const failedEmails: string[] = [];
+
+      for (const user of product.wishlistedBy) {
+        if (user.email) {
+          try {
+            const success = await this.mailService.sendWishlistNotificationEmail(
+              user.email,
+              product.slug,
+              product.title
+            );
+            
+            if (success) {
+              emailsSent++;
+            } else {
+              failedEmails.push(user.email);
+            }
+          } catch (error) {
+            failedEmails.push(user.email);
+          }
+        }
+      }
+
+      return {
+        message: 'Wishlist notification emails sent successfully',
+        emailsSent,
+        totalUsers: product.wishlistedBy.length,
+        failedEmails,
+        productTitle: product.title,
+        productSlug: product.slug
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  // async sendWishlistNotificationEmailsBySlug(slug: string) {
+  //   try {
+  //     const product = await this.productsService.getWishlisersByProductSlug(slug);
+      
+  //     if (!product) {
+  //       throw new NotFoundException('Product not found');
+  //     }
+
+  //     if (!product.wishlistedBy || product.wishlistedBy.length === 0) {
+  //       return {
+  //         message: 'No users have this product in their wishlist',
+  //         emailsSent: 0,
+  //         totalUsers: 0
+  //       };
+  //     }
+
+  //     let emailsSent = 0;
+  //     const failedEmails: string[] = [];
+
+  //     for (const user of product.wishlistedBy) {
+  //       if (user.email) {
+  //         try {
+  //           const success = await this.mailService.sendWishlistNotificationEmail(
+  //             user.email,
+  //             product.slug,
+  //             product.title
+  //           );
+            
+  //           if (success) {
+  //             emailsSent++;
+  //           } else {
+  //             failedEmails.push(user.email);
+  //           }
+  //         } catch (error) {
+  //           failedEmails.push(user.email);
+  //         }
+  //       }
+  //     }
+
+  //     return {
+  //       message: 'Wishlist notification emails sent successfully',
+  //       emailsSent,
+  //       totalUsers: product.wishlistedBy.length,
+  //       failedEmails,
+  //       productTitle: product.title,
+  //       productSlug: product.slug
+  //     };
+  //   } catch (error) {
+  //     throw new BadRequestException(error.message);
+  //   }
+  // }
 }

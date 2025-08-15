@@ -56,6 +56,11 @@ export class CreateProductDto {
   discountPrice: number;
 
   @ApiProperty({ default: 10 })
+  @IsOptional()
+  @IsInt({ message: 'stock amount Quantity must be an integer' })
+  stockAmount: number;
+
+  @ApiProperty({ default: 10 })
   @IsInt({ message: 'Quantity must be an integer' })
   quantity: number;
 

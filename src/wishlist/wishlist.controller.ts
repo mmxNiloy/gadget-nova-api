@@ -109,4 +109,47 @@ export class WishlistController {
       throw new BadRequestException(error.response?.message || error.message);
     }
   }
+
+  // 5️⃣ Get all users who wishlisted a product (by slug)
+  // @ApiBearerAuth('jwt')
+  // @UseGuards(AuthGuard('jwt'), RolesGuard)
+  // @Roles(RolesEnum.SUPER_ADMIN)
+  // @Get('/product/slug/:slug/users')
+  // async getWishlisersByProductSlug(@Param('slug') slug: string) {
+  //   try {
+  //     const payload =
+  //       await this.wishlistService.getWishlisersByProductSlug(slug);
+  //     return { message: 'Users who wishlisted this product', payload };
+  //   } catch (error) {
+  //     throw new BadRequestException(error.response?.message || error.message);
+  //   }
+  // }
+
+  // 6️⃣ Send wishlist notification emails to all users who wishlisted a product
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.SUPER_ADMIN)
+  @Post('/product/:productId/notify-users')
+  async sendWishlistNotificationEmails(@Param('productId') productId: string) {
+    try {
+      const payload = await this.wishlistService.sendWishlistNotificationEmails(productId);
+      return { message: 'Wishlist notification emails sent', payload };
+    } catch (error) {
+      throw new BadRequestException(error.response?.message || error.message);
+    }
+  }
+
+  // 7️⃣ Send wishlist notification emails to all users who wishlisted a product (by slug)
+  // @ApiBearerAuth('jwt')
+  // @UseGuards(AuthGuard('jwt'), RolesGuard)
+  // @Roles(RolesEnum.SUPER_ADMIN)
+  // @Post('/product/slug/:slug/notify-users')
+  // async sendWishlistNotificationEmailsBySlug(@Param('slug') slug: string) {
+  //   try {
+  //     const payload = await this.wishlistService.sendWishlistNotificationEmailsBySlug(slug);
+  //     return { message: 'Wishlist notification emails sent', payload };
+  //   } catch (error) {
+  //     throw new BadRequestException(error.response?.message || error.message);
+  //   }
+  // }
 }
