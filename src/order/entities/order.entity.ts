@@ -11,6 +11,12 @@ export class OrderEntity extends CustomBaseEntity {
   @Column({ name: 'order_id', type: 'bigint', unique: true, nullable: true })
   orderId: number;
 
+  @Column({ name: 'code', type: 'varchar', length: 50, nullable:true })
+  couponCode: string;
+
+  @Column({ name: 'couponDiscountValue', type: 'decimal', precision: 10, scale: 2, nullable:true })
+  couponDiscountValue: number;
+
   @ManyToOne(() => UserEntity, (user) => user.orders, { eager: true })
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;
