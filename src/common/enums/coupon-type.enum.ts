@@ -1,5 +1,5 @@
 export enum CouponTypeEnum {
   PERCENTAGE = 'PERCENTAGE',
   FLAT = 'FLAT',
-  FREE_DELIVERY = 'FREE_DELIVERY',
+  DELIVERY_CHARGE = 'DELIVERY_CHARGE',
 } 

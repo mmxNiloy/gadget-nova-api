@@ -296,15 +296,15 @@ export class CouponService {
         'usages',
       ],
     });
-
+  
     if (!coupon) throw new BadRequestException('Coupon not found');
-
+  
     const now = new Date();
     if (coupon.startDate > now || coupon.endDate < now) {
       throw new BadRequestException('Coupon is not valid at this time');
     }
-
-    // Per-user usage
+  
+    // Per-user usage check
     let userUsage = await this.couponUsageRepository.findOne({
       where: { coupon: { id: coupon.id }, user: { id: userId } },
     });
@@ -316,11 +316,9 @@ export class CouponService {
       });
     }
     if (userUsage.usageCount >= coupon.usageLimitPerUser) {
-      throw new BadRequestException(
-        'You have reached usage limit for this coupon',
-      );
+      throw new BadRequestException('You have reached usage limit for this coupon');
     }
-
+  
     // Fetch cart
     const cart = await this.cartRepository.findOne({
       where: { user: { id: userId }, is_active: ActiveStatusEnum.ACTIVE },
@@ -332,73 +330,76 @@ export class CouponService {
         'items.product.brand',
       ],
     });
-    if (!cart || !cart.items.length)
-      throw new BadRequestException('Cart is empty');
-
+    if (!cart || !cart.items.length) throw new BadRequestException('Cart is empty');
+  
     let totalDiscount = 0;
-
-    // Check if the coupon is global (no product/category/brand restrictions)
+  
+    // If coupon is for delivery charge only
+    if (coupon.couponType === CouponTypeEnum.DELIVERY_CHARGE) {
+      if (coupon.couponValue) {
+        totalDiscount = coupon.couponValue; // flat discount on delivery charge
+        if (coupon.maximumDiscountLimit) {
+          totalDiscount = Math.min(totalDiscount, coupon.maximumDiscountLimit);
+        }
+      }
+      coupon.applyCount += 1;
+      await this.couponRepository.save(coupon);
+  
+      return {
+        totalDiscount,
+        finalTotal: null, // final product total not changed here
+        appliesTo: 'DELIVERY_CHARGE'
+      };
+    }
+  
+    // Otherwise — Product or subtotal based discount
     const isGlobal =
       !coupon.applicableProducts?.length &&
       !coupon.applicableCategories?.length &&
       !coupon.applicableSubCategories?.length &&
       !coupon.applicableBrands?.length;
-
+  
     cart.items.forEach((item) => {
       const product = item.product;
-
-      // product price × quantity
       const productTotalPrice = Number(item.price) * item.quantity;
-
-      // Check if coupon applies to this product (skip if global)
+  
       const applicable =
         isGlobal ||
         coupon.applicableProducts?.some((p) => p.id === product.id) ||
-        coupon.applicableCategories?.some(
-          (c) => c.id === product.category?.id,
-        ) ||
-        coupon.applicableSubCategories?.some(
-          (sc) => sc.id === product.subCategory?.id,
-        ) ||
+        coupon.applicableCategories?.some((c) => c.id === product.category?.id) ||
+        coupon.applicableSubCategories?.some((sc) => sc.id === product.subCategory?.id) ||
         coupon.applicableBrands?.some((b) => b.id === product.brand?.id);
-
+  
       if (applicable) {
         let discountPerItem = 0;
-
+  
         if (coupon.couponType === CouponTypeEnum.FLAT) {
           discountPerItem = coupon.couponValue * item.quantity;
-          if (coupon.maximumDiscountLimit) {
-            discountPerItem = Math.min(
-              discountPerItem,
-              coupon.maximumDiscountLimit,
-            );
-          }
         } else if (coupon.couponType === CouponTypeEnum.PERCENTAGE) {
           discountPerItem = (productTotalPrice * coupon.couponValue) / 100;
-          if (coupon.maximumDiscountLimit) {
-            discountPerItem = Math.min(
-              discountPerItem,
-              coupon.maximumDiscountLimit,
-            );
-          }
         }
-
+  
+        if (coupon.maximumDiscountLimit) {
+          discountPerItem = Math.min(discountPerItem, coupon.maximumDiscountLimit);
+        }
+  
         totalDiscount += discountPerItem;
         coupon.applyCount += 1;
       }
     });
-
-    // subtotal for the cart
+  
     const subtotal = cart.items.reduce(
       (sum, item) => sum + Number(item.price) * item.quantity,
-      0,
+      0
     );
-
+  
     const finalTotal = subtotal - totalDiscount;
-
+  
     await this.couponRepository.save(coupon);
-    return { totalDiscount, finalTotal };
+  
+    return { totalDiscount, finalTotal, appliesTo: 'PRODUCTS' };
   }
+  
 
   async redeemCoupon(userId: string, couponCode: string) {
     const coupon = await this.couponRepository.findOne({

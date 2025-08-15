@@ -23,38 +23,23 @@ export class NotificationService {
         return;
       }
 
-      const promises: Promise<any>[] = [];
-
+      // Send only email if user has email, otherwise send SMS
       if (contactInfo.hasEmail) {
-        promises.push(
-          this.mailService.sendOrderPlacedEmail(order, contactInfo.email)
-            .then(success => {
-              if (success) {
-                this.logger.log(`Order placed email sent successfully for order ${order.orderId} to ${contactInfo.email}`);
-              } else {
-                this.logger.error(`Failed to send order placed email for order ${order.orderId} to ${contactInfo.email}`);
-              }
-            })
-        );
-      }
-
-      if (contactInfo.hasPhone) {
-        const message = this.generateOrderPlacedSmsMessage(order);
-        promises.push(
-          this.smsService.sendSms(contactInfo.phone, message)
-            .then(success => {
-              if (success) {
-                this.logger.log(`Order placed SMS sent successfully for order ${order.orderId} to ${contactInfo.phone}`);
-              } else {
-                this.logger.error(`Failed to send order placed SMS for order ${order.orderId} to ${contactInfo.phone}`);
-              }
-            })
-        );
-      }
-
-      if (promises.length > 0) {
-        await Promise.allSettled(promises);
-        this.logger.log(`Order placed notifications processed for order ${order.orderId}`);
+        try {
+          await this.mailService.sendOrderPlacedEmail(order, contactInfo.email);
+          this.logger.log(`Order placed email sent successfully for order ${order.orderId} to ${contactInfo.email}`);
+        } catch (error) {
+          this.logger.error(`Failed to send order placed email for order ${order.orderId} to ${contactInfo.email}:`, error);
+        }
+      } else if (contactInfo.hasPhone) {
+        // Only send SMS if no email available
+        try {
+          const message = this.generateOrderPlacedSmsMessage(order);
+          await this.smsService.sendSms(contactInfo.phone, message);
+          this.logger.log(`Order placed SMS sent successfully for order ${order.orderId} to ${contactInfo.phone}`);
+        } catch (error) {
+          this.logger.error(`Failed to send order placed SMS for order ${order.orderId} to ${contactInfo.phone}:`, error);
+        }
       }
     } catch (error) {
       this.logger.error(`Error sending order placed notifications for order ${order.orderId}:`, error);

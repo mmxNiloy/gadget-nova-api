@@ -24,6 +24,8 @@ export interface OrderEmailContext {
   // shippingMethod: string;
   paymentMethod: string;
   total: string;
+  couponCode?: string;
+  couponDiscount?: string;
   billingAddress: {
     name: string;
     street: string;
@@ -57,6 +59,8 @@ export interface StatusChangeEmailContext {
   shipping: string;
   paymentMethod: string;
   total: string;
+  couponCode?: string;
+  couponDiscount?: string;
 }
 
 @Injectable()
@@ -439,6 +443,12 @@ export class MailService {
       country: 'Bangladesh',
     };
 
+    // Add coupon information if available
+    const couponCode = order.couponCode || undefined;
+    const couponDiscount = order.couponDiscountValue 
+      ? `৳${parseFloat(order.couponDiscountValue.toString()).toFixed(2)}`
+      : undefined;
+
     return {
       customerName,
       orderNumber: order.orderId,
@@ -449,6 +459,8 @@ export class MailService {
       // shippingMethod: 'Fast Shipping',
       paymentMethod,
       total,
+      couponCode,
+      couponDiscount,
       billingAddress,
       shippingAddress,
     };
@@ -496,6 +508,12 @@ export class MailService {
     const paymentMethod =
       order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
 
+    // Add coupon information if available
+    const couponCode = order.couponCode || undefined;
+    const couponDiscount = order.couponDiscountValue 
+      ? `৳${parseFloat(order.couponDiscountValue.toString()).toFixed(2)}`
+      : undefined;
+
     return {
       customerName,
       orderNumber: order.orderId,
@@ -505,6 +523,8 @@ export class MailService {
       shipping,
       paymentMethod,
       total,
+      couponCode,
+      couponDiscount,
     };
   }
 
@@ -563,6 +583,21 @@ export class MailService {
       default:
         return this.generateOrderPlacedHtml(context as OrderEmailContext);
     }
+  }
+
+  /**
+   * Helper function to generate coupon row HTML if coupon exists
+   */
+  private generateCouponRow(context: OrderEmailContext | StatusChangeEmailContext): string {
+    if (context.couponCode && context.couponDiscount) {
+      return `
+                <tr class="summary-row">
+                  <td colspan="2">Coupon (${context.couponCode})</td>
+                  <td>-${context.couponDiscount}</td>
+                </tr>
+      `;
+    }
+    return '';
   }
 
   private generateOrderPlacedHtml(context: OrderEmailContext): string {
@@ -638,6 +673,7 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
+                ${this.generateCouponRow(context)}
                 <tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
@@ -744,7 +780,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -840,7 +877,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -932,7 +970,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1024,7 +1063,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1118,7 +1158,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1210,7 +1251,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1302,7 +1344,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
@@ -1394,7 +1437,8 @@ export class MailService {
                   <td colspan="2">Shipping</td>
                   <td>${context.shipping}</td>
                 </tr>
-                <tr class="summary-row">
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
                   <td colspan="2">Payment method</td>
                   <td>${context.paymentMethod}</td>
                 </tr>
