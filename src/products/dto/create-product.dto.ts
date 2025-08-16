@@ -99,34 +99,42 @@ export class CreateProductDto {
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === '1')
   isTrending: boolean;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === '1')
   isFeatured: boolean;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === '1')
   isBestSeller: boolean;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === '1')
   isInStock: boolean;
 
   @ApiPropertyOptional({ default: new Date().toISOString() })
   @IsOptional()
+  @Transform(({ value }) => new Date(value))
   trendingStartDate: Date;
 
   @ApiPropertyOptional({ default: new Date().toISOString() })
   @IsOptional()
+  @Transform(({ value }) => new Date(value))
   trendingEndDate: Date;
 
   @ApiPropertyOptional({ default: new Date().toISOString() })
   @IsOptional()
+  @Transform(({ value }) => new Date(value))
   featuredStartDate: Date;
 
   @ApiPropertyOptional({ default: new Date().toISOString() })
   @IsOptional()
+  @Transform(({ value }) => new Date(value))
   featuredEndDate: Date;
 
   @ApiProperty()

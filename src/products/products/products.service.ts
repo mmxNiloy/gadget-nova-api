@@ -508,8 +508,6 @@ export class ProductsService {
         ...rest
       } = updateProductDto;
 
-      console.log('Product Update DTO > Received' > updateProductDto);
-
       Object.assign(product, {
         ...rest,
         updated_by: jwtPayload.id,
