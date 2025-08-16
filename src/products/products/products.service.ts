@@ -508,6 +508,8 @@ export class ProductsService {
         ...rest
       } = updateProductDto;
 
+      console.log('Product Update DTO > Received' > updateProductDto);
+
       Object.assign(product, {
         ...rest,
         updated_by: jwtPayload.id,
@@ -557,16 +559,16 @@ export class ProductsService {
     if (!ids.length) {
       return [];
     }
-  
+
     const query = this.productRepository
       .createQueryBuilder('product')
       .where('product.is_active = :status', {
         status: ActiveStatusEnum.ACTIVE,
       })
-      .andWhere('product.id IN (:...ids)', { ids })
-      
+      .andWhere('product.id IN (:...ids)', { ids });
+
     const products = await query.getMany();
-  
+
     return products;
   }
 
@@ -574,11 +576,11 @@ export class ProductsService {
     // Fetch product with its wishlistedBy users
     const product = await this.productRepository.findOne({
       where: { id: productId },
-      relations: ['wishlistedBy'], 
+      relations: ['wishlistedBy'],
     });
-  
+
     if (!product) throw new NotFoundException('Product not found');
-  
+
     return product;
   }
 
@@ -586,11 +588,11 @@ export class ProductsService {
   //   // Fetch product with its wishlistedBy users by slug
   //   const product = await this.productRepository.findOne({
   //     where: { slug: slug },
-  //     relations: ['wishlistedBy'], 
+  //     relations: ['wishlistedBy'],
   //   });
-  
+
   //   if (!product) throw new NotFoundException('Product not found');
-  
+
   //   return product;
   // }
 }
