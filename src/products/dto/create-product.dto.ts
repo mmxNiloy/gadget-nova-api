@@ -97,32 +97,36 @@ export class CreateProductDto {
   @IsOptional()
   thresholdAMount: number;
 
-  @ApiPropertyOptional({ default: false })
+  @ApiPropertyOptional({ default: 'false' })
   @IsOptional()
+  @IsString({ message: 'Flag must be a string ' })
   @Transform(({ value }) => {
     console.log('Flag value isTrending', value);
     return value === 'true' || value === '1';
   })
   isTrending: boolean;
 
-  @ApiPropertyOptional({ default: false })
+  @ApiPropertyOptional({ default: 'false' })
   @IsOptional()
+  @IsString({ message: 'Flag must be a string ' })
   @Transform(({ value }) => {
     console.log('Flag value isFeatured', value);
     return value === 'true' || value === '1';
   })
   isFeatured: boolean;
 
-  @ApiPropertyOptional({ default: false })
+  @ApiPropertyOptional({ default: 'false' })
   @IsOptional()
+  @IsString({ message: 'Flag must be a string ' })
   @Transform(({ value }) => {
     console.log('Flag value isBestSeller', value);
     return value === 'true' || value === '1';
   })
   isBestSeller: boolean;
 
-  @ApiPropertyOptional({ default: true })
+  @ApiPropertyOptional({ default: 'true' })
   @IsOptional()
+  @IsString({ message: 'Flag must be a string ' })
   @Transform(({ value }) => {
     console.log('Flag value isInStock', value);
     return value === 'true' || value === '1';
