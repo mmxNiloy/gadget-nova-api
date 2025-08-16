@@ -18,6 +18,7 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { RolesGuard } from 'src/common/guard/roles.guard';
 import { CartService } from './cart.service';
 import { CreateCartDto } from './dto/create-cart.dto';
+import { SyncCartDto } from './dto/sync-cart.dto';
 
 @ApiTags('Cart')
 @ApiBearerAuth('jwt')
@@ -38,6 +39,18 @@ export class CartController {
     const payload = await this.cartService.addToCart(createCartDto, jwtPayload);
     return { message: 'Product added to cart', payload };
   }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(RolesEnum.USER)
+@Post('sync-carts')
+async syncCart(
+  @Body() dto: SyncCartDto,
+  @UserPayload() jwtPayload: JwtPayloadInterface,
+) {
+  const payload = await this.cartService.syncCart(dto, jwtPayload);
+  return { message: 'Cart synced successfully', payload };
+}
+
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.USER)
