@@ -109,6 +109,26 @@ export class MailService {
     }
   }
 
+  async sendOrderOnProcessingEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): Promise<boolean> {
+    try {
+      const emailData = this.prepareOrderOnProcessingEmail(order, toEmail);
+      await this.sendEmail(emailData);
+      this.logger.log(
+        `Order on processing email sent successfully for order ${order.orderId}`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to send order on processing email for order ${order.orderId}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
   async sendOrderShippedEmail(
     order: OrderEntity,
     toEmail?: string,
@@ -273,6 +293,20 @@ export class MailService {
       to: toEmail || order.shippingInfo.email,
       subject: `Order Cancelled - #${order.orderId}`,
       template: 'order-cancelled',
+      context,
+    };
+  }
+
+  private prepareOrderOnProcessingEmail(
+    order: OrderEntity,
+    toEmail?: string,
+  ): EmailData {
+    const context = this.buildStatusChangeEmailContext(order);
+
+    return {
+      to: toEmail || order.shippingInfo.email,
+      subject: `Order On Processing - #${order.orderId}`,
+      template: 'order-on-processing',
       context,
     };
   }
@@ -589,6 +623,10 @@ export class MailService {
         );
       case 'order-pending':
         return this.generateOrderPendingHtml(
+          context as StatusChangeEmailContext,
+        );
+      case 'order-on-processing':
+        return this.generateOrderOnProcessingHtml(
           context as StatusChangeEmailContext,
         );
       default:
@@ -1466,6 +1504,101 @@ export class MailService {
             </table>
             
             <p>We're processing your order and will keep you updated on any status changes.</p>
+          </div>
+          
+          <div class="footer">
+            <p>Thanks for using gadgetnovabd.com!</p>
+            <p><a href="https://gadgetnovabd.com" class="contact-info">gadgetnovabd.com</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private generateOrderOnProcessingHtml(context: StatusChangeEmailContext): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Order On Processing</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+          .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; }
+          .header { background-color: #F92903; color: white; padding: 30px 20px; text-align: left; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .content { padding: 30px 20px; }
+          .greeting { font-size: 16px; margin-bottom: 20px; }
+          .order-info { background-color: #fff3e0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .order-info h2 { color: #F92903; margin: 0 0 10px 0; font-size: 18px; }
+          .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .order-table th, .order-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          .order-table th { background-color: #f8f9fa; font-weight: bold; }
+          .summary-row { background-color: #f8f9fa; font-weight: bold; }
+          .footer { text-align: center; padding: 20px; background-color: #f8f9fa; color: #666; }
+          .contact-info { color: #007bff; text-decoration: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Order On Processing</h1>
+          </div>
+          
+          <div class="content">
+            <div class="greeting">Hi ${context.customerName},</div>
+            
+            <p>Great news! Your order #${context.orderNumber} is now being processed by our team.</p>
+            
+            <div class="order-info">
+              <h2>[Order #${context.orderNumber}] (${context.orderDate})</h2>
+            </div>
+            
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${context.products
+                  .map(
+                    (product) => `
+                  <tr>
+                    <td>${product.name}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.price}</td>
+                  </tr>
+                `,
+                  )
+                  .join('')}
+                <tr class="summary-row">
+                  <td colspan="2">Subtotal</td>
+                  <td>${context.subtotal}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2">Shipping</td>
+                  <td>${context.shipping}</td>
+                </tr>
+                ${this.generateCouponRow(context)}
+<tr class="summary-row">
+                  <td colspan="2">Payment method</td>
+                  <td>${context.paymentMethod}</td>
+                </tr>
+                <tr class="summary-row">
+                  <td colspan="2"><strong>Total</strong></td>
+                  <td><strong>${context.total}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <p>Our team is carefully preparing your order and will ship it soon. You'll receive another notification when your order is shipped.</p>
+            
+            <p>Thank you for choosing Gadget Nova!</p>
           </div>
           
           <div class="footer">
