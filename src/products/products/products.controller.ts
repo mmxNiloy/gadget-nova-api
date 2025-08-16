@@ -160,6 +160,8 @@ export class ProductsController {
       productData.gallery = files.gallery;
     }
 
+    console.log('productData', productData);
+
     const updatedProduct = await this.productsService.update(
       id,
       productData,
