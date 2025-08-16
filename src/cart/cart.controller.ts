@@ -7,7 +7,7 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -41,16 +41,15 @@ export class CartController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles(RolesEnum.USER)
-@Post('sync-carts')
-async syncCart(
-  @Body() dto: SyncCartDto,
-  @UserPayload() jwtPayload: JwtPayloadInterface,
-) {
-  const payload = await this.cartService.syncCart(dto, jwtPayload);
-  return { message: 'Cart synced successfully', payload };
-}
-
+  @Roles(RolesEnum.USER)
+  @Post('sync-carts')
+  async syncCart(
+    @Body() dto: SyncCartDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.cartService.syncCart(dto, jwtPayload);
+    return { message: 'Cart synced successfully', payload };
+  }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.USER)
@@ -71,7 +70,11 @@ async syncCart(
     @Query('quantity') quantity: number,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    const payload = await this.cartService.updateCartItemQuantity(itemId, quantity, jwtPayload);
+    const payload = await this.cartService.updateCartItemQuantity(
+      itemId,
+      quantity,
+      jwtPayload,
+    );
     return { message: 'Cart item quantity updated', payload };
   }
 
