@@ -97,21 +97,21 @@ export class CreateProductDto {
   @IsOptional()
   thresholdAMount: number;
 
-  @ApiPropertyOptional({ default: 'false' })
+  @ApiPropertyOptional({ default: false })
   @IsOptional()
-  isTrending: string;
+  isTrending: boolean;
 
-  @ApiPropertyOptional({ default: 'false' })
+  @ApiPropertyOptional({ default: false })
   @IsOptional()
-  isFeatured: string;
+  isFeatured: boolean;
 
-  @ApiPropertyOptional({ default: 'false' })
+  @ApiPropertyOptional({ default: false })
   @IsOptional()
-  isBestSeller: string;
+  isBestSeller: boolean;
 
-  @ApiPropertyOptional({ default: 'true' })
+  @ApiPropertyOptional({ default: true })
   @IsOptional()
-  isInStock: string;
+  isInStock: boolean;
 
   @ApiPropertyOptional({ default: new Date().toISOString() })
   @IsOptional()
