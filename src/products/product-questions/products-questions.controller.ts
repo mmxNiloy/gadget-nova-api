@@ -14,7 +14,12 @@ import { ProductsQuestionsService } from './products-questions.service';
 })
 export class ProductsQuestionsController {
   constructor(private readonly productsQuestionsService: ProductsQuestionsService) {}
-
+  @Get('product/:slug')
+  async findQuestionByProductSlug(@Param('slug') slug: string) {
+    const payload = await this.productsQuestionsService.findQuestionsByProductSlug(slug);
+    return { message: 'Question details', payload };
+  }
+  
   @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -49,11 +54,6 @@ export class ProductsQuestionsController {
     return { message: 'Question details', payload };
   }
 
-  @Get('product/:slug')
-  async findQuestionByProductSlug(@Param('slug') slug: string) {
-    const payload = await this.productsQuestionsService.findQuestionsByProductSlug(slug);
-    return { message: 'Question details', payload };
-  }
 
   @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard)
