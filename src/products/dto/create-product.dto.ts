@@ -99,22 +99,34 @@ export class CreateProductDto {
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === '1')
+  @Transform(({ value }) => {
+    console.log('Flag value isTrending', value);
+    return value === 'true' || value === '1';
+  })
   isTrending: boolean;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === '1')
+  @Transform(({ value }) => {
+    console.log('Flag value isFeatured', value);
+    return value === 'true' || value === '1';
+  })
   isFeatured: boolean;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === '1')
+  @Transform(({ value }) => {
+    console.log('Flag value isBestSeller', value);
+    return value === 'true' || value === '1';
+  })
   isBestSeller: boolean;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === '1')
+  @Transform(({ value }) => {
+    console.log('Flag value isInStock', value);
+    return value === 'true' || value === '1';
+  })
   isInStock: boolean;
 
   @ApiPropertyOptional({ default: new Date().toISOString() })
