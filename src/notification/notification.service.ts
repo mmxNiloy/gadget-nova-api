@@ -78,6 +78,38 @@ export class NotificationService {
     }
   }
 
+  async sendOrderOnProcessingNotification(order: OrderEntity): Promise<void> {
+    try {
+      const contactInfo = this.getContactInfo(order);
+      
+      if (!contactInfo.hasEmail && !contactInfo.hasPhone) {
+        this.logger.warn(`No contact information available for order ${order.orderId}`);
+        return;
+      }
+
+      // Send only email if user has email, otherwise send SMS
+      if (contactInfo.hasEmail) {
+        try {
+          await this.mailService.sendOrderOnProcessingEmail(order, contactInfo.email);
+          this.logger.log(`Order on processing email sent successfully for order ${order.orderId} to ${contactInfo.email}`);
+        } catch (error) {
+          this.logger.error(`Failed to send order on processing email for order ${order.orderId} to ${contactInfo.email}:`, error);
+        }
+      } else if (contactInfo.hasPhone) {
+        // Only send SMS if no email available
+        try {
+          const message = this.generateOrderOnProcessingSmsMessage(order);
+          await this.smsService.sendSms(contactInfo.phone, message);
+          this.logger.log(`Order on processing SMS sent successfully for order ${order.orderId} to ${contactInfo.phone}`);
+        } catch (error) {
+          this.logger.error(`Failed to send order on processing SMS for order ${order.orderId} to ${contactInfo.phone}:`, error);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error sending order on processing notifications for order ${order.orderId}:`, error);
+    }
+  }
+
   async sendOrderShippedNotification(order: OrderEntity): Promise<void> {
     try {
       const contactInfo = this.getContactInfo(order);
@@ -352,6 +384,14 @@ export class NotificationService {
     const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
     
     return `Hi ${customerName}, your order #${orderNumber} has been cancelled. Payment was: ${paymentMethod}. Contact us for any questions. - Gadget Nova`;
+  }
+
+  private generateOrderOnProcessingSmsMessage(order: OrderEntity): string {
+    const customerName = order.shippingInfo.first_name;
+    const orderNumber = order.orderId;
+    const paymentMethod = order.payments?.[0]?.paymentMethod || 'Cash on Delivery';
+    
+    return `Hi ${customerName}, your order #${orderNumber} is now on processing. Payment was: ${paymentMethod}. We'll ship it soon! - Gadget Nova`;
   }
 
   private generateOrderShippedSmsMessage(order: OrderEntity): string {

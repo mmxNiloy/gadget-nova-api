@@ -498,6 +498,8 @@ export class OrderService {
     try {
       // Map status to notification method
       const statusNotificationMap = {
+        [OrderStatus.ON_PROCESSING]:
+          this.notificationService.sendOrderOnProcessingNotification,
         [OrderStatus.CANCELLED]:
           this.notificationService.sendOrderCancelledNotification,
         [OrderStatus.CONFIRMED]:
