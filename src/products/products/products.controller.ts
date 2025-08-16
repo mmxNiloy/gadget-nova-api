@@ -148,8 +148,9 @@ export class ProductsController {
       thumbnail?: Express.Multer.File[];
       gallery?: Express.Multer.File[];
     },
-    @Body() updateProductDto: UpdateProductDto,
+    @Body() updateProductDto: any,
   ) {
+    console.log('Data received', updateProductDto);
     const productData = { ...updateProductDto };
 
     if (files.thumbnail?.length) {
@@ -159,8 +160,6 @@ export class ProductsController {
     if (files.gallery?.length) {
       productData.gallery = files.gallery;
     }
-
-    console.log('productData', productData);
 
     const updatedProduct = await this.productsService.update(
       id,
