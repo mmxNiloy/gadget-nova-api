@@ -148,9 +148,8 @@ export class ProductsController {
       thumbnail?: Express.Multer.File[];
       gallery?: Express.Multer.File[];
     },
-    @Body() updateProductDto: any,
+    @Body() updateProductDto: UpdateProductDto,
   ) {
-    console.log('Data received', updateProductDto);
     const productData = { ...updateProductDto };
 
     if (files.thumbnail?.length) {
