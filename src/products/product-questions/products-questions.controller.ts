@@ -48,7 +48,7 @@ export class ProductsQuestionsController {
     return { message: 'Question details', payload };
   }
 
-  @Get('product/:id')
+  @Get('byProductId/:id')
   async findQuestionByProduct(@Param('id') id: string) {
     const payload = await this.productsQuestionsService.findQuestionsByProduct(id);
     return { message: 'Question details', payload };

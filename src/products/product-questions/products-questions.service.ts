@@ -87,6 +87,8 @@ export class ProductsQuestionsService {
   }
 
   async findQuestionsByProduct(id: string): Promise<ProductQuestionsEntity[]> {
+    console.log("reachedddddddddddddddddddd");
+    
     const questions = await this.productQuestionRepository.find({
       where: { product: { id: id }, is_active: ActiveStatusEnum.ACTIVE },
     });

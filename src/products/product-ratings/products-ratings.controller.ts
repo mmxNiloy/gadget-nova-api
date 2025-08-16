@@ -78,7 +78,7 @@ export class ProductsRatingsController {
     return { message: 'Rating details', payload };
   }
 
-  @Get('product/:id')
+  @Get('byProductId/:id')
   async findRatingByProduct(@Param('id') id: string) {
     const payload = await this.productsRatingsService.findRatingsByProduct(id);
     return { message: 'Rating details', payload };
@@ -98,7 +98,7 @@ export class ProductsRatingsController {
 
   @ApiBearerAuth('jwt')
   @UseGuards(JwtAuthGuard)
-  @Get('product/:id/user-rating')
+  @Get('byProductId/:id/user-rating')
   async getProductRatingWithUserInfo(
     @Param('id') productId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
