@@ -12,6 +12,7 @@ import { LessThan, Repository } from 'typeorm';
 import { CreateCartDto } from './dto/create-cart.dto';
 import { CartEntity } from './entities/cart.entity';
 import { CartItemEntity } from './entities/cart-item.entity';
+import { SyncCartDto } from './dto/sync-cart.dto';
 
 @Injectable()
 export class CartService {
@@ -82,6 +83,64 @@ export class CartService {
       relations: ['items', 'items.product'],
     });
   }
+
+  async syncCart(dto: SyncCartDto, jwt: JwtPayloadInterface): Promise<CartEntity> {
+    let cart = await this.cartRepo.findOne({
+      where: {
+        user: { id: jwt.id },
+        is_active: ActiveStatusEnum.ACTIVE,
+      },
+      relations: ['items', 'items.product'],
+    });
+  
+    // create new cart if not exists
+    if (!cart) {
+      cart = this.cartRepo.create({
+        user: { id: jwt.id },
+        is_active: ActiveStatusEnum.ACTIVE,
+        created_by: jwt.id,
+        created_user_name: jwt.userName,
+      });
+      cart = await this.cartRepo.save(cart);
+    }
+
+    if (!cart.items) {
+      cart.items = [];
+    }
+  
+    for (const item of dto.items) {
+      const product = await this.productRepo.findOne({ where: { id: item.product_id } });
+      if (!product || product.stockAmount < item.quantity) {
+        throw new BadRequestException(`Product ${item.product_id} unavailable`);
+      }
+  
+      let cartItem = cart.items.find(ci => ci.product.id === product.id);
+  
+      if (cartItem) {
+        cartItem.quantity += item.quantity;
+      } else {
+        cartItem = this.cartItemRepo.create({
+          cart,
+          product,
+          quantity: item.quantity,
+          price: product.discountPrice,
+        });
+        cart.items.push(cartItem);
+      }
+  
+      // adjust stock/hold
+      product.stockAmount -= item.quantity;
+      product.holdAmount += item.quantity;
+      await this.productRepo.save(product);
+      await this.cartItemRepo.save(cartItem);
+    }
+  
+    return this.cartRepo.findOne({
+      where: { id: cart.id },
+      relations: ['items', 'items.product'],
+    });
+  }
+  
 
   async removeFromCartItem(itemId: string, quantity?: number): Promise<void> {
     const item = await this.cartItemRepo.findOne({
