@@ -98,7 +98,7 @@ export class CreateProductDto {
   @IsOptional()
   thresholdAMount: number;
 
-  // @ApiPropertyOptional({ default: false })
+  @ApiPropertyOptional({ default: false })
   @IsOptional()
   @Transform(({ value }) => value === 'true')
   isTrending: any;
