@@ -100,35 +100,23 @@ export class CreateProductDto {
 
   // @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @Transform(({ value }) => {
-    console.log('Is Trending', { value, type: typeof value });
-    return value === 'true';
-  })
+  @Transform(({ value }) => value === 'true')
   isTrending: any;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @Transform(({ value }) =>
-    value === 'true' ? true : value === 'false' ? false : value,
-  )
-  @IsBoolean()
-  isFeatured: boolean;
+  @Transform(({ value }) => value === 'true')
+  isFeatured: any;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @Transform(({ value }) =>
-    value === 'true' ? true : value === 'false' ? false : value,
-  )
-  @IsBoolean()
-  isBestSeller: boolean;
+  @Transform(({ value }) => value === 'true')
+  isBestSeller: any;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
-  @Transform(({ value }) =>
-    value === 'true' ? true : value === 'false' ? false : value,
-  )
-  @IsBoolean()
-  isInStock: boolean;
+  @Transform(({ value }) => value === 'true')
+  isInStock: any;
 
   @ApiPropertyOptional({ default: new Date().toISOString() })
   @IsOptional()
