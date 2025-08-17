@@ -100,12 +100,11 @@ export class CreateProductDto {
 
   // @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @IsBoolean()
   @Transform(({ value }) => {
     console.log('Is Trending', { value, type: typeof value });
     return value === 'true';
   })
-  isTrending: boolean;
+  isTrending: any;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
