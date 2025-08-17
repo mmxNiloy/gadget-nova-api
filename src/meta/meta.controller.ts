@@ -41,7 +41,7 @@ export class MetaController {
     required: false,
     type: Number,
   })
-  @Get('product-slugs')
+  @Get('product-meta')
   async getAllProductSlugs(
     @Query('page') page: number,
     @Query('limit') limit: number,
