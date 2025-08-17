@@ -12,11 +12,21 @@ export class MetaController {
 
   @Get('product-slugs')
   async getAllProductSlugs() {
-    return await this.metaService.getAllProductSlugs();
+    const payload = await this.metaService.getAllProductSlugs();
+
+    return {
+      message: 'All product slugs list',
+      payload,
+    };
   }
 
   @Get('category-slugs')
   async getAllBaseCategorySlugs() {
-    return await this.metaService.getAllBaseCategorySlugs();
+    const payload = await this.metaService.getAllBaseCategorySlugs();
+
+    return {
+      message: 'All base category slugs list',
+      payload,
+    };
   }
 }
