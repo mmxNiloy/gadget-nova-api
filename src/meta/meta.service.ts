@@ -34,18 +34,17 @@ export class MetaService {
   }: {
     page: number;
     limit: number;
-  }): Promise<string[]> {
+  }): Promise<ProductEntity[]> {
     const products = await this.productRepository
       .createQueryBuilder('product')
       .where('product.is_active = :status', {
         status: ActiveStatusEnum.ACTIVE,
       })
-      .select(['product.slug'])
       .skip((page - 1) * limit)
       .take(limit)
       .getMany();
 
-    return products.map((product) => product.slug);
+    return products;
   }
 
   async getAllBaseCategorySlugs(): Promise<string[]> {
