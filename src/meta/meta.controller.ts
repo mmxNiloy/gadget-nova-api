@@ -1,7 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiProperty, ApiTags } from '@nestjs/swagger';
 import { MetaService } from './meta.service';
-import { MetaPaginationDTO } from './dto/meta-pagination.dto';
 
 @ApiTags('Meta')
 @Controller({
@@ -11,9 +10,16 @@ import { MetaPaginationDTO } from './dto/meta-pagination.dto';
 export class MetaController {
   constructor(private readonly metaService: MetaService) {}
 
+  @ApiProperty({
+    description: 'data limit',
+    minimum: 1,
+    default: 10,
+    required: false,
+    type: Number,
+  })
   @Get('product-count')
-  async countProducts(@Query() query: MetaPaginationDTO) {
-    const payload = await this.metaService.countProducts(query);
+  async countProducts(@Query('limit') limit: number) {
+    const payload = await this.metaService.countProducts(limit);
 
     return {
       message: 'Product count and page count',
