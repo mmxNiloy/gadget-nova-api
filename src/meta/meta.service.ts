@@ -28,10 +28,18 @@ export class MetaService {
     };
   }
 
-  async getAllProductSlugs(): Promise<string[]> {
+  async getAllProductSlugs({
+    page,
+    limit,
+  }: {
+    page: number;
+    limit: number;
+  }): Promise<string[]> {
     const products = await this.productRepository.find({
       select: ['slug'],
       where: { is_active: ActiveStatusEnum.ACTIVE },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
     return products.map((product) => product.slug);
