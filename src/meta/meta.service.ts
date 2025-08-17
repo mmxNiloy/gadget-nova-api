@@ -5,6 +5,7 @@ import { CategoryEntity } from 'src/category/entities/category.entity';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { ProductEntity } from 'src/products/entities/product.entity';
 import { Repository } from 'typeorm';
+import { MetaPaginationDTO } from './dto/meta-pagination.dto';
 
 @Injectable()
 export class MetaService {
@@ -16,6 +17,17 @@ export class MetaService {
     @InjectRepository(BrandEntity)
     private readonly brandRepository: Repository<BrandEntity>,
   ) {}
+
+  async countProducts(query: MetaPaginationDTO) {
+    const totalProducts = await this.productRepository.count({
+      where: { is_active: ActiveStatusEnum.ACTIVE },
+    });
+
+    return {
+      total: totalProducts,
+      pageCount: Math.ceil(totalProducts / query.limit),
+    };
+  }
 
   async getAllProductSlugs(): Promise<string[]> {
     const products = await this.productRepository.find({
