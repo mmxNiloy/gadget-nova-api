@@ -1,7 +1,21 @@
-import { PickType } from '@nestjs/swagger';
-import { PaginationDTO } from 'src/common/dtos/pagination/pagination.dto';
+import { ApiProperty } from '@nestjs/swagger';
 
-export class MetaPaginationDTO extends PickType(PaginationDTO, [
-  'limit',
-  'page',
-]) {}
+export class MetaPaginationDTO {
+  @ApiProperty({
+    description: 'page number',
+    minimum: 1,
+    default: 1,
+    required: false,
+    type: Number,
+  })
+  page: number;
+
+  @ApiProperty({
+    description: 'data limit',
+    minimum: 1,
+    default: 10,
+    required: false,
+    type: Number,
+  })
+  limit: number;
+}
