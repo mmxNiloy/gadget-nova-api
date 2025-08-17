@@ -35,12 +35,15 @@ export class MetaService {
     page: number;
     limit: number;
   }): Promise<string[]> {
-    const products = await this.productRepository.find({
-      select: ['slug'],
-      where: { is_active: ActiveStatusEnum.ACTIVE },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const products = await this.productRepository
+      .createQueryBuilder('product')
+      .where('product.is_active = :status', {
+        status: ActiveStatusEnum.ACTIVE,
+      })
+      .select(['product.slug'])
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
 
     return products.map((product) => product.slug);
   }
