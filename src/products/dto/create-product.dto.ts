@@ -3,7 +3,6 @@ import { Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
-  IsBooleanString,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -98,24 +97,36 @@ export class CreateProductDto {
   @IsOptional()
   thresholdAMount: number;
 
-  @ApiPropertyOptional({ default: 'false' })
+  @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @IsBooleanString({ message: 'isTrending must be a boolean string' })
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
   isTrending: boolean;
 
-  @ApiPropertyOptional({ default: 'false' })
+  @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @IsBooleanString({ message: 'isFeatured must be a boolean string' })
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
   isFeatured: boolean;
 
-  @ApiPropertyOptional({ default: 'false' })
+  @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @IsBooleanString({ message: 'isBestSeller must be a boolean string' })
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
   isBestSeller: boolean;
 
-  @ApiPropertyOptional({ default: 'true' })
+  @ApiPropertyOptional({ default: true })
   @IsOptional()
-  @IsBooleanString({ message: 'isInStock must be a boolean string' })
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
   isInStock: boolean;
 
   @ApiPropertyOptional({ default: new Date().toISOString() })
