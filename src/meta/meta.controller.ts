@@ -27,9 +27,29 @@ export class MetaController {
     };
   }
 
+  @ApiProperty({
+    description: 'Current page index',
+    minimum: 1,
+    default: 1,
+    required: false,
+    type: Number,
+  })
+  @ApiProperty({
+    description: 'data limit',
+    minimum: 1,
+    default: 10,
+    required: false,
+    type: Number,
+  })
   @Get('product-slugs')
-  async getAllProductSlugs() {
-    const payload = await this.metaService.getAllProductSlugs();
+  async getAllProductSlugs(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+  ) {
+    const payload = await this.metaService.getAllProductSlugs({
+      page,
+      limit,
+    });
 
     return {
       message: 'All product slugs list',
