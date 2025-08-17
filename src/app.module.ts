@@ -23,6 +23,7 @@ import { MailModule } from './mail/mail.module';
 import { NotificationModule } from './notification/notification.module';
 import { CouponModule } from './coupon/coupon.module';
 import { WishlistModule } from './wishlist/wishlist.module';
+import { MetaModule } from './meta/meta.module';
 
 @Module({
   imports: [
@@ -64,7 +65,8 @@ import { WishlistModule } from './wishlist/wishlist.module';
     MailModule,
     NotificationModule,
     CouponModule,
-    WishlistModule
+    WishlistModule,
+    MetaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

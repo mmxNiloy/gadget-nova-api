@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -10,7 +11,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  MaxLength
+  MaxLength,
 } from 'class-validator';
 import { ApiQueryPaginationBaseDTO } from 'src/common/dtos/pagination/api-query-pagination-base.dto';
 import { Bool } from 'src/common/enums/bool.enum';
@@ -99,19 +100,23 @@ export class CreateProductDto {
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  isTrending: boolean;
+  @Transform(({ value }) => value === 'true')
+  isTrending: any;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  isFeatured: boolean;
+  @Transform(({ value }) => value === 'true')
+  isFeatured: any;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  isBestSeller: boolean;
+  @Transform(({ value }) => value === 'true')
+  isBestSeller: any;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
-  isInStock: boolean;
+  @Transform(({ value }) => value === 'true')
+  isInStock: any;
 
   @ApiPropertyOptional({ default: new Date().toISOString() })
   @IsOptional()
@@ -147,7 +152,10 @@ export class CreateProductDto {
   })
   @ApiProperty({ type: [String], example: ['uuid1', 'uuid2'] })
   @IsNotEmpty({ message: 'attribute value IDs must be defined' })
-  @IsUUID('all', { each: true, message: 'attribute value IDs must be an array of UUIDs' })
+  @IsUUID('all', {
+    each: true,
+    message: 'attribute value IDs must be an array of UUIDs',
+  })
   attribute_value_ids: string[];
 
   @ApiProperty()
@@ -179,7 +187,7 @@ export class ProductSearchDto extends ApiQueryPaginationBaseDTO {
   @IsOptional()
   @IsString()
   title: string;
-  
+
   @ApiProperty({
     default: 'P12345',
     required: false,
@@ -188,6 +196,20 @@ export class ProductSearchDto extends ApiQueryPaginationBaseDTO {
   @IsOptional()
   @IsString()
   productCode: string;
+
+  @ApiPropertyOptional({ type: String, description: 'Parent category slug' })
+  @IsOptional()
+  category: string; // Parent category Slug
+
+  @ApiPropertyOptional({ type: [String], description: 'Subcategory slugs' })
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : value.split(',')))
+  subcategories: string[];
+
+  @ApiPropertyOptional({ type: [String], description: 'Brand slugs' })
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : value.split(',')))
+  brands: string[];
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
@@ -231,39 +253,55 @@ export class ProductSearchDto extends ApiQueryPaginationBaseDTO {
   @Transform(({ value }) => (value === '1' || value === 1 ? Bool.YES : Bool.NO))
   isInStock?: Bool;
 
-  @ApiPropertyOptional({ type: String, format: 'date', description: 'Trending start date' })
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date',
+    description: 'Trending start date',
+  })
   @IsOptional()
   @IsString()
   trendingStartDate?: string;
 
-  @ApiPropertyOptional({ type: String, format: 'date', description: 'Trending end date' })
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date',
+    description: 'Trending end date',
+  })
   @IsOptional()
   @IsString()
   trendingEndDate?: string;
 
-  @ApiPropertyOptional({ type: String, format: 'date', description: 'Featured start date' })
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date',
+    description: 'Featured start date',
+  })
   @IsOptional()
   @IsString()
   featuredStartDate?: string;
 
-  @ApiPropertyOptional({ type: String, format: 'date', description: 'Featured end date' })
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date',
+    description: 'Featured end date',
+  })
   @IsOptional()
   @IsString()
   featuredEndDate?: string;
 
-  @ApiPropertyOptional({ 
-    type: Number, 
+  @ApiPropertyOptional({
+    type: Number,
     description: 'Minimum price filter',
-    example: 1000
+    example: 1000,
   })
   @IsOptional()
   @IsNumber({}, { message: 'Min price must be a number' })
   minPrice?: number;
 
-  @ApiPropertyOptional({ 
-    type: Number, 
+  @ApiPropertyOptional({
+    type: Number,
     description: 'Maximum price filter',
-    example: 50000
+    example: 50000,
   })
   @IsOptional()
   @IsNumber({}, { message: 'Max price must be a number' })
