@@ -13,7 +13,11 @@ import { Bool } from 'src/common/enums/bool.enum';
 import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
 import { S3Service } from 'src/s3/s3.service';
 import { Repository } from 'typeorm';
-import { CreateProductDto, ProductSearchDto } from '../dto/create-product.dto';
+import {
+  CreateProductDto,
+  ProductsByIDListQueryDTO,
+  ProductSearchDto,
+} from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductAttributeService } from '../product-attribute/product-attribute.service';
@@ -374,6 +378,44 @@ export class ProductsService {
     } catch (error) {
       console.log(error);
 
+      throw new BadRequestException({
+        message: 'Error fetching products',
+        details: error.message,
+      });
+    }
+  }
+
+  // Get specific products
+  // Used for cached carts
+  // Intended For anonymous users
+  async getProductsByIDList(query: ProductsByIDListQueryDTO) {
+    try {
+      const { ids } = query;
+
+      const products = await this.productRepository
+        .createQueryBuilder('product')
+        .where('product.is_active = :status', {
+          status: ActiveStatusEnum.ACTIVE,
+        })
+        .andWhere('product.id IN (:...product_ids)', { product_ids: ids })
+        .leftJoinAndSelect('product.category', 'category')
+        .leftJoinAndSelect('product.subCategory', 'subCategory')
+        .leftJoinAndSelect('product.brand', 'brand')
+        .leftJoinAndSelect('product.questions', 'questions')
+        .leftJoinAndSelect('questions.answer', 'answer')
+        .leftJoinAndSelect('product.ratings', 'ratings')
+        .leftJoinAndSelect(
+          'product.promotionalDiscounts',
+          'promotionalDiscounts',
+        )
+        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+        .leftJoinAndSelect('productAttributes.attribute', 'attribute')
+        .getMany();
+
+      return products;
+    } catch (error) {
+      console.log(error);
       throw new BadRequestException({
         message: 'Error fetching products',
         details: error.message,
