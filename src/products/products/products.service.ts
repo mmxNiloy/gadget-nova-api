@@ -392,30 +392,37 @@ export class ProductsService {
     try {
       const { ids } = query;
 
-      const products = await this.productRepository
+      const idSet = Array.from(new Set(ids));
+
+      console.log(
+        '[GET /products/id/list] > [Products Service] Product By ID Set >',
+        idSet,
+      );
+
+      const products = this.productRepository
         .createQueryBuilder('product')
         .where('product.is_active = :status', {
           status: ActiveStatusEnum.ACTIVE,
         })
-        .andWhere('product.id IN (:...product_ids)', { product_ids: ids })
+        .andWhere('product.id IN (:...product_ids)', { product_ids: idSet })
         .leftJoinAndSelect('product.category', 'category')
         .leftJoinAndSelect('product.subCategory', 'subCategory')
         .leftJoinAndSelect('product.brand', 'brand')
         .leftJoinAndSelect('product.questions', 'questions')
         .leftJoinAndSelect('questions.answer', 'answer')
         .leftJoinAndSelect('product.ratings', 'ratings')
+        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
         .leftJoinAndSelect(
           'product.promotionalDiscounts',
           'promotionalDiscounts',
         )
-        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
-        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
-        .leftJoinAndSelect('productAttributes.attribute', 'attribute')
         .getMany();
 
       return products;
     } catch (error) {
-      console.log(error);
+      console.log('Failed to fetch products', error);
       throw new BadRequestException({
         message: 'Error fetching products',
         details: error.message,
