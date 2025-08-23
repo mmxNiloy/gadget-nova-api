@@ -27,7 +27,11 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { RolesGuard } from 'src/common/guard/roles.guard';
-import { CreateProductDto, ProductSearchDto } from '../dto/create-product.dto';
+import {
+  CreateProductDto,
+  ProductsByIDListQueryDTO,
+  ProductSearchDto,
+} from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductsService } from './products.service';
 import { PaginationDecorator } from 'src/common/decorators/pagination.decorator';
@@ -108,6 +112,18 @@ export class ProductsController {
         limit: pagination.limit,
         totalPages: Math.ceil(Number(total) / pagination.limit),
       },
+      error: false,
+    };
+  }
+
+  @Get('id/list')
+  async getProductsByIDList(@Query() idListDTO: ProductsByIDListQueryDTO) {
+    const payload = await this.productsService.getProductsByIDList(idListDTO);
+
+    return {
+      message: 'Product list by id list',
+      payload,
+      statusCode: 200,
       error: false,
     };
   }

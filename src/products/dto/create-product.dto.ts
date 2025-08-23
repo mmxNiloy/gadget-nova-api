@@ -307,3 +307,19 @@ export class ProductSearchDto extends ApiQueryPaginationBaseDTO {
   @IsNumber({}, { message: 'Max price must be a number' })
   maxPrice?: number;
 }
+
+export class ProductsByIDListQueryDTO {
+  @Transform(({ value }) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') return value.split(',');
+    return [];
+  })
+  @ApiProperty({ type: [String], example: ['uuid1', 'uuid2'] })
+  @IsNotEmpty({ message: 'Product IDs must be defined' })
+  @IsUUID('all', {
+    each: true,
+    message: 'Product IDs must be an array of UUIDs',
+  })
+  ids: string[];
+}
