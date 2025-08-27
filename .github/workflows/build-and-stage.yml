@@ -28,7 +28,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/mmxniloy/gadget-nova-backend:latest
+          tags: ghcr.io/mmxniloy/gadget-nova-backend:stage
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -40,4 +40,4 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: sudo -S ~/redeploy.sh
+          script: sudo -S ~/restage.sh
