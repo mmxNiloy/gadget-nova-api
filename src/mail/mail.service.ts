@@ -94,7 +94,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderCancelledEmail(order, toEmail);
-      await this.sendEmail(emailData, false);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order cancelled email sent successfully for order ${order.orderId}`,
       );
@@ -114,7 +114,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderOnProcessingEmail(order, toEmail);
-      await this.sendEmail(emailData, false);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order on processing email sent successfully for order ${order.orderId}`,
       );
@@ -134,7 +134,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderShippedEmail(order, toEmail);
-      await this.sendEmail(emailData, false);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order shipped email sent successfully for order ${order.orderId}`,
       );
@@ -154,7 +154,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderConfirmedEmail(order, toEmail);
-      await this.sendEmail(emailData, false);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order confirmed email sent successfully for order ${order.orderId}`,
       );
@@ -174,7 +174,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderOnHoldEmail(order, toEmail);
-      await this.sendEmail(emailData, false);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order on hold email sent successfully for order ${order.orderId}`,
       );
@@ -194,7 +194,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderDeliveredEmail(order, toEmail);
-      await this.sendEmail(emailData, false);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order delivered email sent successfully for order ${order.orderId}`,
       );
@@ -214,7 +214,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderPaidEmail(order, toEmail);
-      await this.sendEmail(emailData, false);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order paid email sent successfully for order ${order.orderId}`,
       );
@@ -254,7 +254,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderPendingEmail(order, toEmail);
-      await this.sendEmail(emailData, false);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order pending email sent successfully for order ${order.orderId}`,
       );
