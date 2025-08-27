@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { OrderEntity } from '../order/entities/order.entity';
-import { OrderStatus } from '../common/enums/order-status.enum';
 
 export interface EmailData {
   to: string;
@@ -95,7 +94,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderCancelledEmail(order, toEmail);
-      await this.sendEmail(emailData);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order cancelled email sent successfully for order ${order.orderId}`,
       );
@@ -115,7 +114,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderOnProcessingEmail(order, toEmail);
-      await this.sendEmail(emailData);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order on processing email sent successfully for order ${order.orderId}`,
       );
@@ -135,7 +134,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderShippedEmail(order, toEmail);
-      await this.sendEmail(emailData);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order shipped email sent successfully for order ${order.orderId}`,
       );
@@ -155,7 +154,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderConfirmedEmail(order, toEmail);
-      await this.sendEmail(emailData);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order confirmed email sent successfully for order ${order.orderId}`,
       );
@@ -175,7 +174,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderOnHoldEmail(order, toEmail);
-      await this.sendEmail(emailData);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order on hold email sent successfully for order ${order.orderId}`,
       );
@@ -195,7 +194,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderDeliveredEmail(order, toEmail);
-      await this.sendEmail(emailData);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order delivered email sent successfully for order ${order.orderId}`,
       );
@@ -215,7 +214,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderPaidEmail(order, toEmail);
-      await this.sendEmail(emailData);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order paid email sent successfully for order ${order.orderId}`,
       );
@@ -255,7 +254,7 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const emailData = this.prepareOrderPendingEmail(order, toEmail);
-      await this.sendEmail(emailData);
+      await this.sendEmail(emailData, true);
       this.logger.log(
         `Order pending email sent successfully for order ${order.orderId}`,
       );
@@ -461,7 +460,7 @@ export class MailService {
 
     // Add coupon information if available
     const couponCode = order.couponCode || undefined;
-    const couponDiscount = order.couponDiscountValue 
+    const couponDiscount = order.couponDiscountValue
       ? `৳${parseFloat(order.couponDiscountValue.toString()).toFixed(2)}`
       : undefined;
 
@@ -555,7 +554,7 @@ export class MailService {
 
     // Add coupon information if available
     const couponCode = order.couponCode || undefined;
-    const couponDiscount = order.couponDiscountValue 
+    const couponDiscount = order.couponDiscountValue
       ? `৳${parseFloat(order.couponDiscountValue.toString()).toFixed(2)}`
       : undefined;
 
@@ -573,7 +572,10 @@ export class MailService {
     };
   }
 
-  private async sendEmail(emailData: EmailData): Promise<void> {
+  private async sendEmail(
+    emailData: EmailData,
+    skipBcc: boolean = false,
+  ): Promise<void> {
     const { to, subject, template, context } = emailData;
 
     // For now, we'll use a simple HTML template
@@ -583,7 +585,7 @@ export class MailService {
     await this.mailerService.sendMail({
       to,
       subject,
-      bcc: ['gadgetnova.bd@gmail.com'],
+      bcc: skipBcc ? [] : ['gadgetnova.bd@gmail.com'],
       html: htmlContent,
     });
   }
@@ -637,12 +639,14 @@ export class MailService {
   /**
    * Helper function to generate coupon row HTML if coupon exists
    */
-  private generateCouponRow(context: OrderEmailContext | StatusChangeEmailContext): string {
+  private generateCouponRow(
+    context: OrderEmailContext | StatusChangeEmailContext,
+  ): string {
     console.log('Generating coupon row with context:', {
       couponCode: context.couponCode,
       couponDiscount: context.couponDiscount,
     });
-    
+
     if (context.couponCode && context.couponDiscount) {
       return `
                 <tr class="summary-row">
@@ -1516,7 +1520,9 @@ export class MailService {
     `;
   }
 
-  private generateOrderOnProcessingHtml(context: StatusChangeEmailContext): string {
+  private generateOrderOnProcessingHtml(
+    context: StatusChangeEmailContext,
+  ): string {
     return `
       <!DOCTYPE html>
       <html>
@@ -1626,7 +1632,11 @@ export class MailService {
     }
   }
 
-  async sendCouponEmail(to: string, subject: string, htmlContent: string): Promise<boolean> {
+  async sendCouponEmail(
+    to: string,
+    subject: string,
+    htmlContent: string,
+  ): Promise<boolean> {
     try {
       await this.mailerService.sendMail({
         to,
@@ -1649,24 +1659,33 @@ export class MailService {
   ): Promise<boolean> {
     try {
       const subject = '🎉 Your Wishlisted Product is Now Available!';
-      const htmlContent = this.generateWishlistNotificationHtml(productSlug, productTitle);
-      
+      const htmlContent = this.generateWishlistNotificationHtml(
+        productSlug,
+        productTitle,
+      );
+
       await this.mailerService.sendMail({
         to,
         subject,
         html: htmlContent,
         bcc: ['gadgetnova.bd@gmail.com'],
       });
-      
+
       this.logger.log(`Wishlist notification email sent successfully to ${to}`);
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send wishlist notification email to ${to}:`, error);
+      this.logger.error(
+        `Failed to send wishlist notification email to ${to}:`,
+        error,
+      );
       return false;
     }
   }
 
-  private generateWishlistNotificationHtml(productSlug: string, productTitle: string): string {
+  private generateWishlistNotificationHtml(
+    productSlug: string,
+    productTitle: string,
+  ): string {
     return `
       <!DOCTYPE html>
       <html>

@@ -13,7 +13,11 @@ import { Bool } from 'src/common/enums/bool.enum';
 import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
 import { S3Service } from 'src/s3/s3.service';
 import { Repository } from 'typeorm';
-import { CreateProductDto, ProductSearchDto } from '../dto/create-product.dto';
+import {
+  CreateProductDto,
+  ProductsByIDListQueryDTO,
+  ProductSearchDto,
+} from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductAttributeService } from '../product-attribute/product-attribute.service';
@@ -220,16 +224,44 @@ export class ProductsService {
         });
       }
 
+      // Filter out products based on parent category
+      if (productSearchDto.category) {
+        query.andWhere('category.slug = :category', {
+          category: productSearchDto.category,
+        });
+      }
+
+      // Filter out products based on subcategories
+      if (productSearchDto.subcategories) {
+        const subcategories = Array.isArray(productSearchDto.subcategories)
+          ? productSearchDto.subcategories
+          : [productSearchDto.subcategories];
+
+        query.andWhere('subCategory.slug IN (:...subcategories)', {
+          subcategories,
+        });
+      }
+
+      // Filter out products based on brands
+      if (productSearchDto.brands) {
+        const brands = Array.isArray(productSearchDto.brands)
+          ? productSearchDto.brands
+          : [productSearchDto.brands];
+
+        query.andWhere('brand.slug IN (:...brands)', {
+          brands,
+        });
+      }
+
       if (productSearchDto.category_ids) {
         const categoryIds = Array.isArray(productSearchDto.category_ids)
           ? productSearchDto.category_ids
           : [productSearchDto.category_ids];
-      
+
         query.andWhere('category.id IN (:...categoryIds)', {
           categoryIds,
         });
       }
-      
 
       if (productSearchDto.brand_ids) {
         productSearchDto.brand_ids = Array.isArray(productSearchDto.brand_ids)
@@ -346,6 +378,51 @@ export class ProductsService {
     } catch (error) {
       console.log(error);
 
+      throw new BadRequestException({
+        message: 'Error fetching products',
+        details: error.message,
+      });
+    }
+  }
+
+  // Get specific products
+  // Used for cached carts
+  // Intended For anonymous users
+  async getProductsByIDList(query: ProductsByIDListQueryDTO) {
+    try {
+      const { ids } = query;
+
+      const idSet = Array.from(new Set(ids));
+
+      console.log(
+        '[GET /products/id/list] > [Products Service] Product By ID Set >',
+        idSet,
+      );
+
+      const products = this.productRepository
+        .createQueryBuilder('product')
+        .where('product.is_active = :status', {
+          status: ActiveStatusEnum.ACTIVE,
+        })
+        .andWhere('product.id IN (:...product_ids)', { product_ids: idSet })
+        .leftJoinAndSelect('product.category', 'category')
+        .leftJoinAndSelect('product.subCategory', 'subCategory')
+        .leftJoinAndSelect('product.brand', 'brand')
+        .leftJoinAndSelect('product.questions', 'questions')
+        .leftJoinAndSelect('questions.answer', 'answer')
+        .leftJoinAndSelect('product.ratings', 'ratings')
+        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
+        .leftJoinAndSelect(
+          'product.promotionalDiscounts',
+          'promotionalDiscounts',
+        )
+        .getMany();
+
+      return products;
+    } catch (error) {
+      console.log('Failed to fetch products', error);
       throw new BadRequestException({
         message: 'Error fetching products',
         details: error.message,
@@ -529,16 +606,16 @@ export class ProductsService {
     if (!ids.length) {
       return [];
     }
-  
+
     const query = this.productRepository
       .createQueryBuilder('product')
       .where('product.is_active = :status', {
         status: ActiveStatusEnum.ACTIVE,
       })
-      .andWhere('product.id IN (:...ids)', { ids })
-      
+      .andWhere('product.id IN (:...ids)', { ids });
+
     const products = await query.getMany();
-  
+
     return products;
   }
 
@@ -546,11 +623,11 @@ export class ProductsService {
     // Fetch product with its wishlistedBy users
     const product = await this.productRepository.findOne({
       where: { id: productId },
-      relations: ['wishlistedBy'], 
+      relations: ['wishlistedBy'],
     });
-  
+
     if (!product) throw new NotFoundException('Product not found');
-  
+
     return product;
   }
 
@@ -558,11 +635,11 @@ export class ProductsService {
   //   // Fetch product with its wishlistedBy users by slug
   //   const product = await this.productRepository.findOne({
   //     where: { slug: slug },
-  //     relations: ['wishlistedBy'], 
+  //     relations: ['wishlistedBy'],
   //   });
-  
+
   //   if (!product) throw new NotFoundException('Product not found');
-  
+
   //   return product;
   // }
 }
