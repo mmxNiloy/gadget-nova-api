@@ -60,31 +60,34 @@ export class OrderService {
     const day = today.getDate().toString().padStart(2, '0');
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     const year = today.getFullYear();
-
-    const datePrefix = parseInt(`${day}${month}${year}`);
-
-    // Find the highest order ID across all orders (not just today)
+  
+    const datePrefix = `${day}${month}${year}`; // 8 characters (DDMMYYYY)
+  
+    // Get the last created order
     const lastOrder = await this.orderRepository
       .createQueryBuilder('order')
       .where('order.orderId IS NOT NULL')
-      .orderBy('order.orderId', 'DESC')
+      .orderBy('order.createdAt', 'DESC') // safer: order by created date, not numeric value
       .getOne();
-
+  
     let sequenceNumber = 1;
+  
     if (lastOrder && lastOrder.orderId) {
-      // Extract the sequence number from the last order ID
       const lastOrderIdStr = lastOrder.orderId.toString();
-      if (lastOrderIdStr.length >= 8) {
-        const lastSequence = parseInt(lastOrderIdStr.substring(8));
+      const prefixLength = 8; // DDMMYYYY
+  
+      if (lastOrderIdStr.length > prefixLength) {
+        // Extract sequence part (everything after the prefix)
+        const lastSequence = Number(lastOrderIdStr.slice(prefixLength));
         sequenceNumber = lastSequence + 1;
       }
     }
-
-    // Combine date prefix with sequence number
-    const orderId = parseInt(`${datePrefix}${sequenceNumber}`);
-
+  
+    // Build new order ID: date prefix + sequence
+    const orderId = Number(`${datePrefix}${sequenceNumber}`);
     return orderId;
   }
+  
 
   async createOrder(
     createOrderDto: CreateOrderDto,
