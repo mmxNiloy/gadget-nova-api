@@ -60,34 +60,37 @@ export class OrderService {
     const day = today.getDate().toString().padStart(2, '0');
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     const year = today.getFullYear();
-  
-    const datePrefix = `${day}${month}${year}`; // 8 characters (DDMMYYYY)
-  
+
+    const datePrefix = [year, month, day].join(''); // 8 characters (YYYY-MM-DD)
+
+    // Get the total rows in the order table
+    const orderCount = await this.orderRepository.count();
+
     // Get the last created order
-    const lastOrder = await this.orderRepository
-      .createQueryBuilder('order')
-      .where('order.orderId IS NOT NULL')
-      .orderBy('order.createdAt', 'DESC') // safer: order by created date, not numeric value
-      .getOne();
-  
-    let sequenceNumber = 1;
-  
-    if (lastOrder && lastOrder.orderId) {
-      const lastOrderIdStr = lastOrder.orderId.toString();
-      const prefixLength = 8; // DDMMYYYY
-  
-      if (lastOrderIdStr.length > prefixLength) {
-        // Extract sequence part (everything after the prefix)
-        const lastSequence = Number(lastOrderIdStr.slice(prefixLength));
-        sequenceNumber = lastSequence + 1;
-      }
-    }
-  
+    // const lastOrder = await this.orderRepository
+    //   .createQueryBuilder('order')
+    //   .where('order.orderId IS NOT NULL')
+    //   .orderBy('order.createdAt', 'DESC') // safer: order by created date, not numeric value
+    //   .getOne();
+
+    const sequenceNumber = orderCount + 1;
+
+    // if (lastOrder && lastOrder.orderId) {
+    //   const lastOrderIdStr = lastOrder.orderId.toString();
+    //   const prefixLength = 8; // YYYY-MM-DD
+
+    //   if (lastOrderIdStr.length > prefixLength) {
+    //     // Extract sequence part (everything after the prefix)
+    //     const lastSequence = Number(lastOrderIdStr.slice(prefixLength));
+    //     sequenceNumber = lastSequence + 1;
+    //   }
+    // }
+
     // Build new order ID: date prefix + sequence
+
     const orderId = Number(`${datePrefix}${sequenceNumber}`);
     return orderId;
   }
-  
 
   async createOrder(
     createOrderDto: CreateOrderDto,
@@ -494,8 +497,7 @@ export class OrderService {
       where: { user: { id: order.user.id }, status: OrderStatus.DELIVERED },
     });
 
-    console.log({totalUserOrders});
-    
+    console.log({ totalUserOrders });
 
     // Send notifications for ALL status changes with price breakdown
     try {
