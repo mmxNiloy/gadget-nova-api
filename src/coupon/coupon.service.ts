@@ -376,8 +376,6 @@ export class CouponService {
 
     // If coupon is for delivery charge only
     if (coupon.couponType === CouponTypeEnum.DELIVERY_CHARGE) {
-      console.log('[Verify Coupon] Delivery Charge');
-
       if (coupon.couponValue) {
         totalDiscount = coupon.couponValue; // flat discount on delivery charge
         if (coupon.maximumDiscountLimit) {
@@ -387,20 +385,12 @@ export class CouponService {
       coupon.applyCount += 1;
       await this.couponRepository.save(coupon);
 
-      console.log('[Verify Coupon] Delivery Charge > Discount calculation >', {
-        totalDiscount,
-        finalTotal: null,
-        appliesTo: 'DELIVERY_CHARGE',
-      });
-
       return {
         totalDiscount,
         finalTotal: null, // final product total not changed here
         appliesTo: 'DELIVERY_CHARGE',
       };
     }
-
-    console.log('[Verify Coupon] Product Discount');
 
     // Otherwise — Product or subtotal based discount
     const isGlobal =
@@ -422,9 +412,6 @@ export class CouponService {
       }
     }
 
-    console.log(
-      '[Verify Coupon] Product Discount > Discount calculation > Start',
-    );
     cart.items.forEach((item) => {
       const product = item.product;
       const productTotalPrice = Number(item.price) * item.quantity;
@@ -439,16 +426,6 @@ export class CouponService {
           (sc) => sc.id === product.subCategory?.id,
         ) ||
         coupon.applicableBrands?.some((b) => b.id === product.brand?.id);
-
-      console.log('[Verify Coupon] > Cart Item Coupon Calculation >', {
-        isGlobal,
-        applicable,
-        product,
-        productTotalPrice,
-        price: item.price,
-        quantity: item.quantity,
-        couponValue: coupon.couponValue,
-      });
 
       if (applicable) {
         let discountPerItem = 0;
@@ -466,15 +443,6 @@ export class CouponService {
           );
         }
 
-        console.log('[Verify Coupon] > Cart Item Coupon Calculation >', {
-          totalDiscount,
-          discountPerItem,
-          productTotalPrice,
-          price: item.price,
-          quantity: item.quantity,
-          couponValue: coupon.couponValue,
-        });
-
         totalDiscount += discountPerItem;
         coupon.applyCount += 1;
       }
@@ -486,14 +454,6 @@ export class CouponService {
     );
 
     const finalTotal = subtotal - totalDiscount;
-
-    console.log(
-      '[Verify Coupon] Product Discount > Discount calculation > End',
-      {
-        totalDiscount,
-        finalTotal,
-      },
-    );
 
     await this.couponRepository.save(coupon);
 
