@@ -441,6 +441,7 @@ export class CouponService {
         coupon.applicableBrands?.some((b) => b.id === product.brand?.id);
 
       console.log('[Verify Coupon] > Cart Item Coupon Calculation >', {
+        isGlobal,
         applicable,
         product,
         productTotalPrice,
