@@ -12,7 +12,7 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { Bool } from 'src/common/enums/bool.enum';
 import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
 import { S3Service } from 'src/s3/s3.service';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   CreateProductDto,
   ProductsByIDListQueryDTO,
@@ -21,6 +21,7 @@ import {
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductAttributeService } from '../product-attribute/product-attribute.service';
+import { ElasticsearchService } from 'src/search/elasticsearh.service';
 
 @Injectable()
 export class ProductsService {
@@ -32,6 +33,7 @@ export class ProductsService {
     private readonly productAttributeService: ProductAttributeService,
     private readonly s3Service: S3Service,
     private readonly promoDiscountUtil: PromoDiscountUtil,
+    private readonly esService: ElasticsearchService
   ) {}
 
   private calculateAverageRating(product: ProductEntity): number {
@@ -139,51 +141,109 @@ export class ProductsService {
         );
       }
 
+      await this.esService.indexProduct({
+        id: savedProduct.id,
+        title: savedProduct.title,
+        description: savedProduct.description,
+        brand: brand.name,
+        category: category.name,
+      });
+
       return savedProduct;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
-  async findAll(title?: string) {
-    try {
-      const query = this.productRepository
-        .createQueryBuilder('product')
-        .where('product.is_active = :status', {
-          status: ActiveStatusEnum.ACTIVE,
-        })
-        .leftJoinAndSelect('product.category', 'category')
-        .leftJoinAndSelect('product.subCategory', 'subCategory')
-        .leftJoinAndSelect('product.brand', 'brand')
-        .leftJoinAndSelect('product.questions', 'questions')
-        .leftJoinAndSelect('questions.answer', 'answer')
-        .leftJoinAndSelect('product.ratings', 'ratings')
-        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
-        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
-        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-        .leftJoinAndSelect(
-          'product.promotionalDiscounts',
-          'promotionalDiscounts',
-        );
 
+  async findAll(title?: string, page = 1, limit = 10) {
+    try {
+      let products: ProductEntity[] = [];
+  
       if (title) {
-        query.andWhere('LOWER(product.title) LIKE :title', {
-          title: `%${title.toLowerCase()}%`,
+        // 🔍 Search from Elasticsearch
+        const esResults = await this.esService.searchProducts(title, page, limit);
+  
+        if (!esResults.length) {
+          return []; // no results
+        }
+  
+        // ✅ keep IDs as string (no Number())
+        const ids = esResults.map((r) => r.id);
+  
+        const dbProducts = await this.productRepository.find({
+          where: { id: In(ids) },
+          relations: [
+            'category',
+            'subCategory',
+            'brand',
+            'questions',
+            'questions.answer',
+            'ratings',
+            'productAttributes',
+            'productAttributes.attributeValue',
+            'productAttributes.attributeValue.attributeGroup',
+            'promotionalDiscounts',
+          ],
+        });
+  
+        // Keep same order as ES relevance
+        products = ids
+          .map((id) => dbProducts.find((p) => p.id === id)) // string === string ✅
+          .filter((p): p is ProductEntity => !!p);
+      } else {
+        // Normal DB query
+        products = await this.productRepository.find({
+          where: { is_active: ActiveStatusEnum.ACTIVE },
+          relations: [
+            'category',
+            'subCategory',
+            'brand',
+            'questions',
+            'questions.answer',
+            'ratings',
+            'productAttributes',
+            'productAttributes.attributeValue',
+            'productAttributes.attributeValue.attributeGroup',
+            'promotionalDiscounts',
+          ],
         });
       }
-
-      const products = await query.getMany();
-
+  
+      // Attach promo discount + average rating
       const updatedProducts = products.map((product) => ({
         ...this.addAverageRatingToProduct(product),
         ...this.promoDiscountUtil.filterActivePromo(product),
       }));
-
+  
       return updatedProducts;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
+  
+
+  
+
+  // products.service.ts
+  async bulkIndexAllProducts() {
+    // fetch only active products
+    const products = await this.productRepository.find({
+      select: ['id', 'title', 'description'],
+      where: { is_active: ActiveStatusEnum.ACTIVE },
+    });
+  
+    console.log(products.map(p => ({ id: p.id, type: typeof p.id })));
+  
+    const formatted = products.map(p => ({
+      id: p.id.toString(), // keep as string
+      title: p.title,
+      description: p.description
+    }));
+  
+    return this.esService.bulkIndexProducts(formatted);
+  }
+  
 
   async pagination(
     page: number,
@@ -193,6 +253,31 @@ export class ProductsService {
     productSearchDto: ProductSearchDto,
   ) {
     try {
+      // Prepare Elasticsearch IDs if title/productCode search exists
+      let esIds: string[] = [];
+    if (productSearchDto.title) {
+      try {
+        const esResults = await this.esService.searchProducts(
+          productSearchDto.title,
+          page,
+          limit,
+        );
+        console.log("esResults",{esResults});
+        
+        esIds = esResults.map((r) => r.id.toString()); // keep as string
+
+        // If no results found in Elasticsearch, return empty immediately
+        if (esIds.length === 0) return [[], 0];
+      } catch (err) {
+        // If index does not exist or ES fails, fallback to empty result
+        console.log(
+          'Elasticsearch search failed or index not found, fallback to empty:',
+          err.message,
+        );
+        return [[], 0];
+      }
+    }
+  
       const query = this.productRepository
         .createQueryBuilder('product')
         .where('product.is_active = :status', {
@@ -207,15 +292,11 @@ export class ProductsService {
         .leftJoinAndSelect('product.productAttributes', 'productAttributes')
         .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
         .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-        .leftJoinAndSelect(
-          'product.promotionalDiscounts',
-          'promotionalDiscounts',
-        );
-
-      if (productSearchDto.title) {
-        query.andWhere('LOWER(product.title) LIKE :title', {
-          title: `%${productSearchDto.title.toLowerCase()}%`,
-        });
+        .leftJoinAndSelect('product.promotionalDiscounts', 'promotionalDiscounts');
+  
+      // Filter by Elasticsearch IDs
+      if (esIds.length > 0) {
+        query.andWhere('product.id IN (:...esIds)', { esIds });
       }
 
       if (productSearchDto.productCode) {
@@ -236,154 +317,138 @@ export class ProductsService {
         const subcategories = Array.isArray(productSearchDto.subcategories)
           ? productSearchDto.subcategories
           : [productSearchDto.subcategories];
-
-        query.andWhere('subCategory.slug IN (:...subcategories)', {
-          subcategories,
-        });
+        query.andWhere('subCategory.slug IN (:...subcategories)', { subcategories });
       }
-
-      // Filter out products based on brands
+  
+      // Brands filter
       if (productSearchDto.brands) {
         const brands = Array.isArray(productSearchDto.brands)
           ? productSearchDto.brands
           : [productSearchDto.brands];
-
-        query.andWhere('brand.slug IN (:...brands)', {
-          brands,
-        });
+        query.andWhere('brand.slug IN (:...brands)', { brands });
       }
-
+  
+      // Category IDs filter
       if (productSearchDto.category_ids) {
         const categoryIds = Array.isArray(productSearchDto.category_ids)
           ? productSearchDto.category_ids
           : [productSearchDto.category_ids];
-
-        query.andWhere('category.id IN (:...categoryIds)', {
-          categoryIds,
-        });
+        query.andWhere('category.id IN (:...categoryIds)', { categoryIds });
       }
-
+  
+      // Brand IDs filter
       if (productSearchDto.brand_ids) {
-        productSearchDto.brand_ids = Array.isArray(productSearchDto.brand_ids)
+        const brandIds = Array.isArray(productSearchDto.brand_ids)
           ? productSearchDto.brand_ids
           : [productSearchDto.brand_ids];
-
-        query.andWhere('brand.id IN (:...brand_ids)', {
-          brand_ids: productSearchDto.brand_ids,
-        });
+        query.andWhere('brand.id IN (:...brandIds)', { brandIds });
       }
-
+  
+      // Trending filter
       if (productSearchDto.isTrending !== undefined) {
-        console.log('Trend', productSearchDto.isTrending);
         query.andWhere('product.isTrending = :isTrending', {
           isTrending: productSearchDto.isTrending === Bool.YES ? 1 : 0,
         });
-
+  
         if (productSearchDto.isTrending === Bool.YES) {
           const currentDate = moment().toDate();
-          query.andWhere('product.trendingStartDate <= :currentDate', {
-            currentDate,
-          });
-          query.andWhere('product.trendingEndDate >= :currentDate', {
-            currentDate,
-          });
+          query.andWhere('product.trendingStartDate <= :currentDate', { currentDate });
+          query.andWhere('product.trendingEndDate >= :currentDate', { currentDate });
         }
       }
-
+  
+      // BestSeller filter
       if (productSearchDto.isBestSeller !== undefined) {
-        console.log('Feature', productSearchDto.isBestSeller);
         query.andWhere('product.isBestSeller = :isBestSeller', {
           isBestSeller: productSearchDto.isBestSeller === Bool.YES ? 1 : 0,
         });
       }
-
+  
+      // Featured filter
       if (productSearchDto.isFeatured !== undefined) {
-        console.log('Feature', productSearchDto.isFeatured);
         query.andWhere('product.isFeatured = :isFeatured', {
           isFeatured: productSearchDto.isFeatured === Bool.YES ? 1 : 0,
         });
-
+  
         if (productSearchDto.isFeatured === Bool.YES) {
           const currentDate = moment().toDate();
-          query.andWhere('product.featuredStartDate <= :currentDate', {
-            currentDate,
-          });
-          query.andWhere('product.featuredEndDate >= :currentDate', {
-            currentDate,
-          });
+          query.andWhere('product.featuredStartDate <= :currentDate', { currentDate });
+          query.andWhere('product.featuredEndDate >= :currentDate', { currentDate });
         }
       }
-
+  
+      // Stock filter
       if (productSearchDto.isInStock !== undefined) {
-        console.log('Stock', productSearchDto.isInStock);
         query.andWhere('product.isInStock = :isInStock', {
           isInStock: productSearchDto.isInStock === Bool.YES ? 1 : 0,
         });
       }
-
+  
+      // Date filters
       if (productSearchDto.trendingStartDate) {
         query.andWhere('product.trendingStartDate >= :trendingStartDate', {
           trendingStartDate: productSearchDto.trendingStartDate,
         });
       }
-
+  
       if (productSearchDto.trendingEndDate) {
         query.andWhere('product.trendingEndDate <= :trendingEndDate', {
           trendingEndDate: productSearchDto.trendingEndDate,
         });
       }
-
+  
       if (productSearchDto.featuredStartDate) {
         query.andWhere('product.featuredStartDate >= :featuredStartDate', {
           featuredStartDate: productSearchDto.featuredStartDate,
         });
       }
-
+  
       if (productSearchDto.featuredEndDate) {
         query.andWhere('product.featuredEndDate <= :featuredEndDate', {
           featuredEndDate: productSearchDto.featuredEndDate,
         });
       }
-
-      // Price range filtering
+  
+      // Price filters
       if (productSearchDto.minPrice !== undefined) {
         query.andWhere('product.regularPrice >= :minPrice', {
           minPrice: productSearchDto.minPrice,
         });
       }
-
+  
       if (productSearchDto.maxPrice !== undefined) {
         query.andWhere('product.regularPrice <= :maxPrice', {
           maxPrice: productSearchDto.maxPrice,
         });
       }
-
+  
+      // Sorting
       sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
       const orderFields = ['name', 'created_at', 'updated_at'];
       order = orderFields.includes(order) ? order : 'updated_at';
-
-      query
-        .orderBy(`product.${order}`, sort)
-        .skip((page - 1) * limit)
-        .take(limit);
-
+      query.orderBy(`product.${order}`, sort);
+  
+      // Pagination
+      query.skip((page - 1) * limit).take(limit);
+  
       const [products, total] = await query.getManyAndCount();
-
+  
+      // Apply rating & promo logic
       const updatedProducts = products.map((product) => ({
         ...this.addAverageRatingToProduct(product),
         ...this.promoDiscountUtil.filterActivePromo(product),
       }));
-
+  
       return [updatedProducts, total];
     } catch (error) {
       console.log(error);
-
       throw new BadRequestException({
         message: 'Error fetching products',
         details: error.message,
       });
     }
   }
+  
 
   // Get specific products
   // Used for cached carts
@@ -582,6 +647,14 @@ export class ProductsService {
         );
       }
 
+      await this.esService.indexProduct({
+        id: updatedProduct.id,
+        title: updatedProduct.title,
+        description: updateProductDto.description,
+        brand: updatedProduct.brand?.name,
+        category: updatedProduct.category?.name,
+      });
+
       return updatedProduct;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -593,14 +666,29 @@ export class ProductsService {
     jwtPayload: JwtPayloadInterface,
   ): Promise<ProductEntity> {
     const product = await this.findOne(id);
-
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+  
+    // Soft delete in DB
     product.is_active = ActiveStatusEnum.INACTIVE;
     product.updated_by = jwtPayload.id;
     product.updated_user_name = jwtPayload.userName;
     product.updated_at = new Date();
-
-    return await this.productRepository.save(product);
+  
+    const savedProduct = await this.productRepository.save(product);
+  
+    // ✅ Remove from Elasticsearch
+    try {
+      await this.esService.deleteProduct(product.id);
+    } catch (error) {
+      console.error('Failed to remove product from Elasticsearch', error);
+      // optional: don't throw, so DB soft-delete still succeeds
+    }
+  
+    return savedProduct;
   }
+  
 
   async findManyByIds(ids: string[]): Promise<ProductEntity[]> {
     if (!ids.length) {
