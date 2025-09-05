@@ -20,6 +20,7 @@ import { ProductsService } from './products/products.service';
 import { QuestionAnswersController } from './question-answers/question-answers.controller';
 import { QuestionAnswersService } from './question-answers/question-answers.service';
 import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
+import { SearchModule } from 'src/search/search.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
     BrandModule,
     S3Module,
     AttributeModule,
+    SearchModule
   ],
   controllers: [
     ProductAttributeController,
