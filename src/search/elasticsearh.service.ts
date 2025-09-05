@@ -3,8 +3,9 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Client } from '@elastic/elasticsearch';
 
 export interface ProductES {
-  id: string; // must match what you index (string)
+  id: string;
   title: string;
+  description?: string;
   brand?: string;
   category?: string;
 }
@@ -39,31 +40,34 @@ export class ElasticsearchService implements OnModuleInit {
   /**
    * Index or update a single product
    */
-  async indexProduct(product: { id: string; title: string; brand?: string; category?: string }) {
+  async indexProduct(product: { id: string; title: string; description?: string; brand?: string; category?: string }) {
     return this.client.index({
       index: 'products',
-      id: product.id.toString(), // id must be string
+      id: product.id.toString(),
       document: {
-        id: product.id.toString(), // ensure ES document has id field
+        id: product.id.toString(),
         title: product.title,
+        description: product.description, // ✅ add description
         brand: product.brand,
         category: product.category,
       },
-      refresh: true, // searchable immediately
+      refresh: true,
     });
   }
+  
 
   /**
    * Bulk index products
    */
-  async bulkIndexProducts(products: { id: string; title: string }[]) {
+  async bulkIndexProducts(products: { id: string; title: string; description?: string }[]) {
     if (!products.length) return;
   
     const body = products.flatMap((product) => [
-      { index: { _index: 'products', _id: product.id } },  // ✅ id stays string
+      { index: { _index: 'products', _id: product.id } },
       {
-        id: product.id,   // ✅ store id as string in _source too
+        id: product.id,
         title: product.title,
+        description: product.description, // ✅ include description
       },
     ]);
   
@@ -73,31 +77,37 @@ export class ElasticsearchService implements OnModuleInit {
     });
   }
   
+  
 
   /**
    * Search products by title only
    */
   async searchProducts(query: string, page: number, limit: number) {
-    const { hits } = await this.client.search<{ id: string; title: string }>({
+    const { hits } = await this.client.search<ProductES>({
       index: 'products',
       from: (page - 1) * limit,
       size: limit,
       query: {
-        match: {
-          title: query,
+        multi_match: {
+          query,
+          fields: ['title', 'description'], // ✅ search both title & description
+          type: 'best_fields', // default, good for OR logic
+          operator: 'or',       // match if query appears in any field
         },
       },
     });
-
+  
     return hits.hits.map((hit) => {
       const source = hit._source as ProductES;
       return {
-        id: source.id, // ✅ keep as string
+        id: source.id,
         title: source.title,
+        description: source.description,
         score: hit._score,
       };
-    });    
+    });
   }
+  
 
   /**
    * Delete product by ID

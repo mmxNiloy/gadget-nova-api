@@ -144,6 +144,7 @@ export class ProductsService {
       await this.esService.indexProduct({
         id: savedProduct.id,
         title: savedProduct.title,
+        description: savedProduct.description,
         brand: brand.name,
         category: category.name,
       });
@@ -228,7 +229,7 @@ export class ProductsService {
   async bulkIndexAllProducts() {
     // fetch only active products
     const products = await this.productRepository.find({
-      select: ['id', 'title'],
+      select: ['id', 'title', 'description'],
       where: { is_active: ActiveStatusEnum.ACTIVE },
     });
   
@@ -237,6 +238,7 @@ export class ProductsService {
     const formatted = products.map(p => ({
       id: p.id.toString(), // keep as string
       title: p.title,
+      description: p.description
     }));
   
     return this.esService.bulkIndexProducts(formatted);
@@ -648,6 +650,7 @@ export class ProductsService {
       await this.esService.indexProduct({
         id: updatedProduct.id,
         title: updatedProduct.title,
+        description: updateProductDto.description,
         brand: updatedProduct.brand?.name,
         category: updatedProduct.category?.name,
       });
