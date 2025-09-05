@@ -87,6 +87,12 @@ export class ProductsController {
     }
   }
 
+  @Get('bulk-index')
+  async bulkIndex() {
+    const result = await this.productsService.bulkIndexAllProducts();
+    return { message: 'All products indexed', result };
+  }
+
   @Get('pagination')
   async pagination(
     @PaginationDecorator() pagination: PaginationDTO,
