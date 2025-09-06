@@ -90,11 +90,14 @@ export class ElasticsearchService implements OnModuleInit {
       query: {
         multi_match: {
           query,
-          fields: ['title', 'description'], // ✅ search both title & description
-          type: 'best_fields', // default, good for OR logic
-          operator: 'or',       // match if query appears in any field
+          fields: ['title^2', 'description'], // ✅ boost title
+          type: 'best_fields',
+          operator: 'or',
         },
       },
+      sort: [
+        { _score: { order: 'desc' } }, // ✅ force relevance sort
+      ],
     });
   
     return hits.hits.map((hit) => {
@@ -106,7 +109,7 @@ export class ElasticsearchService implements OnModuleInit {
         score: hit._score,
       };
     });
-  }
+  }  
   
 
   /**
