@@ -151,20 +151,20 @@ export class ProductsService {
         .createQueryBuilder('product')
         .where('product.is_active = :status', {
           status: ActiveStatusEnum.ACTIVE,
-        })
-        .leftJoinAndSelect('product.category', 'category')
-        .leftJoinAndSelect('product.subCategory', 'subCategory')
-        .leftJoinAndSelect('product.brand', 'brand')
-        .leftJoinAndSelect('product.questions', 'questions')
-        .leftJoinAndSelect('questions.answer', 'answer')
-        .leftJoinAndSelect('product.ratings', 'ratings')
-        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
-        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
-        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-        .leftJoinAndSelect(
-          'product.promotionalDiscounts',
-          'promotionalDiscounts',
-        );
+        });
+      // .leftJoinAndSelect('product.category', 'category')
+      // .leftJoinAndSelect('product.subCategory', 'subCategory')
+      // .leftJoinAndSelect('product.brand', 'brand')
+      // .leftJoinAndSelect('product.questions', 'questions')
+      // .leftJoinAndSelect('questions.answer', 'answer')
+      // .leftJoinAndSelect('product.ratings', 'ratings')
+      // .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+      // .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+      // .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
+      // .leftJoinAndSelect(
+      //   'product.promotionalDiscounts',
+      //   'promotionalDiscounts',
+      // );
 
       if (title) {
         const searchTerm = title.trim();
@@ -202,12 +202,14 @@ export class ProductsService {
       const products = await query.getMany();
 
       // Apply promo discount + average rating
-      const updatedProducts = products.map((product) => ({
-        ...this.addAverageRatingToProduct(product),
-        ...this.promoDiscountUtil.filterActivePromo(product),
-      }));
+      // const updatedProducts = products.map((product) => ({
+      //   ...this.addAverageRatingToProduct(product),
+      //   ...this.promoDiscountUtil.filterActivePromo(product),
+      // }));
 
-      return updatedProducts;
+      // return updatedProducts;
+
+      return products;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
