@@ -166,63 +166,62 @@ export class ProductsService {
           'promotionalDiscounts',
         );
 
-      if (title && title.trim().length > 0) {
-        const searchTerm = title.trim();
-
-        // Build a tsquery like "iph:* & s23:*" for prefix matching
-        const tsQuery = searchTerm
-          .split(/\s+/)
-          .filter(Boolean)
+      const raw = title?.trim() ?? '';
+      if (raw) {
+        const tokens = raw.split(/\s+/).filter(Boolean);
+        const ftsTokens = tokens.filter((t) => t.length >= 2);
+        const tsquery = ftsTokens
+          .map((s: string) => {
+            // Escape tsquery special chars: & | ! ( ) : ' *
+            return s
+              .replace(/[':*&|!()]/g, ' ')
+              .trim()
+              .replace(/\s+/g, ' ');
+          })
           .map((t) => `${t}:*`)
           .join(' & ');
 
-        // Subquery that mirrors your CTE solution and returns (id, relevance)
-        // We use INNER JOIN LATERAL-ish pattern via TypeORM innerJoin() with a subquery.
         query
           .innerJoin(
-            (subQb) =>
-              subQb
+            (subQb) => {
+              const sq = subQb
                 .select('p.id', 'id')
                 .addSelect(
                   `
-          ts_rank_cd(
-            to_tsvector('english', unaccent(p.title)),
-            to_tsquery('english', :tsquery)
-          )
-          + GREATEST(
+            (CASE WHEN :tsquery <> '' THEN
+              ts_rank_cd(
+                to_tsvector('english', unaccent(p.title)),
+                to_tsquery('english', :tsquery)
+              )
+            ELSE 0 END)
+            +
+            GREATEST(
               similarity(unaccent(p.title), unaccent(:searchTerm)),
               word_similarity(unaccent(p.title), unaccent(:searchTerm))
             )
-          `,
+            `,
                   'relevance',
                 )
-                .from('products', 'p')
-                .where(
-                  `
-          to_tsvector('english', unaccent(p.title)) @@ to_tsquery('english', :tsquery)
-          OR unaccent(p.title) % unaccent(:searchTerm)
-          `,
-                )
-                // paginate at the ranked-id level so joins don't disturb LIMIT/OFFSET
-                .orderBy('relevance', 'DESC')
-                .offset((page - 1) * limit)
-                .limit(limit),
+                .from('products', 'p').where(`
+            (:tsquery <> '' AND
+             to_tsvector('english', unaccent(p.title)) @@ to_tsquery('english', :tsquery))
+            OR unaccent(p.title) % unaccent(:searchTerm)
+          `);
+
+              return sq;
+            },
             'ranked',
             'ranked.id = product.id',
           )
-          // expose relevance to the result (optional)
           .addSelect('ranked.relevance', 'relevance')
-          .orderBy('ranked.relevance', 'DESC') // stable relevance ordering
-          .setParameters({ tsquery: tsQuery, searchTerm });
+          .orderBy('ranked.relevance', 'DESC')
+          .setParameters({ tsquery, searchTerm: raw });
       } else {
-        query
-          .orderBy('product.updated_at', 'DESC')
-          .skip((page - 1) * limit)
-          .take(limit);
+        query.orderBy('product.updated_at', 'DESC');
       }
 
       // Pagination
-      // query.skip((page - 1) * limit).take(limit);
+      query.skip((page - 1) * limit).take(limit);
 
       const products = await query.getMany();
 
