@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AttributeModule } from 'src/attribute/attribute.module';
 import { BrandModule } from 'src/brand/brand.module';
 import { CategoryModule } from 'src/category/category.module';
+import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
 import { S3Module } from 'src/s3/s3.module';
 import { ProductAttributeEntity } from './entities/product-attribute.entity';
 import { ProductQuestionsEntity } from './entities/product-questions.entity';
@@ -19,8 +20,6 @@ import { ProductsController } from './products/products.controller';
 import { ProductsService } from './products/products.service';
 import { QuestionAnswersController } from './question-answers/question-answers.controller';
 import { QuestionAnswersService } from './question-answers/question-answers.service';
-import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
-import { SearchModule } from 'src/search/search.module';
 
 @Module({
   imports: [
@@ -34,8 +33,7 @@ import { SearchModule } from 'src/search/search.module';
     CategoryModule,
     BrandModule,
     S3Module,
-    AttributeModule,
-    SearchModule
+    AttributeModule
   ],
   controllers: [
     ProductAttributeController,
