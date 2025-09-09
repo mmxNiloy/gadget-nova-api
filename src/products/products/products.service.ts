@@ -21,7 +21,6 @@ import {
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductAttributeService } from '../product-attribute/product-attribute.service';
-import { ElasticsearchService } from 'src/search/elasticsearh.service';
 
 @Injectable()
 export class ProductsService {
@@ -33,7 +32,6 @@ export class ProductsService {
     private readonly productAttributeService: ProductAttributeService,
     private readonly s3Service: S3Service,
     private readonly promoDiscountUtil: PromoDiscountUtil,
-    private readonly esService: ElasticsearchService
   ) {}
 
   private calculateAverageRating(product: ProductEntity): number {
@@ -141,14 +139,6 @@ export class ProductsService {
         );
       }
 
-      await this.esService.indexProduct({
-        id: savedProduct.id,
-        title: savedProduct.title,
-        description: savedProduct.description,
-        brand: brand.name,
-        category: category.name,
-      });
-
       return savedProduct;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -158,59 +148,52 @@ export class ProductsService {
 
   async findAll(title?: string, page = 1, limit = 10) {
     try {
-      let products: ProductEntity[] = [];
+      const query = this.productRepository
+        .createQueryBuilder('product')
+        .where('product.is_active = :status', {
+          status: ActiveStatusEnum.ACTIVE,
+        })
+        .leftJoinAndSelect('product.category', 'category')
+        .leftJoinAndSelect('product.subCategory', 'subCategory')
+        .leftJoinAndSelect('product.brand', 'brand')
+        .leftJoinAndSelect('product.questions', 'questions')
+        .leftJoinAndSelect('questions.answer', 'answer')
+        .leftJoinAndSelect('product.ratings', 'ratings')
+        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
+        .leftJoinAndSelect('product.promotionalDiscounts', 'promotionalDiscounts');
   
       if (title) {
-        // 🔍 Search from Elasticsearch
-        const esResults = await this.esService.searchProducts(title, page, limit);
+        const searchTerm = title.trim();
   
-        if (!esResults.length) {
-          return []; // no results
-        }
-  
-        // ✅ keep IDs as string (no Number())
-        const ids = esResults.map((r) => r.id);
-  
-        const dbProducts = await this.productRepository.find({
-          where: { id: In(ids) },
-          relations: [
-            'category',
-            'subCategory',
-            'brand',
-            'questions',
-            'questions.answer',
-            'ratings',
-            'productAttributes',
-            'productAttributes.attributeValue',
-            'productAttributes.attributeValue.attributeGroup',
-            'promotionalDiscounts',
-          ],
-        });
-  
-        // Keep same order as ES relevance
-        products = ids
-          .map((id) => dbProducts.find((p) => p.id === id)) // string === string ✅
-          .filter((p): p is ProductEntity => !!p);
+        query.andWhere(
+          `
+          (
+            to_tsvector('english', unaccent(product.title)) @@ plainto_tsquery('english', unaccent(:searchTerm))
+            OR similarity(unaccent(product.title), unaccent(:searchTerm)) > 0.3
+          )
+          `,
+          { searchTerm },
+        )
+        .addSelect(
+          `
+          ts_rank_cd(to_tsvector('english', unaccent(product.title)), plainto_tsquery('english', unaccent(:searchTerm))) 
+          + similarity(unaccent(product.title), unaccent(:searchTerm))
+          `,
+          'relevance',
+        )
+        .orderBy('relevance', 'DESC');
       } else {
-        // Normal DB query
-        products = await this.productRepository.find({
-          where: { is_active: ActiveStatusEnum.ACTIVE },
-          relations: [
-            'category',
-            'subCategory',
-            'brand',
-            'questions',
-            'questions.answer',
-            'ratings',
-            'productAttributes',
-            'productAttributes.attributeValue',
-            'productAttributes.attributeValue.attributeGroup',
-            'promotionalDiscounts',
-          ],
-        });
+        query.orderBy('product.updated_at', 'DESC');
       }
   
-      // Attach promo discount + average rating
+      // Pagination
+      query.skip((page - 1) * limit).take(limit);
+  
+      const products = await query.getMany();
+  
+      // Apply promo discount + average rating
       const updatedProducts = products.map((product) => ({
         ...this.addAverageRatingToProduct(product),
         ...this.promoDiscountUtil.filterActivePromo(product),
@@ -222,27 +205,6 @@ export class ProductsService {
     }
   }
   
-
-  
-
-  // products.service.ts
-  async bulkIndexAllProducts() {
-    // fetch only active products
-    const products = await this.productRepository.find({
-      select: ['id', 'title', 'description'],
-      where: { is_active: ActiveStatusEnum.ACTIVE },
-    });
-  
-    console.log(products.map(p => ({ id: p.id, type: typeof p.id })));
-  
-    const formatted = products.map(p => ({
-      id: p.id.toString(), // keep as string
-      title: p.title,
-      description: p.description
-    }));
-  
-    return this.esService.bulkIndexProducts(formatted);
-  }
   
 
   async pagination(
@@ -253,31 +215,6 @@ export class ProductsService {
     productSearchDto: ProductSearchDto,
   ) {
     try {
-      // Prepare Elasticsearch IDs if title/productCode search exists
-      let esIds: string[] = [];
-    if (productSearchDto.title) {
-      try {
-        const esResults = await this.esService.searchProducts(
-          productSearchDto.title,
-          page,
-          limit,
-        );
-        console.log("esResults",{esResults});
-        
-        esIds = esResults.map((r) => r.id.toString()); // keep as string
-
-        // If no results found in Elasticsearch, return empty immediately
-        if (esIds.length === 0) return [[], 0];
-      } catch (err) {
-        // If index does not exist or ES fails, fallback to empty result
-        console.log(
-          'Elasticsearch search failed or index not found, fallback to empty:',
-          err.message,
-        );
-        return [[], 0];
-      }
-    }
-  
       const query = this.productRepository
         .createQueryBuilder('product')
         .where('product.is_active = :status', {
@@ -295,8 +232,27 @@ export class ProductsService {
         .leftJoinAndSelect('product.promotionalDiscounts', 'promotionalDiscounts');
   
       // Filter by Elasticsearch IDs
-      if (esIds.length > 0) {
-        query.andWhere('product.id IN (:...esIds)', { esIds });
+      if (productSearchDto.title) {
+        const searchTerm = productSearchDto.title.trim();
+  
+        query.andWhere(
+          `
+          (
+            to_tsvector('english', unaccent(product.title)) @@ plainto_tsquery('english', unaccent(:searchTerm))
+            OR similarity(unaccent(product.title), unaccent(:searchTerm)) > 0.3
+          )
+          `,
+          { searchTerm },
+        )
+        // best match first
+        .addSelect(
+          `
+          ts_rank_cd(to_tsvector('english', unaccent(product.title)), plainto_tsquery('english', unaccent(:searchTerm))) 
+          + similarity(unaccent(product.title), unaccent(:searchTerm))
+          `,
+          'relevance',
+        )
+        .orderBy('relevance', 'DESC');
       }
 
       if (productSearchDto.productCode) {
@@ -647,14 +603,6 @@ export class ProductsService {
         );
       }
 
-      await this.esService.indexProduct({
-        id: updatedProduct.id,
-        title: updatedProduct.title,
-        description: updateProductDto.description,
-        brand: updatedProduct.brand?.name,
-        category: updatedProduct.category?.name,
-      });
-
       return updatedProduct;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -677,14 +625,6 @@ export class ProductsService {
     product.updated_at = new Date();
   
     const savedProduct = await this.productRepository.save(product);
-  
-    // ✅ Remove from Elasticsearch
-    try {
-      await this.esService.deleteProduct(product.id);
-    } catch (error) {
-      console.error('Failed to remove product from Elasticsearch', error);
-      // optional: don't throw, so DB soft-delete still succeeds
-    }
   
     return savedProduct;
   }
