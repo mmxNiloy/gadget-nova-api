@@ -12,7 +12,7 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { Bool } from 'src/common/enums/bool.enum';
 import { PromoDiscountUtil } from 'src/common/utils/promo-amount.util';
 import { S3Service } from 'src/s3/s3.service';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   CreateProductDto,
   ProductsByIDListQueryDTO,
@@ -145,7 +145,8 @@ export class ProductsService {
     }
   }
 
-  async findAll(title?: string) {
+
+  async findAll(title?: string, page = 1, limit = 10) {
     try {
       const query = this.productRepository
         .createQueryBuilder('product')
@@ -161,29 +162,50 @@ export class ProductsService {
         .leftJoinAndSelect('product.productAttributes', 'productAttributes')
         .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
         .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-        .leftJoinAndSelect(
-          'product.promotionalDiscounts',
-          'promotionalDiscounts',
-        );
-
+        .leftJoinAndSelect('product.promotionalDiscounts', 'promotionalDiscounts');
+  
       if (title) {
-        query.andWhere('LOWER(product.title) LIKE :title', {
-          title: `%${title.toLowerCase()}%`,
-        });
+        const searchTerm = title.trim();
+  
+        query.andWhere(
+          `
+          (
+            to_tsvector('english', unaccent(product.title)) @@ plainto_tsquery('english', unaccent(:searchTerm))
+            OR similarity(unaccent(product.title), unaccent(:searchTerm)) > 0.3
+          )
+          `,
+          { searchTerm },
+        )
+        .addSelect(
+          `
+          ts_rank_cd(to_tsvector('english', unaccent(product.title)), plainto_tsquery('english', unaccent(:searchTerm))) 
+          + similarity(unaccent(product.title), unaccent(:searchTerm))
+          `,
+          'relevance',
+        )
+        .orderBy('relevance', 'DESC');
+      } else {
+        query.orderBy('product.updated_at', 'DESC');
       }
-
+  
+      // Pagination
+      query.skip((page - 1) * limit).take(limit);
+  
       const products = await query.getMany();
-
+  
+      // Apply promo discount + average rating
       const updatedProducts = products.map((product) => ({
         ...this.addAverageRatingToProduct(product),
         ...this.promoDiscountUtil.filterActivePromo(product),
       }));
-
+  
       return updatedProducts;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
+  
+  
 
   async pagination(
     page: number,
@@ -207,15 +229,30 @@ export class ProductsService {
         .leftJoinAndSelect('product.productAttributes', 'productAttributes')
         .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
         .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-        .leftJoinAndSelect(
-          'product.promotionalDiscounts',
-          'promotionalDiscounts',
-        );
-
+        .leftJoinAndSelect('product.promotionalDiscounts', 'promotionalDiscounts');
+  
+      // Filter by Elasticsearch IDs
       if (productSearchDto.title) {
-        query.andWhere('LOWER(product.title) LIKE :title', {
-          title: `%${productSearchDto.title.toLowerCase()}%`,
-        });
+        const searchTerm = productSearchDto.title.trim();
+  
+        query.andWhere(
+          `
+          (
+            to_tsvector('english', unaccent(product.title)) @@ plainto_tsquery('english', unaccent(:searchTerm))
+            OR similarity(unaccent(product.title), unaccent(:searchTerm)) > 0.3
+          )
+          `,
+          { searchTerm },
+        )
+        // best match first
+        .addSelect(
+          `
+          ts_rank_cd(to_tsvector('english', unaccent(product.title)), plainto_tsquery('english', unaccent(:searchTerm))) 
+          + similarity(unaccent(product.title), unaccent(:searchTerm))
+          `,
+          'relevance',
+        )
+        .orderBy('relevance', 'DESC');
       }
 
       if (productSearchDto.productCode) {
@@ -236,154 +273,138 @@ export class ProductsService {
         const subcategories = Array.isArray(productSearchDto.subcategories)
           ? productSearchDto.subcategories
           : [productSearchDto.subcategories];
-
-        query.andWhere('subCategory.slug IN (:...subcategories)', {
-          subcategories,
-        });
+        query.andWhere('subCategory.slug IN (:...subcategories)', { subcategories });
       }
-
-      // Filter out products based on brands
+  
+      // Brands filter
       if (productSearchDto.brands) {
         const brands = Array.isArray(productSearchDto.brands)
           ? productSearchDto.brands
           : [productSearchDto.brands];
-
-        query.andWhere('brand.slug IN (:...brands)', {
-          brands,
-        });
+        query.andWhere('brand.slug IN (:...brands)', { brands });
       }
-
+  
+      // Category IDs filter
       if (productSearchDto.category_ids) {
         const categoryIds = Array.isArray(productSearchDto.category_ids)
           ? productSearchDto.category_ids
           : [productSearchDto.category_ids];
-
-        query.andWhere('category.id IN (:...categoryIds)', {
-          categoryIds,
-        });
+        query.andWhere('category.id IN (:...categoryIds)', { categoryIds });
       }
-
+  
+      // Brand IDs filter
       if (productSearchDto.brand_ids) {
-        productSearchDto.brand_ids = Array.isArray(productSearchDto.brand_ids)
+        const brandIds = Array.isArray(productSearchDto.brand_ids)
           ? productSearchDto.brand_ids
           : [productSearchDto.brand_ids];
-
-        query.andWhere('brand.id IN (:...brand_ids)', {
-          brand_ids: productSearchDto.brand_ids,
-        });
+        query.andWhere('brand.id IN (:...brandIds)', { brandIds });
       }
-
+  
+      // Trending filter
       if (productSearchDto.isTrending !== undefined) {
-        console.log('Trend', productSearchDto.isTrending);
         query.andWhere('product.isTrending = :isTrending', {
           isTrending: productSearchDto.isTrending === Bool.YES ? 1 : 0,
         });
-
+  
         if (productSearchDto.isTrending === Bool.YES) {
           const currentDate = moment().toDate();
-          query.andWhere('product.trendingStartDate <= :currentDate', {
-            currentDate,
-          });
-          query.andWhere('product.trendingEndDate >= :currentDate', {
-            currentDate,
-          });
+          query.andWhere('product.trendingStartDate <= :currentDate', { currentDate });
+          query.andWhere('product.trendingEndDate >= :currentDate', { currentDate });
         }
       }
-
+  
+      // BestSeller filter
       if (productSearchDto.isBestSeller !== undefined) {
-        console.log('Feature', productSearchDto.isBestSeller);
         query.andWhere('product.isBestSeller = :isBestSeller', {
           isBestSeller: productSearchDto.isBestSeller === Bool.YES ? 1 : 0,
         });
       }
-
+  
+      // Featured filter
       if (productSearchDto.isFeatured !== undefined) {
-        console.log('Feature', productSearchDto.isFeatured);
         query.andWhere('product.isFeatured = :isFeatured', {
           isFeatured: productSearchDto.isFeatured === Bool.YES ? 1 : 0,
         });
-
+  
         if (productSearchDto.isFeatured === Bool.YES) {
           const currentDate = moment().toDate();
-          query.andWhere('product.featuredStartDate <= :currentDate', {
-            currentDate,
-          });
-          query.andWhere('product.featuredEndDate >= :currentDate', {
-            currentDate,
-          });
+          query.andWhere('product.featuredStartDate <= :currentDate', { currentDate });
+          query.andWhere('product.featuredEndDate >= :currentDate', { currentDate });
         }
       }
-
+  
+      // Stock filter
       if (productSearchDto.isInStock !== undefined) {
-        console.log('Stock', productSearchDto.isInStock);
         query.andWhere('product.isInStock = :isInStock', {
           isInStock: productSearchDto.isInStock === Bool.YES ? 1 : 0,
         });
       }
-
+  
+      // Date filters
       if (productSearchDto.trendingStartDate) {
         query.andWhere('product.trendingStartDate >= :trendingStartDate', {
           trendingStartDate: productSearchDto.trendingStartDate,
         });
       }
-
+  
       if (productSearchDto.trendingEndDate) {
         query.andWhere('product.trendingEndDate <= :trendingEndDate', {
           trendingEndDate: productSearchDto.trendingEndDate,
         });
       }
-
+  
       if (productSearchDto.featuredStartDate) {
         query.andWhere('product.featuredStartDate >= :featuredStartDate', {
           featuredStartDate: productSearchDto.featuredStartDate,
         });
       }
-
+  
       if (productSearchDto.featuredEndDate) {
         query.andWhere('product.featuredEndDate <= :featuredEndDate', {
           featuredEndDate: productSearchDto.featuredEndDate,
         });
       }
-
-      // Price range filtering
+  
+      // Price filters
       if (productSearchDto.minPrice !== undefined) {
         query.andWhere('product.regularPrice >= :minPrice', {
           minPrice: productSearchDto.minPrice,
         });
       }
-
+  
       if (productSearchDto.maxPrice !== undefined) {
         query.andWhere('product.regularPrice <= :maxPrice', {
           maxPrice: productSearchDto.maxPrice,
         });
       }
-
+  
+      // Sorting
       sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
       const orderFields = ['name', 'created_at', 'updated_at'];
       order = orderFields.includes(order) ? order : 'updated_at';
-
-      query
-        .orderBy(`product.${order}`, sort)
-        .skip((page - 1) * limit)
-        .take(limit);
-
+      query.orderBy(`product.${order}`, sort);
+  
+      // Pagination
+      query.skip((page - 1) * limit).take(limit);
+  
       const [products, total] = await query.getManyAndCount();
-
+  
+      // Apply rating & promo logic
       const updatedProducts = products.map((product) => ({
         ...this.addAverageRatingToProduct(product),
         ...this.promoDiscountUtil.filterActivePromo(product),
       }));
-
+  
       return [updatedProducts, total];
     } catch (error) {
       console.log(error);
-
       throw new BadRequestException({
         message: 'Error fetching products',
         details: error.message,
       });
     }
   }
+  
 
   // Get specific products
   // Used for cached carts
@@ -593,14 +614,21 @@ export class ProductsService {
     jwtPayload: JwtPayloadInterface,
   ): Promise<ProductEntity> {
     const product = await this.findOne(id);
-
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+  
+    // Soft delete in DB
     product.is_active = ActiveStatusEnum.INACTIVE;
     product.updated_by = jwtPayload.id;
     product.updated_user_name = jwtPayload.userName;
     product.updated_at = new Date();
-
-    return await this.productRepository.save(product);
+  
+    const savedProduct = await this.productRepository.save(product);
+  
+    return savedProduct;
   }
+  
 
   async findManyByIds(ids: string[]): Promise<ProductEntity[]> {
     if (!ids.length) {
