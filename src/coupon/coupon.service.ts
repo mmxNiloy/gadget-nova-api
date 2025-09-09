@@ -20,6 +20,7 @@ import { ApplyCouponDto } from './dto/apply-coupon.dto';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { CouponUsageEntity } from './entities/coupon-usage.entity';
 import { CouponEntity } from './entities/coupon.entity';
+import { UserCouponDto } from './dto/user-coupon.dto';
 
 @Injectable()
 export class CouponService {
@@ -318,9 +319,6 @@ export class CouponService {
     if (coupon.startDate > now || coupon.endDate < now) {
       throw new BadRequestException('Coupon is not valid at this time');
     }
-
-    console.log("EXEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEC1");
-    
   
     // Per-user usage check
     let userUsage = await this.couponUsageRepository.findOne({
@@ -334,10 +332,10 @@ export class CouponService {
       });
     }
     if (userUsage.usageCount >= coupon.usageLimitPerUser) {
-      throw new BadRequestException('You have reached usage limit for this coupon');
+      throw new BadRequestException(
+        'You have reached usage limit for this coupon',
+      );
     }
-
-    console.log("EXEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEC2");
   
     // Fetch cart
     const cart = await this.cartRepository.findOne({
@@ -350,10 +348,9 @@ export class CouponService {
         'items.product.brand',
       ],
     });
-
-    console.log({cart});
-    
-    if (!cart || !cart.items.length) throw new BadRequestException('Cart is empty');
+  
+    if (!cart || !cart.items.length)
+      throw new BadRequestException('Cart is empty');
   
     let totalDiscount = 0;
   
@@ -371,7 +368,7 @@ export class CouponService {
       return {
         totalDiscount,
         finalTotal: null, // final product total not changed here
-        appliesTo: 'DELIVERY_CHARGE'
+        appliesTo: 'DELIVERY_CHARGE',
       };
     }
   
@@ -381,60 +378,73 @@ export class CouponService {
       !coupon.applicableCategories?.length &&
       !coupon.applicableSubCategories?.length &&
       !coupon.applicableBrands?.length;
-
-      if (isGlobal && coupon.minimumOrderAmount) {
-        const subtotal = cart.items.reduce(
-          (sum, item) => sum + Number(item.price) * item.quantity,
-          0
-        );
-      
-        if (subtotal < coupon.minimumOrderAmount) {
-          throw new BadRequestException(
-            `Coupon is applicable only for orders of at least ${coupon.minimumOrderAmount}`
-          );
-        }
-      }
-  
-    cart.items.forEach((item) => {
-      const product = item.product;
-      const productTotalPrice = Number(item.price) * item.quantity;
-  
-      const applicable =
-        isGlobal ||
-        coupon.applicableProducts?.some((p) => p.id === product.id) ||
-        coupon.applicableCategories?.some((c) => c.id === product.category?.id) ||
-        coupon.applicableSubCategories?.some((sc) => sc.id === product.subCategory?.id) ||
-        coupon.applicableBrands?.some((b) => b.id === product.brand?.id);
-  
-      if (applicable) {
-        let discountPerItem = 0;
-  
-        if (coupon.couponType === CouponTypeEnum.FLAT) {
-          discountPerItem = coupon.couponValue * item.quantity;
-        } else if (coupon.couponType === CouponTypeEnum.PERCENTAGE) {
-          discountPerItem = (productTotalPrice * coupon.couponValue) / 100;
-        }
-  
-        if (coupon.maximumDiscountLimit) {
-          discountPerItem = Math.min(discountPerItem, coupon.maximumDiscountLimit);
-        }
-  
-        totalDiscount += discountPerItem;
-        coupon.applyCount += 1;
-      }
-    });
   
     const subtotal = cart.items.reduce(
       (sum, item) => sum + Number(item.price) * item.quantity,
-      0
+      0,
     );
+  
+    // If global coupon → apply on subtotal
+    if (isGlobal) {
+      if (coupon.minimumOrderAmount && subtotal < coupon.minimumOrderAmount) {
+        throw new BadRequestException(
+          `Coupon is applicable only for orders of at least ${coupon.minimumOrderAmount}`,
+        );
+      }
+  
+      if (coupon.couponType === CouponTypeEnum.FLAT) {
+        totalDiscount = coupon.couponValue;
+      } else if (coupon.couponType === CouponTypeEnum.PERCENTAGE) {
+        totalDiscount = (subtotal * coupon.couponValue) / 100;
+      }
+  
+      if (coupon.maximumDiscountLimit) {
+        totalDiscount = Math.min(totalDiscount, coupon.maximumDiscountLimit);
+      }
+  
+      coupon.applyCount += 1;
+    } else {
+      // Apply per applicable product
+      cart.items.forEach((item) => {
+        const product = item.product;
+        const productTotalPrice = Number(item.price) * item.quantity;
+  
+        const applicable =
+          coupon.applicableProducts?.some((p) => p.id === product.id) ||
+          coupon.applicableCategories?.some((c) => c.id === product.category?.id) ||
+          coupon.applicableSubCategories?.some(
+            (sc) => sc.id === product.subCategory?.id,
+          ) ||
+          coupon.applicableBrands?.some((b) => b.id === product.brand?.id);
+  
+        if (applicable) {
+          let discountPerItem = 0;
+  
+          if (coupon.couponType === CouponTypeEnum.FLAT) {
+            discountPerItem = coupon.couponValue * item.quantity;
+          } else if (coupon.couponType === CouponTypeEnum.PERCENTAGE) {
+            discountPerItem = (productTotalPrice * coupon.couponValue) / 100;
+          }
+  
+          if (coupon.maximumDiscountLimit) {
+            discountPerItem = Math.min(
+              discountPerItem,
+              coupon.maximumDiscountLimit,
+            );
+          }
+  
+          totalDiscount += discountPerItem;
+          coupon.applyCount += 1;
+        }
+      });
+    }
   
     const finalTotal = subtotal - totalDiscount;
   
     await this.couponRepository.save(coupon);
   
     return { totalDiscount, finalTotal, appliesTo: 'PRODUCTS' };
-  }
+  }  
   
 
   async redeemCoupon(userId: string, couponCode: string) {
@@ -469,28 +479,31 @@ export class CouponService {
     return { message: 'Coupon redeemed successfully', couponCode };
   }
 
-  async getUserCoupons(userId: string): Promise<CouponEntity[]> {
+  async getUserCoupons(userId: string): Promise<UserCouponDto[]> {
     const now = new Date();
-
-    return await this.couponRepository
+  
+    const coupons = await this.couponRepository
       .createQueryBuilder('coupon')
-      .leftJoin('coupon.applicableProducts', 'products')
-      .leftJoin('coupon.applicableCategories', 'categories')
-      .leftJoin('coupon.applicableSubCategories', 'subCategories')
-      .leftJoin('coupon.applicableBrands', 'brands')
-      .leftJoin('coupon.usages', 'usage', 'usage.user_id = :userId', {
-        userId,
-      })
-      .where('coupon.is_active = :isActive', {
-        isActive: ActiveStatusEnum.ACTIVE,
-      })
+      .leftJoinAndSelect('coupon.applicableProducts', 'products')
+      .leftJoinAndSelect('coupon.applicableCategories', 'categories')
+      .leftJoinAndSelect('coupon.applicableSubCategories', 'subCategories')
+      .leftJoinAndSelect('coupon.applicableBrands', 'brands')
+      .leftJoinAndSelect('coupon.usages', 'usage', 'usage.user_id = :userId', { userId })
+      .where('coupon.is_active = :isActive', { isActive: ActiveStatusEnum.ACTIVE })
       .andWhere('coupon.start_date <= :now', { now })
       .andWhere('coupon.end_date >= :now', { now })
-      .andWhere(
-        '(usage.usageCount IS NULL OR usage.usageCount < coupon.usageLimitPerUser)',
-      )
+      .andWhere('(usage.usageCount IS NULL OR usage.usageCount < coupon.usageLimitPerUser)')
       .getMany();
+  
+    return coupons.map((coupon) => {
+      const usageCount = coupon.usages?.[0]?.usageCount ?? 0;
+      return {
+        ...coupon,
+        remainingUsage: coupon.usageLimitPerUser - usageCount,
+      };
+    });
   }
+  
 
   private async sendCouponNotification(userId: string, coupon: CouponEntity): Promise<void> {
     const user = await this.userService.getUserById(userId);
