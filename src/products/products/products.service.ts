@@ -151,65 +151,88 @@ export class ProductsService {
         .createQueryBuilder('product')
         .where('product.is_active = :status', {
           status: ActiveStatusEnum.ACTIVE,
-        });
-      // .leftJoinAndSelect('product.category', 'category')
-      // .leftJoinAndSelect('product.subCategory', 'subCategory')
-      // .leftJoinAndSelect('product.brand', 'brand')
-      // .leftJoinAndSelect('product.questions', 'questions')
-      // .leftJoinAndSelect('questions.answer', 'answer')
-      // .leftJoinAndSelect('product.ratings', 'ratings')
-      // .leftJoinAndSelect('product.productAttributes', 'productAttributes')
-      // .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
-      // .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
-      // .leftJoinAndSelect(
-      //   'product.promotionalDiscounts',
-      //   'promotionalDiscounts',
-      // );
+        })
+        .leftJoinAndSelect('product.category', 'category')
+        .leftJoinAndSelect('product.subCategory', 'subCategory')
+        .leftJoinAndSelect('product.brand', 'brand')
+        .leftJoinAndSelect('product.questions', 'questions')
+        .leftJoinAndSelect('questions.answer', 'answer')
+        .leftJoinAndSelect('product.ratings', 'ratings')
+        .leftJoinAndSelect('product.productAttributes', 'productAttributes')
+        .leftJoinAndSelect('productAttributes.attributeValue', 'attributeValue')
+        .leftJoinAndSelect('attributeValue.attributeGroup', 'attributeGroup')
+        .leftJoinAndSelect(
+          'product.promotionalDiscounts',
+          'promotionalDiscounts',
+        );
 
-      if (title) {
+      if (title && title.trim().length > 0) {
         const searchTerm = title.trim();
-        const terms = searchTerm
+
+        // Build a tsquery like "iph:* & s23:*" for prefix matching
+        const tsQuery = searchTerm
           .split(/\s+/)
           .filter(Boolean)
           .map((t) => `${t}:*`)
-          .join(' & '); // require all prefixes; use '|' to allow any
+          .join(' & ');
 
+        // Subquery that mirrors your CTE solution and returns (id, relevance)
+        // We use INNER JOIN LATERAL-ish pattern via TypeORM innerJoin() with a subquery.
         query
-          .andWhere(
-            `
-    to_tsvector('english', unaccent(product.title)) @@ to_tsquery('english', :tsquery)
-    OR unaccent(product.title) % unaccent(:searchTerm) -- trigram operator for partials
-    `,
-            { tsquery: terms, searchTerm },
+          .innerJoin(
+            (subQb) =>
+              subQb
+                .select('p.id', 'id')
+                .addSelect(
+                  `
+          ts_rank_cd(
+            to_tsvector('english', unaccent(p.title)),
+            to_tsquery('english', :tsquery)
           )
-          .addSelect(
-            `
-    ts_rank_cd(to_tsvector('english', unaccent(product.title)),
-               to_tsquery('english', :tsquery))
-    + GREATEST(similarity(unaccent(product.title), unaccent(:searchTerm)),
-               word_similarity(unaccent(product.title), unaccent(:searchTerm)))
-    `,
-            'relevance',
+          + GREATEST(
+              similarity(unaccent(p.title), unaccent(:searchTerm)),
+              word_similarity(unaccent(p.title), unaccent(:searchTerm))
+            )
+          `,
+                  'relevance',
+                )
+                .from('products', 'p')
+                .where(
+                  `
+          to_tsvector('english', unaccent(p.title)) @@ to_tsquery('english', :tsquery)
+          OR unaccent(p.title) % unaccent(:searchTerm)
+          `,
+                )
+                // paginate at the ranked-id level so joins don't disturb LIMIT/OFFSET
+                .orderBy('relevance', 'DESC')
+                .offset((page - 1) * limit)
+                .limit(limit),
+            'ranked',
+            'ranked.id = product.id',
           )
-          .orderBy('relevance', 'DESC');
+          // expose relevance to the result (optional)
+          .addSelect('ranked.relevance', 'relevance')
+          .orderBy('ranked.relevance', 'DESC') // stable relevance ordering
+          .setParameters({ tsquery: tsQuery, searchTerm });
       } else {
-        query.orderBy('product.updated_at', 'DESC');
+        query
+          .orderBy('product.updated_at', 'DESC')
+          .skip((page - 1) * limit)
+          .take(limit);
       }
 
       // Pagination
-      query.skip((page - 1) * limit).take(limit);
+      // query.skip((page - 1) * limit).take(limit);
 
       const products = await query.getMany();
 
       // Apply promo discount + average rating
-      // const updatedProducts = products.map((product) => ({
-      //   ...this.addAverageRatingToProduct(product),
-      //   ...this.promoDiscountUtil.filterActivePromo(product),
-      // }));
+      const updatedProducts = products.map((product) => ({
+        ...this.addAverageRatingToProduct(product),
+        ...this.promoDiscountUtil.filterActivePromo(product),
+      }));
 
-      // return updatedProducts;
-
-      return products;
+      return updatedProducts;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
