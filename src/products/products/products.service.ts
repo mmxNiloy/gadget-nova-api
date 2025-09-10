@@ -263,13 +263,11 @@ export class ProductsService {
             search_term: raw,
           });
 
-        const searchedIds = await searchQuery.getRawAndEntities();
-        query.innerJoin(
-          () => searchQuery,
-          'searched',
-          'searched.id = product.id',
-        );
-        console.log('Searched Products', searchedIds.raw);
+        const subQuery = searchQuery
+          .subQuery()
+          .from((qb) => searchQuery, 'searched')
+          .getQuery();
+        query.innerJoin(subQuery, 'searched', 'searched.id = product.id');
         query.addOrderBy('searched.relevance', 'DESC');
       }
 
