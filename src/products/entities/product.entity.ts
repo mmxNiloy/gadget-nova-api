@@ -125,9 +125,6 @@ export class ProductEntity extends CustomBaseEntity {
   })
   featuredEndDate: Date;
 
-  @Column({ select: false, name: 'relevance', type: 'float', default: 0 })
-  relevance: number;
-
   @ManyToOne(() => CategoryEntity, (category) => category.products, {
     eager: true,
   })
