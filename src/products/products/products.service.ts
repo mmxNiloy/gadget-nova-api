@@ -271,7 +271,7 @@ export class ProductsService {
         // 2. Wrap it as a subquery (important: use .subQuery())
         const subQuery = searchSubQuery
           .subQuery()
-          .from(Product, 'p')
+          .from((qb) => searchSubQuery, 'p')
           .select('*');
 
         query
