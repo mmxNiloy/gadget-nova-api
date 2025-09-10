@@ -168,54 +168,27 @@ export class ProductsService {
 
       const raw = title?.trim() ?? '';
       if (raw) {
-        const tokens = raw.split(/\s+/).filter(Boolean);
-        const ftsTokens = tokens.filter((t) => t.length >= 2);
-        const tsquery = ftsTokens
-          .map((s: string) => {
-            // Escape tsquery special chars: & | ! ( ) : ' *
-            return s
-              .replace(/[':*&|!()]/g, ' ')
-              .trim()
-              .replace(/\s+/g, ' ');
-          })
-          .map((t) => `${t}:*`)
-          .join(' & ');
-
-        query
-          .innerJoin(
-            (subQb) => {
-              const sq = subQb
-                .select('p.id', 'id')
-                .addSelect(
-                  `
-            (CASE WHEN :tsquery <> '' THEN
-              ts_rank_cd(
-                to_tsvector('english', unaccent(p.title)),
-                to_tsquery('english', :tsquery)
-              )
-            ELSE 0 END)
-            +
-            GREATEST(
-              similarity(unaccent(p.title), unaccent(:searchTerm)),
-              word_similarity(unaccent(p.title), unaccent(:searchTerm))
-            )
-            `,
-                  'relevance',
-                )
-                .from('products', 'p').where(`
-            (:tsquery <> '' AND
-             to_tsvector('english', unaccent(p.title)) @@ to_tsquery('english', :tsquery))
-            OR unaccent(p.title) % unaccent(:searchTerm)
-          `);
-
-              return sq;
-            },
-            'ranked',
-            'ranked.id = product.id',
+        const searchQuery = this.productRepository
+          .createQueryBuilder('product')
+          .addSelect('product.id')
+          .addSelect(
+            `ts_rank_cd(to_tsvector('english', unaccent(product.title)),to_tsquery('english',replace(trim(${raw}), ' ', ':* & ') || ':*')) + GREATEST(similarity(unaccent(product.title), unaccent(${raw})),word_similarity(unaccent(product.title), unaccent(${raw}))) AS relevance`,
           )
-          .addSelect('ranked.relevance', 'relevance')
-          .orderBy('ranked.relevance', 'DESC')
-          .setParameters({ tsquery, searchTerm: raw });
+          .where(
+            `to_tsvector('english', unaccent(product.title)) @@ to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')`,
+            {
+              search_term: raw,
+            },
+          )
+          .orWhere(`unaccent(product.title) % unaccent(:search_term)`, {
+            search_term: raw,
+          });
+        query.innerJoin(
+          () => searchQuery,
+          'searched',
+          'searched.id = product.id',
+        );
+        query.orderBy('searched.relevance', 'DESC');
       } else {
         query.orderBy('product.updated_at', 'DESC');
       }
