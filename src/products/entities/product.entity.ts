@@ -9,7 +9,7 @@ import {
   JoinColumn,
   ManyToMany,
   ManyToOne,
-  OneToMany
+  OneToMany,
 } from 'typeorm';
 import { ProductAttributeEntity } from './product-attribute.entity';
 import { ProductQuestionsEntity } from './product-questions.entity';
@@ -97,17 +97,36 @@ export class ProductEntity extends CustomBaseEntity {
   @Column({ name: 'isInStock', type: 'boolean', default: true })
   isInStock: boolean;
 
-  @Column({ name: 'trendingStartDate', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'trendingStartDate',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   trendingStartDate: Date;
 
-  @Column({ name: 'trendingEndDate', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'trendingEndDate',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   trendingEndDate: Date;
 
-  @Column({ name: 'featuredStartDate', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'featuredStartDate',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   featuredStartDate: Date;
 
-  @Column({ name: 'featuredEndDate', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'featuredEndDate',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   featuredEndDate: Date;
+
+  @Column({ select: false, name: 'relevance', type: 'float', default: 0 })
+  relevance: number;
 
   @ManyToOne(() => CategoryEntity, (category) => category.products, {
     eager: true,

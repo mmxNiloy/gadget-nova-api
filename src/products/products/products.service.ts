@@ -248,8 +248,7 @@ export class ProductsService {
       if (raw) {
         const searchQuery = this.productRepository
           .createQueryBuilder('product')
-          .select('product.title')
-          .addSelect('product.id')
+          .select(['product.title', 'product.id'])
           .addSelect(
             `ts_rank_cd(to_tsvector('english', unaccent(product.title)),to_tsquery('english',replace(trim('${raw}'), ' ', ':* & ') || ':*')) + GREATEST(similarity(unaccent(product.title), unaccent('${raw}')),word_similarity(unaccent(product.title), unaccent('${raw}')))`,
             'relevance',
@@ -271,7 +270,7 @@ export class ProductsService {
           'searched.id = product.id',
         );
         console.log('Searched Products', searchedIds);
-        query.addOrderBy('relevance', 'DESC');
+        query.addOrderBy('searched.relevance', 'DESC');
       }
 
       if (productSearchDto.productCode) {
