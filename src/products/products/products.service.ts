@@ -251,7 +251,8 @@ export class ProductsService {
           .addSelect('product.id')
           .addSelect('product.title')
           .addSelect(
-            `ts_rank_cd(to_tsvector('english', unaccent(product.title)),to_tsquery('english',replace(trim(${raw}), ' ', ':* & ') || ':*')) + GREATEST(similarity(unaccent(product.title), unaccent(${raw})),word_similarity(unaccent(product.title), unaccent(${raw}))) AS relevance`,
+            `ts_rank_cd(to_tsvector('english', unaccent(product.title)),to_tsquery('english',replace(trim('${raw}'), ' ', ':* & ') || ':*')) + GREATEST(similarity(unaccent(product.title), unaccent('${raw}')),word_similarity(unaccent(product.title), unaccent('${raw}')))`,
+            'relevance',
           )
           .where(
             `to_tsvector('english', unaccent(product.title)) @@ to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')`,
