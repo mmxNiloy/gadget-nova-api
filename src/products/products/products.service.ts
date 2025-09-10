@@ -167,6 +167,7 @@ export class ProductsService {
         );
 
       const raw = title?.trim() ?? '';
+      console.log('Search Term', raw);
       if (raw) {
         const searchQuery = this.productRepository
           .createQueryBuilder('product')
