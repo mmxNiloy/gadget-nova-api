@@ -246,12 +246,18 @@ export class ProductsService {
       // Filter by Elasticsearch IDs
       const raw = title?.trim() ?? '';
       if (raw) {
-        const searchQuery = this.productRepository
+        const searchSubQuery = this.productRepository
           .createQueryBuilder('p')
-          .select(['p.id'])
+          .select('p.id', 'id')
           .addSelect(
-            `ts_rank_cd(to_tsvector('english', unaccent(p.title)), to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*'))
-      + GREATEST(similarity(unaccent(p.title), unaccent(:search_term)), word_similarity(unaccent(p.title), unaccent(:search_term)))`,
+            `ts_rank_cd(
+        to_tsvector('english', unaccent(p.title)),
+        to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')
+     ) 
+     + GREATEST(
+        similarity(unaccent(p.title), unaccent(:search_term)), 
+        word_similarity(unaccent(p.title), unaccent(:search_term))
+     )`,
             'relevance',
           )
           .where(
@@ -262,19 +268,21 @@ export class ProductsService {
             search_term: raw,
           });
 
+        // 2. Wrap it as a subquery (important: use .subQuery())
+        const subQuery = searchSubQuery
+          .subQuery()
+          .from(Product, 'p')
+          .select('*');
+
         query
           .innerJoin(
             (qb) => {
-              return qb
-                .subQuery()
-                .select('s.id', 'id')
-                .addSelect('s.relevance', 'relevance')
-                .from(`(${searchQuery.getQuery()})`, 's') // subquery as a "table"
-                .setParameters(searchQuery.getParameters());
+              return searchSubQuery; // this is the inner subquery builder
             },
             'searched',
             'searched.id = product.id',
           )
+          .addSelect('searched.relevance', 'product_relevance')
           .addOrderBy('searched.relevance', 'DESC');
       }
 
