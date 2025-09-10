@@ -63,14 +63,20 @@ export class CouponService {
       }
 
       // For single usage coupons, validate user ID and check if user exists
-      if (createCouponDto.couponUsageType === CouponUsageTypeEnum.SINGLE_USAGE) {
+      if (
+        createCouponDto.couponUsageType === CouponUsageTypeEnum.SINGLE_USAGE
+      ) {
         if (!createCouponDto.userId) {
-          throw new BadRequestException('User ID is required for single usage coupon');
+          throw new BadRequestException(
+            'User ID is required for single usage coupon',
+          );
         }
 
         const user = await this.userService.getUserById(createCouponDto.userId);
         if (!user) {
-          throw new BadRequestException('User with the provided ID does not exist');
+          throw new BadRequestException(
+            'User with the provided ID does not exist',
+          );
         }
       }
 
@@ -134,12 +140,21 @@ export class CouponService {
       const savedCoupon = await this.couponRepository.save(coupon);
 
       // Send notification for single usage coupons
-      if (createCouponDto.couponUsageType === CouponUsageTypeEnum.SINGLE_USAGE && createCouponDto.userId) {
+      if (
+        createCouponDto.couponUsageType === CouponUsageTypeEnum.SINGLE_USAGE &&
+        createCouponDto.userId
+      ) {
         try {
-          await this.sendCouponNotification(createCouponDto.userId, savedCoupon);
+          await this.sendCouponNotification(
+            createCouponDto.userId,
+            savedCoupon,
+          );
         } catch (notificationError) {
           // Log notification error but don't fail the coupon creation
-          console.error('Failed to send coupon notification:', notificationError);
+          console.error(
+            'Failed to send coupon notification:',
+            notificationError,
+          );
         }
       }
 
@@ -312,14 +327,14 @@ export class CouponService {
         'usages',
       ],
     });
-  
+
     if (!coupon) throw new BadRequestException('Coupon not found');
-  
+
     const now = new Date();
     if (coupon.startDate > now || coupon.endDate < now) {
       throw new BadRequestException('Coupon is not valid at this time');
     }
-  
+
     // Per-user usage check
     let userUsage = await this.couponUsageRepository.findOne({
       where: { coupon: { id: coupon.id }, user: { id: userId } },
@@ -336,7 +351,7 @@ export class CouponService {
         'You have reached usage limit for this coupon',
       );
     }
-  
+
     // Fetch cart
     const cart = await this.cartRepository.findOne({
       where: { user: { id: userId }, is_active: ActiveStatusEnum.ACTIVE },
@@ -351,9 +366,9 @@ export class CouponService {
   
     if (!cart || !cart.items.length)
       throw new BadRequestException('Cart is empty');
-  
+
     let totalDiscount = 0;
-  
+
     // If coupon is for delivery charge only
     if (coupon.couponType === CouponTypeEnum.DELIVERY_CHARGE) {
       if (coupon.couponValue) {
@@ -364,21 +379,21 @@ export class CouponService {
       }
       coupon.applyCount += 1;
       await this.couponRepository.save(coupon);
-  
+
       return {
         totalDiscount,
         finalTotal: null, // final product total not changed here
         appliesTo: 'DELIVERY_CHARGE',
       };
     }
-  
+
     // Otherwise — Product or subtotal based discount
     const isGlobal =
       !coupon.applicableProducts?.length &&
       !coupon.applicableCategories?.length &&
       !coupon.applicableSubCategories?.length &&
       !coupon.applicableBrands?.length;
-  
+
     const subtotal = cart.items.reduce(
       (sum, item) => sum + Number(item.price) * item.quantity,
       0,
@@ -387,6 +402,7 @@ export class CouponService {
     // If global coupon → apply on subtotal
     if (isGlobal) {
       if (coupon.minimumOrderAmount && subtotal < coupon.minimumOrderAmount) {
+
         throw new BadRequestException(
           `Coupon is applicable only for orders of at least ${coupon.minimumOrderAmount}`,
         );
@@ -440,12 +456,11 @@ export class CouponService {
     }
   
     const finalTotal = subtotal - totalDiscount;
-  
+
     await this.couponRepository.save(coupon);
-  
+
     return { totalDiscount, finalTotal, appliesTo: 'PRODUCTS' };
-  }  
-  
+  }
 
   async redeemCoupon(userId: string, couponCode: string) {
     const coupon = await this.couponRepository.findOne({
@@ -505,7 +520,10 @@ export class CouponService {
   }
   
 
-  private async sendCouponNotification(userId: string, coupon: CouponEntity): Promise<void> {
+  private async sendCouponNotification(
+    userId: string,
+    coupon: CouponEntity,
+  ): Promise<void> {
     const user = await this.userService.getUserById(userId);
     if (!user) {
       console.error('User not found for sending coupon notification.');
@@ -517,30 +535,39 @@ export class CouponService {
       try {
         const subject = `🎉 Your Exclusive Coupon: ${coupon.couponCode}`;
         const htmlContent = this.generateCouponEmailHtml(coupon);
-        
-        await this.mailService.sendCouponEmail(user.email, subject, htmlContent);
+
+        await this.mailService.sendCouponEmail(
+          user.email,
+          subject,
+          htmlContent,
+        );
         console.log(`Coupon email sent successfully to ${user.email}`);
       } catch (error) {
         console.error('Failed to send coupon email:', error);
         // If email fails, try SMS as fallback
         await this.sendCouponSms(user.phone, coupon);
       }
-    } 
+    }
     // If user doesn't have email but has phone, send SMS
     else if (user.phone) {
       await this.sendCouponSms(user.phone, coupon);
-    } 
+    }
     // If user has neither email nor phone
     else {
-      console.error('User has no email or phone for sending coupon notification.');
+      console.error(
+        'User has no email or phone for sending coupon notification.',
+      );
     }
   }
 
-  private async sendCouponSms(phoneNumber: string, coupon: CouponEntity): Promise<void> {
+  private async sendCouponSms(
+    phoneNumber: string,
+    coupon: CouponEntity,
+  ): Promise<void> {
     try {
       const message = this.generateCouponSmsMessage(coupon);
       const success = await this.smsService.sendSms(phoneNumber, message);
-      
+
       if (success) {
         console.log(`Coupon SMS sent successfully to ${phoneNumber}`);
       } else {
@@ -552,31 +579,35 @@ export class CouponService {
   }
 
   private generateCouponSmsMessage(coupon: CouponEntity): string {
-    const discountText = coupon.couponType === CouponTypeEnum.PERCENTAGE 
-      ? `${coupon.couponValue}% OFF`
-      : coupon.couponType === CouponTypeEnum.FLAT
-      ? `$${coupon.couponValue} OFF`
-      : 'FREE DELIVERY';
+    const discountText =
+      coupon.couponType === CouponTypeEnum.PERCENTAGE
+        ? `${coupon.couponValue}% OFF`
+        : coupon.couponType === CouponTypeEnum.FLAT
+          ? `$${coupon.couponValue} OFF`
+          : 'FREE DELIVERY';
 
     const validityPeriod = `Valid from ${new Date(coupon.startDate).toLocaleDateString()} to ${new Date(coupon.endDate).toLocaleDateString()}`;
-    
-    return `🎉 Your Exclusive Coupon: ${coupon.couponCode}\n\n` +
-           `${discountText}\n` +
-           `Min Order: $${coupon.minimumOrderAmount}\n` +
-           `${validityPeriod}\n\n` +
-           `Use this coupon code at checkout!\n` +
-           `Thank you for choosing Gadget Nova!`;
+
+    return (
+      `🎉 Your Exclusive Coupon: ${coupon.couponCode}\n\n` +
+      `${discountText}\n` +
+      `Min Order: $${coupon.minimumOrderAmount}\n` +
+      `${validityPeriod}\n\n` +
+      `Use this coupon code at checkout!\n` +
+      `Thank you for choosing Gadget Nova!`
+    );
   }
 
   private generateCouponEmailHtml(coupon: CouponEntity): string {
-    const discountText = coupon.couponType === CouponTypeEnum.PERCENTAGE 
-      ? `${coupon.couponValue}% OFF`
-      : coupon.couponType === CouponTypeEnum.FLAT
-      ? `$${coupon.couponValue} OFF`
-      : 'FREE DELIVERY';
+    const discountText =
+      coupon.couponType === CouponTypeEnum.PERCENTAGE
+        ? `${coupon.couponValue}% OFF`
+        : coupon.couponType === CouponTypeEnum.FLAT
+          ? `$${coupon.couponValue} OFF`
+          : 'FREE DELIVERY';
 
     const validityPeriod = `Valid from ${new Date(coupon.startDate).toLocaleDateString()} to ${new Date(coupon.endDate).toLocaleDateString()}`;
-    
+
     return `
       <!DOCTYPE html>
       <html>
