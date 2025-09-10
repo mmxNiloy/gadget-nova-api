@@ -171,6 +171,7 @@ export class ProductsService {
         const searchQuery = this.productRepository
           .createQueryBuilder('product')
           .addSelect('product.id')
+          .addSelect('product.title')
           .addSelect(
             `ts_rank_cd(to_tsvector('english', unaccent(product.title)),to_tsquery('english',replace(trim(${raw}), ' ', ':* & ') || ':*')) + GREATEST(similarity(unaccent(product.title), unaccent(${raw})),word_similarity(unaccent(product.title), unaccent(${raw}))) AS relevance`,
           )
@@ -183,6 +184,9 @@ export class ProductsService {
           .orWhere(`unaccent(product.title) % unaccent(:search_term)`, {
             search_term: raw,
           });
+
+        const searchedIds = await searchQuery.getMany();
+        console.log('Searched Products', searchedIds);
         query.innerJoin(
           () => searchQuery,
           'searched',
