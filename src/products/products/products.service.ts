@@ -167,7 +167,6 @@ export class ProductsService {
         );
 
       const raw = title?.trim() ?? '';
-      console.log('Search Term', raw);
       if (raw) {
         const searchQuery = this.productRepository
           .createQueryBuilder('product')
@@ -242,29 +241,36 @@ export class ProductsService {
           'promotionalDiscounts',
         );
 
-      // Filter by Elasticsearch IDs
-      if (productSearchDto.title) {
-        const searchTerm = productSearchDto.title.trim();
+      const { title } = productSearchDto;
 
-        query
-          .andWhere(
-            `
-          (
-            to_tsvector('english', unaccent(product.title)) @@ plainto_tsquery('english', unaccent(:searchTerm))
-            OR similarity(unaccent(product.title), unaccent(:searchTerm)) > 0.3
-          )
-          `,
-            { searchTerm },
-          )
-          // best match first
+      // Filter by Elasticsearch IDs
+      const raw = title?.trim() ?? '';
+      if (raw) {
+        const searchQuery = this.productRepository
+          .createQueryBuilder('product')
+          .addSelect('product.id')
+          .addSelect('product.title')
           .addSelect(
-            `
-          ts_rank_cd(to_tsvector('english', unaccent(product.title)), plainto_tsquery('english', unaccent(:searchTerm))) 
-          + similarity(unaccent(product.title), unaccent(:searchTerm))
-          `,
-            'relevance',
+            `ts_rank_cd(to_tsvector('english', unaccent(product.title)),to_tsquery('english',replace(trim(${raw}), ' ', ':* & ') || ':*')) + GREATEST(similarity(unaccent(product.title), unaccent(${raw})),word_similarity(unaccent(product.title), unaccent(${raw}))) AS relevance`,
           )
-          .orderBy('relevance', 'DESC');
+          .where(
+            `to_tsvector('english', unaccent(product.title)) @@ to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')`,
+            {
+              search_term: raw,
+            },
+          )
+          .orWhere(`unaccent(product.title) % unaccent(:search_term)`, {
+            search_term: raw,
+          });
+
+        const searchedIds = await searchQuery.getMany();
+        console.log('Searched Products', searchedIds);
+        query.innerJoin(
+          () => searchQuery,
+          'searched',
+          'searched.id = product.id',
+        );
+        query.addOrderBy('searched.relevance', 'DESC');
       }
 
       if (productSearchDto.productCode) {
@@ -404,7 +410,7 @@ export class ProductsService {
       sort = ['ASC', 'DESC'].includes(sort) ? sort : 'DESC';
       const orderFields = ['name', 'created_at', 'updated_at'];
       order = orderFields.includes(order) ? order : 'updated_at';
-      query.orderBy(`product.${order}`, sort);
+      query.addOrderBy(`product.${order}`, sort);
 
       // Pagination
       query.skip((page - 1) * limit).take(limit);
