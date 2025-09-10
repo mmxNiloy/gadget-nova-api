@@ -246,44 +246,21 @@ export class ProductsService {
       // Filter by Elasticsearch IDs
       const raw = title?.trim() ?? '';
       if (raw) {
-        const searchSubQuery = this.productRepository
-          .createQueryBuilder('p')
-          .select('p.id', 'id')
+        query
           .addSelect(
-            `ts_rank_cd(
-        to_tsvector('english', unaccent(p.title)),
-        to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')
-     ) 
-     + GREATEST(
-        similarity(unaccent(p.title), unaccent(:search_term)), 
-        word_similarity(unaccent(p.title), unaccent(:search_term))
-     )`,
+            `ts_rank_cd(to_tsvector('english', unaccent(product.title)),to_tsquery('english',replace(trim(:search_term), ' ', ':* & ') || ':*')) + GREATEST(similarity(unaccent(product.title), unaccent(:search_term)),word_similarity(unaccent(product.title), unaccent(:search_term)))`,
             'relevance',
           )
-          .where(
-            `to_tsvector('english', unaccent(p.title)) @@ to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')`,
-            { search_term: raw },
-          )
-          .orWhere(`unaccent(p.title) % unaccent(:search_term)`, {
-            search_term: raw,
-          });
-
-        // 2. Wrap it as a subquery (important: use .subQuery())
-        const subQuery = searchSubQuery
-          .subQuery()
-          .from((qb) => searchSubQuery, 'p')
-          .select('*');
-
-        query
-          .innerJoin(
-            (qb) => {
-              return searchSubQuery; // this is the inner subquery builder
+          .andWhere(
+            `to_tsvector('english', unaccent(product.title)) @@ to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')`,
+            {
+              search_term: raw,
             },
-            'searched',
-            'searched.id = product.id',
           )
-          .addSelect('searched.relevance', 'product_relevance')
-          .addOrderBy('searched.relevance', 'DESC');
+          .orWhere(`unaccent(product.title) % unaccent(:search_term)`, {
+            search_term: raw,
+          })
+          .addOrderBy('relevance', 'DESC');
       }
 
       if (productSearchDto.productCode) {
