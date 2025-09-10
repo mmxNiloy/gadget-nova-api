@@ -247,28 +247,35 @@ export class ProductsService {
       const raw = title?.trim() ?? '';
       if (raw) {
         const searchQuery = this.productRepository
-          .createQueryBuilder('product')
-          .select(['product.title', 'product.id'])
+          .createQueryBuilder('p')
+          .select(['p.id'])
           .addSelect(
-            `ts_rank_cd(to_tsvector('english', unaccent(product.title)),to_tsquery('english',replace(trim('${raw}'), ' ', ':* & ') || ':*')) + GREATEST(similarity(unaccent(product.title), unaccent('${raw}')),word_similarity(unaccent(product.title), unaccent('${raw}')))`,
+            `ts_rank_cd(to_tsvector('english', unaccent(p.title)), to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*'))
+      + GREATEST(similarity(unaccent(p.title), unaccent(:search_term)), word_similarity(unaccent(p.title), unaccent(:search_term)))`,
             'relevance',
           )
           .where(
-            `to_tsvector('english', unaccent(product.title)) @@ to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')`,
-            {
-              search_term: raw,
-            },
+            `to_tsvector('english', unaccent(p.title)) @@ to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')`,
+            { search_term: raw },
           )
-          .orWhere(`unaccent(product.title) % unaccent(:search_term)`, {
+          .orWhere(`unaccent(p.title) % unaccent(:search_term)`, {
             search_term: raw,
           });
 
-        const subQuery = searchQuery
-          .subQuery()
-          .from((qb) => searchQuery, 'searched')
-          .getQuery();
-        query.innerJoin(subQuery, 'searched', 'searched.id = product.id');
-        query.addOrderBy('searched.relevance', 'DESC');
+        query
+          .innerJoin(
+            (qb) => {
+              return qb
+                .subQuery()
+                .select('s.id', 'id')
+                .addSelect('s.relevance', 'relevance')
+                .from(`(${searchQuery.getQuery()})`, 's') // subquery as a "table"
+                .setParameters(searchQuery.getParameters());
+            },
+            'searched',
+            'searched.id = product.id',
+          )
+          .addOrderBy('searched.relevance', 'DESC');
       }
 
       if (productSearchDto.productCode) {
