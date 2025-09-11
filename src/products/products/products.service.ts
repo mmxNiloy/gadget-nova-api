@@ -251,17 +251,17 @@ export class ProductsService {
           .addSelect('unaccent(lower(product.title))', 'title_norm')
           .addSelect('unaccent(lower(:search_term))', 'q_norm')
           .addSelect(
-            `(ts_rank_cd(to_tsvector('english', title_norm),to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*')) * 2.0) + (GREATEST(similarity(title_norm, q_norm), word_similarity(title_norm, q_norm)) * 0.6) + CASE WHEN title_norm LIKE '%' || q_norm || '%' THEN 0.8 ELSE 0 END`,
+            `(ts_rank_cd(to_tsvector('english', unaccent(lower(product.title))),to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*')) * 2.0) + (GREATEST(similarity(unaccent(lower(product.title)), q_norm), word_similarity(unaccent(lower(product.title)), q_norm)) * 0.6) + CASE WHEN unaccent(lower(product.title)) LIKE '%' || q_norm || '%' THEN 0.8 ELSE 0 END`,
             'relevance',
           )
           .addSelect(
-            `(to_tsvector('english', title_norm) @@ to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*'))`,
+            `(to_tsvector('english', unaccent(lower(product.title))) @@ to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*'))`,
             'both_terms',
           )
           .andWhere(
-            `(to_tsvector('english', title_norm) @@ to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*'))`,
+            `(to_tsvector('english', unaccent(lower(product.title))) @@ to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*'))`,
           )
-          .orWhere(`similarity(title_norm, q_norm) >= 0.1`)
+          .orWhere(`similarity(unaccent(lower(product.title)), q_norm) >= 0.1`)
           .addOrderBy('both_terms', 'DESC')
           .addOrderBy('relevance', 'DESC');
       }
