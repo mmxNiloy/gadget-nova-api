@@ -247,19 +247,22 @@ export class ProductsService {
       const raw = title?.trim() ?? '';
       if (raw) {
         query
+          .setParameters({ search_term: raw })
+          .addSelect('unaccent(lower(product.title))', 'title_norm')
+          .addSelect('unaccent(lower(:search_term))', 'q_norm')
           .addSelect(
-            `ts_rank_cd(to_tsvector('english', unaccent(product.title)),to_tsquery('english',replace(trim(:search_term), ' ', ':* & ') || ':*')) + GREATEST(similarity(unaccent(product.title), unaccent(:search_term)),word_similarity(unaccent(product.title), unaccent(:search_term)))`,
+            `(ts_rank_cd(to_tsvector('english', title_norm),to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*')) * 2.0) + (GREATEST(similarity(title_norm, q_norm), word_similarity(title_norm, q_norm)) * 0.6) + CASE WHEN title_norm LIKE '%' || q_norm || '%' THEN 0.8 ELSE 0 END`,
             'relevance',
           )
-          .andWhere(
-            `to_tsvector('english', unaccent(product.title)) @@ to_tsquery('english', replace(trim(:search_term), ' ', ':* & ') || ':*')`,
-            {
-              search_term: raw,
-            },
+          .addSelect(
+            `(to_tsvector('english', title_norm) @@ to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*'))`,
+            'both_terms',
           )
-          .orWhere(`unaccent(product.title) % unaccent(:search_term)`, {
-            search_term: raw,
-          })
+          .andWhere(
+            `(to_tsvector('english', title_norm) @@ to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*'))`,
+          )
+          .orWhere(`similarity(title_norm, q_norm) >= 0.1`)
+          .addOrderBy('both_terms', 'DESC')
           .addOrderBy('relevance', 'DESC');
       }
 
