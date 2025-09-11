@@ -248,20 +248,22 @@ export class ProductsService {
       if (raw) {
         query
           .setParameters({ search_term: raw })
-          .addSelect('unaccent(lower(product.title))', 'title_norm')
-          .addSelect('unaccent(lower(:search_term))', 'q_norm')
+          // .addSelect('unaccent(lower(product.title))', 'title_norm')
+          // .addSelect('unaccent(lower(:search_term))', 'q_norm')
           .addSelect(
-            `(ts_rank_cd(to_tsvector('english', unaccent(lower(product.title))),to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*')) * 2.0) + (GREATEST(similarity(unaccent(lower(product.title)), q_norm), word_similarity(unaccent(lower(product.title)), q_norm)) * 0.6) + CASE WHEN unaccent(lower(product.title)) LIKE '%' || q_norm || '%' THEN 0.8 ELSE 0 END`,
+            `(ts_rank_cd(to_tsvector('english', unaccent(lower(product.title))),to_tsquery('english', replace(trim(unaccent(lower(:search_term))), ' ', ':* & ') || ':*')) * 2.0) + (GREATEST(similarity(unaccent(lower(product.title)), unaccent(lower(:search_term))), word_similarity(unaccent(lower(product.title)), unaccent(lower(:search_term)))) * 0.6) + CASE WHEN unaccent(lower(product.title)) LIKE '%' || unaccent(lower(:search_term)) || '%' THEN 0.8 ELSE 0 END`,
             'relevance',
           )
           .addSelect(
-            `(to_tsvector('english', unaccent(lower(product.title))) @@ to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*'))`,
+            `(to_tsvector('english', unaccent(lower(product.title))) @@ to_tsquery('english', replace(trim(unaccent(lower(:search_term))), ' ', ':* & ') || ':*'))`,
             'both_terms',
           )
           .andWhere(
-            `(to_tsvector('english', unaccent(lower(product.title))) @@ to_tsquery('english', replace(trim(q_norm), ' ', ':* & ') || ':*'))`,
+            `(to_tsvector('english', unaccent(lower(product.title))) @@ to_tsquery('english', replace(trim(unaccent(lower(:search_term))), ' ', ':* & ') || ':*'))`,
           )
-          .orWhere(`similarity(unaccent(lower(product.title)), q_norm) >= 0.1`)
+          .orWhere(
+            `similarity(unaccent(lower(product.title)), unaccent(lower(:search_term))) >= 0.1`,
+          )
           .addOrderBy('both_terms', 'DESC')
           .addOrderBy('relevance', 'DESC');
       }
