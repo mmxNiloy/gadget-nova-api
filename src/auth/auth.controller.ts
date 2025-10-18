@@ -100,7 +100,7 @@ export class AuthController {
   }
 
   // @ApiBearerAuth('jwt')
-  @UseGuards(RefreshAuthGuard)
+  // @UseGuards(RefreshAuthGuard)
   @Post('refresh-token')
   async refreshToken(@Body() refreshAuthUserDto: RefreshAuthUserDto) {
     try {
